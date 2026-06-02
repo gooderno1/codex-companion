@@ -1,0 +1,74 @@
+{
+  "name": "codex-companion",
+  "version": "0.2.0-dev.1",
+  "private": true,
+  "description": "非官方 Codex 额度、Token 与代码活动桌面伴侣",
+  "license": "MIT",
+  "author": "gooderno1",
+  "main": "dist-electron/main/index.js",
+  "scripts": {
+    "dev": "concurrently -k -n renderer,main,electron -c blue,green,cyan \"npm:dev:renderer\" \"npm:dev:main\" \"npm:dev:electron\"",
+    "dev:renderer": "vite --host 127.0.0.1 --port 5173",
+    "dev:main": "tsc -p tsconfig.main.json --watch --preserveWatchOutput",
+    "dev:electron": "wait-on tcp:5173 dist-electron/main/index.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electronmon .",
+    "build": "npm run lint && npm run typecheck && npm run build:renderer && npm run build:main",
+    "build:renderer": "vite build",
+    "build:main": "tsc -p tsconfig.main.json",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.main.json",
+    "lint": "eslint .",
+    "start": "electron .",
+    "package:win": "npm run build && electron-builder --win portable nsis"
+  },
+  "build": {
+    "appId": "com.gooderno1.codex-companion",
+    "productName": "Codex Companion",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json",
+      "README.md",
+      "PRIVACY.md"
+    ],
+    "extraMetadata": {
+      "main": "dist-electron/main/index.js"
+    },
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/electron": "^1.4.38",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^10.0.3",
+    "cross-env": "^10.1.0",
+    "electron": "^42.3.2",
+    "electron-builder": "^26.8.1",
+    "electronmon": "^2.0.4",
+    "eslint": "^10.4.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.1",
+    "vite": "^8.0.16",
+    "wait-on": "^9.0.10"
+  }
+}
