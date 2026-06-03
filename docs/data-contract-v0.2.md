@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.2.2-dev.31`
+- 对应开发版本：`v0.2.2-dev.37`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -93,3 +93,23 @@
 
 - `docs/data-audit/overview-token-quota-audit-v0.1.md`：复核总览页自然时间 Token 与额度窗口 Token 差异，确认当前实现没有把今日首个 `total_token_usage` 累计快照直接计为自然日增量。
 - `docs/goal-audit/overview-goal-completion-audit-v0.1.md`：按原目标逐项复核设计对照、图标资产、真实额度数据和当前可交付状态。
+
+## 6. 可执行校验
+
+`v0.2.2-dev.37` 起提供只读额度快照校验命令：
+
+```bash
+npm run verify:quota
+```
+
+默认读取运行态 `snapshot.json`，也可以通过 `-- --snapshot <path>` 或 `CODEX_COMPANION_SNAPSHOT_PATH` 指定快照路径。
+
+该命令只校验聚合后的快照字段，不读取或输出原始会话正文。校验范围包括：
+
+- `5H` 与 `周额度` 窗口必须来自 `primary / secondary`。
+- 窗口长度必须分别为 `300` 与 `10080` 分钟。
+- 圆环余量必须等于 `100 - 最近 usedPercent`。
+- 当前周期起止必须由 `resetsAt - windowMinutes` 推导。
+- 当前周期必须包含 `quotaEvidence` 观测证据。
+- `estimatedValueBasisUsedPercent` 必须使用周期累计 `quotaEvidence.usedPercent`，不得回退到最近一次原始 `usedPercent`。
+- `estimatedFullValueUsd` 必须按 `estimatedSpentUsd / 周期累计已用百分比` 计算。

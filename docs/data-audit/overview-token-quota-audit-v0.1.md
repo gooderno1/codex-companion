@@ -1,7 +1,7 @@
 # 总览页 Token / 额度数据审计（v0.1）
 
 - 创建时间：2026-06-04
-- 审计基线：`v0.2.2-dev.31`
+- 审计基线：`v0.2.2-dev.37`
 - 参考项目：`D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\dev-ledger`
 - 审计范围：总览页顶部自然时间 Token、5H / 周额度卡 Token、额度余量与周期边界
 - 隐私边界：只读取 `token_count` 数值字段和时间戳，不输出原始会话正文、用户输入、模型回复或本地路径明细
@@ -129,3 +129,33 @@
 
 - 若后续继续增强可信度，可以在快照中增加内部诊断字段，例如 `tokenIncrementEvents`、`largestTokenIncrement` 和 `periodWindowLabel`，但总览页默认不展开。
 - 若用户希望进一步核对数值，可增加一个本地只读诊断命令，输出聚合摘要，不输出原始会话内容。
+
+## 9. `v0.2.2-dev.37` 可执行额度快照校验
+
+为避免后续只能人工查看 `snapshot.json` 判断额度数据是否真实，本轮新增只读校验命令：
+
+```bash
+npm run verify:quota
+```
+
+校验对象：
+
+- 默认运行态快照：`C:\Users\85406\AppData\Roaming\codex-companion\snapshot.json`
+- 可通过 `CODEX_COMPANION_SNAPSHOT_PATH` 或 `npm run verify:quota -- --snapshot <path>` 指定其他快照
+
+校验内容：
+
+- `5H` 与 `周额度` 分别绑定 `primary / secondary`。
+- `windowMinutes` 分别为 `300 / 10080`。
+- 圆环余量等于 `100 - 最近 usedPercent`。
+- 周期起止来自 `resetsAt - windowMinutes`，而不是自然时间硬编码。
+- 当前周期包含 `quotaEvidence.observations / resetCount / resetEvents / usageSegments`。
+- 价值折算分母使用 `quotaEvidence.usedPercent`，防止再次回退到最近一次 `rate_limits.used_percent`。
+
+本命令只读取聚合快照，不读取或输出原始会话正文、用户输入、模型回复或本地路径明细。
+
+`v0.2.2-dev.37` 本机运行结果：
+
+- `5H 额度`：最近余量 `100%`，周期累计 `0%`，Token `109,547`，观测 `2` 次，重置 `0` 次。
+- `周额度`：最近余量 `99%`，最近已用 `1%`，周期累计 `28%`，Token `219,799,653`，观测 `1494` 次，重置 `0` 次。
+- 周额度满额估值使用周期累计 `28%` 作为分母，校验结果约 `$3879.63`。

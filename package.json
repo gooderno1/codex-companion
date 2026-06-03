@@ -1,6 +1,6 @@
 {
   "name": "codex-companion",
-  "version": "0.2.2-dev.36",
+  "version": "0.2.2-dev.37",
   "private": true,
   "description": "非官方 Codex 额度、Token 与代码活动桌面伴侣",
   "license": "MIT",
@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.main.json",
     "lint": "eslint .",
     "start": "electron .",
+    "verify:quota": "node scripts/verify-quota-snapshot.mjs",
     "package:win": "npm run build && electron-builder --win portable nsis"
   },
   "build": {
