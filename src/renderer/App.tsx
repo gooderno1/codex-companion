@@ -61,7 +61,9 @@ type IconName =
   | "token"
   | "calendar"
   | "month"
-  | "code";
+  | "code"
+  | "cost"
+  | "session";
 type OverviewMode = "natural" | "billing";
 type NaturalProjectPeriod = "day" | "week" | "month";
 type BillingProjectPeriod = "fiveHour" | "weekLimit";
@@ -72,7 +74,6 @@ interface OverviewMetricCardData {
   label: string;
   value: string;
   detail: string;
-  badge: string;
   icon: IconName;
   tone: "blue" | "teal" | "amber" | "neutral" | "muted";
 }
@@ -297,6 +298,20 @@ function Glyph({ name }: { name: IconName }) {
           <path {...common} d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14" />
         </svg>
       );
+    case "cost":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path {...common} d="M5 8h14v11H5zM8 8V6.5A2.5 2.5 0 0 1 10.5 4h3A2.5 2.5 0 0 1 16 6.5V8" />
+          <path {...common} d="M9 13h6M12 10v6" />
+        </svg>
+      );
+    case "session":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path {...common} d="M5 6h14v10H8l-3 3z" />
+          <path {...common} d="M9 10h6M9 13h4" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -382,18 +397,40 @@ function TextTabs<T extends string>({
   );
 }
 
-function MetricCard({ card }: { card: OverviewMetricCardData }) {
+function deltaToneClass(detail: string) {
+  if (detail.includes("-")) {
+    return "is-negative";
+  }
+
+  if (detail.includes("+")) {
+    return "is-positive";
+  }
+
+  return "is-neutral";
+}
+
+function MetricCard({
+  card,
+  sourceStatus
+}: {
+  card: OverviewMetricCardData;
+  sourceStatus: SourceStatus;
+}) {
   return (
     <article className={`metric-card metric-${card.tone}`}>
-      <div className="metric-card-head">
+      <div className="metric-card-main">
         <span className="metric-icon">
           <Glyph name={card.icon} />
         </span>
-        <span className="metric-badge">{card.badge}</span>
+        <div className="metric-card-copy">
+          <div className="metric-card-title">{card.label}</div>
+          <div className="metric-card-value">{card.value}</div>
+          <div className={`metric-card-detail ${deltaToneClass(card.detail)}`}>{card.detail}</div>
+        </div>
       </div>
-      <div className="metric-card-title">{card.label}</div>
-      <div className="metric-card-value">{card.value}</div>
-      <div className="metric-card-detail">{card.detail}</div>
+      <span className={`metric-status ${sourceStatusClass(sourceStatus)}`}>
+        {sourceStatusLabel(sourceStatus)}
+      </span>
     </article>
   );
 }
@@ -443,22 +480,22 @@ function QuotaWindowCard({
         </div>
 
         <div className="quota-metrics">
-          <div className="quota-metric-row">
-            <span>Token 用量</span>
-            <strong>{formatCompactToken(period.tokens.total)}</strong>
-          </div>
-          <div className="quota-metric-row">
-            <span>API 等价成本</span>
-            <strong>{formatUsd(period.apiCostUsd)}</strong>
-          </div>
-          <div className="quota-metric-row">
-            <span>代码行数</span>
-            <strong>{formatNumber(period.code.changedLines)} 行</strong>
-          </div>
-          <div className="quota-metric-row">
-            <span>会话数</span>
-            <strong>{period.sessions}</strong>
-          </div>
+          {[
+            { icon: "token" as const, label: "Token 用量", value: formatCompactToken(period.tokens.total) },
+            { icon: "cost" as const, label: "API 等价成本", value: formatUsd(period.apiCostUsd) },
+            { icon: "code" as const, label: "代码行数", value: `${formatNumber(period.code.changedLines)} 行` },
+            { icon: "session" as const, label: "会话数", value: String(period.sessions) }
+          ].map((item) => (
+            <div className="quota-metric-row" key={item.label}>
+              <span className="quota-metric-label">
+                <span className="quota-metric-icon">
+                  <Glyph name={item.icon} />
+                </span>
+                {item.label}
+              </span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -504,7 +541,6 @@ function buildOverviewCards(
           snapshot.overview.previous.yesterday.tokens.total,
           "昨日"
         ),
-        badge: "自然日",
         icon: "token",
         tone: "blue"
       },
@@ -517,7 +553,6 @@ function buildOverviewCards(
           snapshot.overview.previous.naturalWeek.tokens.total,
           "上周"
         ),
-        badge: "自然周",
         icon: "calendar",
         tone: "teal"
       },
@@ -530,7 +565,6 @@ function buildOverviewCards(
           snapshot.overview.previous.month.tokens.total,
           "上月"
         ),
-        badge: "自然月",
         icon: "month",
         tone: "amber"
       },
@@ -543,7 +577,6 @@ function buildOverviewCards(
           snapshot.overview.previous.yesterday.code.changedLines,
           "昨日"
         ),
-        badge: "自然日",
         icon: "code",
         tone: "neutral"
       }
@@ -560,7 +593,6 @@ function buildOverviewCards(
         snapshot.overview.previous.yesterday.tokens.total,
         "昨日"
       ),
-      badge: "当前日",
       icon: "token",
       tone: "blue"
     },
@@ -573,7 +605,6 @@ function buildOverviewCards(
         snapshot.overview.previous.weekLimit?.tokens.total ?? null,
         "上个额度周"
       ),
-      badge: "周额度",
       icon: "calendar",
       tone: "teal"
     },
@@ -588,7 +619,6 @@ function buildOverviewCards(
             "上个计费月"
           )
         : "计费月数据待补齐",
-      badge: billingMonth ? "计费月" : "待补齐",
       icon: "month",
       tone: billingMonth ? "amber" : "muted"
     },
@@ -601,7 +631,6 @@ function buildOverviewCards(
         snapshot.overview.previous.yesterday.code.changedLines,
         "昨日"
       ),
-      badge: "当前日",
       icon: "code",
       tone: "neutral"
     }
@@ -651,7 +680,7 @@ function OverviewPage({
     <div className="overview-layout">
       <section className="metric-grid">
         {cards.map((card) => (
-          <MetricCard key={card.key} card={card} />
+          <MetricCard key={card.key} card={card} sourceStatus={snapshot.sourceHealth.sourceStatus} />
         ))}
       </section>
 
@@ -1221,8 +1250,15 @@ export default function App() {
             {currentPage === "repositories" ? <RepositoriesPage snapshot={snapshot} /> : null}
 
             <footer className="footer-note">
-              <span>定价来源：{snapshot.pricingMeta.apiRateSource}</span>
-              <span>{snapshot.pricingMeta.codexRateSource}</span>
+              <span className="footer-source">
+                数据来源：Codex 本地 sessions、archived_sessions、本地 Git；不读取云端仓库信息。
+              </span>
+              <span className="footer-chip">session {snapshot.sourceHealth.sessionFilesScanned}</span>
+              <span className="footer-chip">archived {snapshot.sourceHealth.archivedFilesScanned}</span>
+              <span className="footer-chip">仓库 {snapshot.sourceHealth.repoCount}</span>
+              <span className="footer-pricing">
+                定价来源：{snapshot.pricingMeta.apiRateSource}；{snapshot.pricingMeta.codexRateSource}
+              </span>
             </footer>
             </>
           ) : null}

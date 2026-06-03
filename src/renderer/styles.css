@@ -460,7 +460,8 @@ svg {
 }
 
 .metric-card {
-  gap: 10px;
+  align-content: start;
+  gap: 9px;
   min-height: 126px;
   padding: 16px;
   border-radius: var(--radius-card);
@@ -470,12 +471,10 @@ svg {
   box-shadow: inset 0 0 0 1px var(--line-soft), var(--shadow-soft);
 }
 
-.metric-card-head {
+.metric-card-main {
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  color: var(--text-secondary);
-  font-size: 13px;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .metric-icon,
@@ -488,15 +487,22 @@ svg {
 }
 
 .metric-icon {
-  width: 34px;
-  height: 34px;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
   border-radius: 12px;
   color: #ffffff;
 }
 
 .metric-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
+}
+
+.metric-card-copy {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
 }
 
 .metric-card-title {
@@ -505,25 +511,32 @@ svg {
   font-weight: 650;
 }
 
-.metric-badge {
+.metric-status {
   display: inline-flex;
   align-items: center;
+  justify-self: center;
   padding: 5px 10px;
   border-radius: var(--radius-pill);
-  background: rgba(22, 163, 74, 0.08);
-  color: var(--accent-green);
   white-space: nowrap;
+  font-size: 12px;
 }
 
 .metric-card-value {
   font-family: var(--font-mono);
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1.05;
 }
 
 .metric-card-detail {
-  margin-top: auto;
   font-size: 13px;
+}
+
+.metric-card-detail.is-positive {
+  color: var(--accent-green);
+}
+
+.metric-card-detail.is-negative {
+  color: var(--accent-rose);
 }
 
 .metric-blue {
@@ -657,6 +670,25 @@ svg {
 
 .quota-metric-row span {
   color: var(--text-secondary);
+}
+
+.quota-metric-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quota-metric-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+}
+
+.quota-metric-icon svg {
+  width: 14px;
+  height: 14px;
 }
 
 .quota-metric-row strong,
@@ -973,6 +1005,34 @@ svg {
   margin-top: 0;
   font-size: 12px;
   line-height: 1.35;
+}
+
+.footer-source {
+  color: var(--text-secondary);
+}
+
+.footer-pricing {
+  color: var(--text-tertiary);
+}
+
+.footer-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  color: var(--accent-blue);
+  background: rgba(15, 111, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(15, 111, 255, 0.1);
+}
+
+.footer-chip:nth-of-type(3) {
+  color: #0f766e;
+  background: rgba(18, 184, 215, 0.10);
+}
+
+.footer-chip:nth-of-type(4) {
+  color: var(--text-secondary);
+  background: rgba(15, 23, 42, 0.06);
 }
 
 .widget-root {
