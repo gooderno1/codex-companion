@@ -495,9 +495,9 @@ function QuotaWindowCard({
               <span>剩余量</span>
             </div>
           </div>
-          <div className="quota-reset-label">重置 {formatDateTime(windowData.resetsAt)}</div>
-          <div className="quota-cycle-range">
-            周期 {formatTime(period.startAt)} - {formatTime(period.endAt)}
+          <div className="quota-reset-label">
+            重置 {formatDateTime(windowData.resetsAt)} · 周期 {formatTime(period.startAt)} -{" "}
+            {formatTime(period.endAt)}
           </div>
         </div>
 
