@@ -729,10 +729,8 @@ function OverviewPage({
 
       <SectionCard className="project-card">
         <div className="section-toolbar">
-          <div>
+          <div className="project-title-row">
             <h3>项目概览</h3>
-          </div>
-          <div className="project-toolbar">
             <TextTabs
               items={
                 mode === "natural"
@@ -753,6 +751,8 @@ function OverviewPage({
                   : setBillingPeriod(value as BillingProjectPeriod)
               }
             />
+          </div>
+          <div className="project-toolbar">
             <TextTabs
               items={[
                 { value: "token", label: "按 Token" },

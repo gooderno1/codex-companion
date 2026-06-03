@@ -799,10 +799,22 @@ svg {
   grid-template-rows: auto minmax(0, 1fr);
 }
 
+.project-title-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 28px;
+  min-width: 0;
+}
+
+.project-title-row .text-tabs {
+  flex-wrap: nowrap;
+}
+
 .project-toolbar {
-  display: grid;
-  gap: 8px;
-  justify-items: end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .text-tabs {
