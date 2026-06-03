@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.35`
+- 适用版本：`v0.2.2-dev.36`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -178,6 +178,20 @@
 - `1360 x 900`：顶栏状态胶囊宽度收敛，右侧工具区更接近设计稿的文字状态 + 刷新按钮结构。
 - `1080 x 720`：时间视角、状态胶囊、刷新按钮和快照时间仍保持单行，未出现顶栏换行。
 - 本轮不改变状态枚举、状态文案、刷新按钮、快照时间、额度卡状态或任何数据口径。
+
+## 4.7 项目概览默认周期复测
+
+基于 `overview-natural-time.png` 与 `overview-1360x900-dev35.png` 对照：
+
+- 设计稿中项目概览二级周期默认高亮为 `周`。
+- `dev35` 首次进入总览页默认高亮 `日`，首屏更像当天明细，不如设计稿偏周期概览。
+- `v0.2.2-dev.36` 将自然时间默认周期改为 `周`，计费时间默认周期改为 `周额度`。
+
+`v0.2.2-dev.36` 实测结果：
+
+- `1360 x 900`：项目概览标题右侧默认高亮 `周`，表格首屏展示周期项目活动，更接近设计稿。
+- `1080 x 720`：项目概览、内部滚动条和页脚仍完整可见，默认周期改变未造成页面级溢出。
+- 本轮不改变项目聚合、排序、字段、滚动、项目图标或数据来源说明。
 
 ## 5. 后续页面复用规则
 

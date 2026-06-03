@@ -709,8 +709,8 @@ function OverviewPage({
   footer: React.ReactNode;
 }) {
   const [sort, setSort] = useState<ProjectSort>("token");
-  const [naturalPeriod, setNaturalPeriod] = useState<NaturalProjectPeriod>("day");
-  const [billingPeriod, setBillingPeriod] = useState<BillingProjectPeriod>("fiveHour");
+  const [naturalPeriod, setNaturalPeriod] = useState<NaturalProjectPeriod>("week");
+  const [billingPeriod, setBillingPeriod] = useState<BillingProjectPeriod>("weekLimit");
 
   const cards = useMemo(() => buildOverviewCards(snapshot, mode), [snapshot, mode]);
 
