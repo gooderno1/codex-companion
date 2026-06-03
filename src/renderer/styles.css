@@ -55,11 +55,15 @@ svg {
 }
 
 .app-shell {
+  --app-scale: 1;
   display: grid;
   grid-template-columns: 264px minmax(0, 1fr);
-  height: 100vh;
+  width: calc(100vw / var(--app-scale));
+  height: calc(100vh / var(--app-scale));
   padding: 12px;
   gap: 12px;
+  transform: scale(var(--app-scale));
+  transform-origin: top left;
 }
 
 .sidebar-shell,
@@ -384,7 +388,7 @@ svg {
 .page-viewport {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   padding-right: 2px;
 }
 
@@ -501,15 +505,15 @@ svg {
   display: grid;
   align-content: start;
   justify-items: center;
-  gap: var(--space-3);
-  min-width: 184px;
+  gap: var(--space-2);
+  min-width: 170px;
 }
 
 .quota-ring {
   display: grid;
   place-items: center;
-  width: 156px;
-  height: 156px;
+  width: 148px;
+  height: 148px;
   border-radius: 50%;
   background:
     conic-gradient(
@@ -522,8 +526,8 @@ svg {
 .quota-ring-inner {
   place-items: center;
   gap: 6px;
-  width: 112px;
-  height: 112px;
+  width: 104px;
+  height: 104px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: inset 0 0 0 1px rgba(23, 32, 51, 0.06);
@@ -531,14 +535,14 @@ svg {
 
 .quota-ring-inner strong {
   font-family: var(--font-mono);
-  font-size: 28px;
+  font-size: 30px;
 }
 
 .quota-ring-inner span,
 .quota-reset-label,
 .quota-models-title,
 .quota-note {
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .quota-metrics {
@@ -550,7 +554,7 @@ svg {
 .quota-metric-row {
   justify-content: space-between;
   gap: var(--space-4);
-  padding-bottom: 12px;
+  padding-bottom: 9px;
   border-bottom: 1px dashed rgba(23, 32, 51, 0.08);
 }
 
@@ -594,7 +598,7 @@ svg {
 .quota-model-bar,
 .model-bar {
   flex: 1;
-  height: 8px;
+  height: 6px;
   border-radius: var(--radius-pill);
   overflow: hidden;
   background: rgba(23, 32, 51, 0.08);
@@ -666,6 +670,7 @@ svg {
 .project-table-wrap,
 .table-shell {
   overflow: auto;
+  max-height: 254px;
   border-radius: var(--radius-card);
   box-shadow: inset 0 0 0 1px var(--line-soft);
 }
@@ -679,7 +684,7 @@ svg {
 
 .project-table th,
 .project-table td {
-  padding: 15px 18px;
+  padding: 11px 16px;
   text-align: left;
   border-bottom: 1px solid rgba(23, 32, 51, 0.08);
 }
@@ -688,10 +693,10 @@ svg {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: rgba(250, 246, 239, 0.92);
+  background: rgba(248, 251, 255, 0.96);
   color: var(--text-secondary);
   font-size: 12px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -966,7 +971,7 @@ svg {
 @media (max-width: 1440px) {
   .metric-grid,
   .repo-stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .ledger-period-grid {
@@ -974,7 +979,19 @@ svg {
   }
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1360px), (max-height: 900px) {
+  .app-shell {
+    --app-scale: 0.92;
+  }
+}
+
+@media (max-width: 1160px), (max-height: 760px) {
+  .app-shell {
+    --app-scale: 0.82;
+  }
+}
+
+@media (max-width: 980px) {
   body {
     overflow: auto;
   }
@@ -982,6 +999,8 @@ svg {
   .app-shell {
     grid-template-columns: 1fr;
     height: auto;
+    width: 100vw;
+    transform: none;
   }
 
   .sidebar-shell,

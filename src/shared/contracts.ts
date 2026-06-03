@@ -126,7 +126,7 @@ export interface WidgetMetric {
 
 export interface DashboardSnapshot {
   generatedAt: string;
-  generatedFrom: "live" | "cache";
+  generatedFrom: "live" | "cache" | "pending";
   sourceHealth: {
     codexHome: string;
     repoRoots: string[];

@@ -1045,6 +1045,18 @@ export default function App() {
         const nextSnapshot = await window.codexCompanion.getDashboard();
         startTransition(() => setSnapshot(nextSnapshot));
         setError(null);
+        if (nextSnapshot.generatedFrom !== "live") {
+          void window.codexCompanion
+            .refreshDashboard()
+            .then((refreshedSnapshot) => {
+              startTransition(() => setSnapshot(refreshedSnapshot));
+            })
+            .catch((reason) => {
+              setError(
+                reason instanceof Error ? reason.message : "后台刷新失败"
+              );
+            });
+        }
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : "读取仪表板失败");
       } finally {

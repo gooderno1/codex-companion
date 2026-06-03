@@ -377,6 +377,172 @@ function buildProjectOverviewPeriod(args: {
     });
 }
 
+function buildPendingDashboardSnapshot(
+  preferences: AppPreferences,
+  now = new Date()
+): DashboardSnapshot {
+  const todayStart = startOfDay(now);
+  const naturalWeekStart = startOfWeek(now);
+  const monthStart = startOfMonth(now);
+  const emptyPeriod = (
+    key: string,
+    label: string,
+    startAt: Date,
+    endAt: Date
+  ): PeriodMetric => ({
+    key,
+    label,
+    tokens: emptyTokens(),
+    sessions: 0,
+    apiCostUsd: 0,
+    creditsEstimate: 0,
+    code: emptyCodeActivity(),
+    startAt: startAt.toISOString(),
+    endAt: endAt.toISOString()
+  });
+  const today = emptyPeriod("today", "自然今日", todayStart, now);
+  const naturalWeek = emptyPeriod(
+    "naturalWeek",
+    "自然本周",
+    naturalWeekStart,
+    now
+  );
+  const month = emptyPeriod("month", "自然本月", monthStart, now);
+  const sevenDays = emptyPeriod(
+    "sevenDays",
+    "近 7 日",
+    addMinutes(now, -7 * 24 * 60),
+    now
+  );
+  const fiveHour = emptyPeriod(
+    "currentFiveHour",
+    "当前 5 小时窗口",
+    addMinutes(now, -5 * 60),
+    now
+  );
+  const weekLimit = emptyPeriod(
+    "currentWeekLimit",
+    "当前周额度窗口",
+    naturalWeekStart,
+    now
+  );
+  const pendingWindow = (key: string, label: string): LimitWindow => ({
+    key,
+    label,
+    sourceStatus: "pending",
+    usedPercent: null,
+    remainingPercent: null,
+    resetsAt: null,
+    observedAt: null,
+    windowMinutes: null,
+    estimatedSpentUsd: null,
+    estimatedFullValueUsd: null,
+    estimatedRemainingValueUsd: null,
+    note: "正在后台读取 Codex rate_limits 与本地会话数据。"
+  });
+  const limitWindows = [
+    pendingWindow("primary", "5 小时额度"),
+    pendingWindow("secondary", "周额度"),
+    pendingWindow("observableMonth", "可观测月额度")
+  ];
+
+  return {
+    generatedAt: now.toISOString(),
+    generatedFrom: "pending",
+    sourceHealth: {
+      codexHome: "",
+      repoRoots: preferences.repoRoots,
+      sessionFilesScanned: 0,
+      archivedFilesScanned: 0,
+      repoCount: 0,
+      lastObservedAt: null,
+      sourceStatus: "pending",
+      notes: ["正在后台读取本机 Codex 与 Git 数据。"]
+    },
+    overview: {
+      today,
+      sevenDays,
+      naturalWeek,
+      month,
+      previous: {
+        yesterday: emptyPeriod("yesterday", "昨日", addMinutes(todayStart, -24 * 60), todayStart),
+        naturalWeek: emptyPeriod(
+          "previousNaturalWeek",
+          "上一个自然周",
+          addMinutes(naturalWeekStart, -7 * 24 * 60),
+          naturalWeekStart
+        ),
+        month: emptyPeriod(
+          "previousMonth",
+          "上一个自然月",
+          new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1),
+          monthStart
+        ),
+        fiveHour: null,
+        weekLimit: null,
+        billingMonth: null
+      },
+      windowPeriods: {
+        fiveHour,
+        weekLimit,
+        billingMonth: null
+      },
+      limitWindows,
+      modelWindows: {
+        fiveHour: [],
+        weekLimit: []
+      },
+      projectOverview: {
+        natural: {
+          day: [],
+          week: [],
+          month: []
+        },
+        billing: {
+          fiveHour: [],
+          weekLimit: []
+        }
+      },
+      apiValueSummaryUsd: null
+    },
+    ledger: {
+      periods: [today, naturalWeek, month, fiveHour, weekLimit],
+      models: [],
+      sessions: [],
+      limitWindows
+    },
+    repositories: {
+      roots: preferences.repoRoots,
+      items: [],
+      summary: {
+        totalTracked: 0,
+        attributedTokens: 0,
+        todayChangedLines: 0,
+        weekChangedLines: 0,
+        monthChangedLines: 0
+      }
+    },
+    widget: {
+      statusLabel: "采集中",
+      updatedLabel: "正在后台采集",
+      metrics: [
+        {
+          key: "todayTokens",
+          label: "今日 Token",
+          value: "--",
+          hint: "正在采集",
+          tone: "neutral"
+        }
+      ]
+    },
+    pricingMeta: {
+      apiRateSource: API_RATE_SOURCE,
+      codexRateSource: CODEX_RATE_SOURCE,
+      updatedAt: now.toISOString()
+    }
+  };
+}
+
 async function collectDashboardSnapshot(
   preferences: AppPreferences,
   now = new Date()
@@ -785,6 +951,7 @@ async function collectDashboardSnapshot(
 export class DashboardService {
   private cachedSnapshot: DashboardSnapshot | null = null;
   private cachedAt = 0;
+  private collectingSnapshot: Promise<DashboardSnapshot> | null = null;
 
   public constructor(
     private readonly settingsStore: SettingsStore,
@@ -816,6 +983,64 @@ export class DashboardService {
       return this.cachedSnapshot;
     }
 
+    if (!force) {
+      const cached = await this.getCachedSnapshot();
+      if (cached) {
+        return cached;
+      }
+
+      const preferences = await this.settingsStore.read();
+      const pending = buildPendingDashboardSnapshot(preferences);
+      this.cachedSnapshot = pending;
+      this.cachedAt = Date.now();
+      this.refreshSnapshotInBackground();
+      return pending;
+    }
+
+    return this.collectSnapshot();
+  }
+
+  public async getCachedSnapshot(): Promise<DashboardSnapshot | null> {
+    if (this.cachedSnapshot) {
+      return this.cachedSnapshot;
+    }
+
+    const cached = await this.snapshotStore.read();
+    if (!cached) {
+      return null;
+    }
+
+    this.cachedSnapshot = {
+      ...cached,
+      generatedFrom: "cache"
+    };
+    this.cachedAt = Date.now();
+    return this.cachedSnapshot;
+  }
+
+  public refreshSnapshotInBackground(): void {
+    if (this.collectingSnapshot) {
+      return;
+    }
+
+    void this.collectSnapshot().catch(() => {
+      // Foreground calls surface collection failures through getSnapshot().
+    });
+  }
+
+  private async collectSnapshot(): Promise<DashboardSnapshot> {
+    if (this.collectingSnapshot) {
+      return this.collectingSnapshot;
+    }
+
+    this.collectingSnapshot = this.collectSnapshotInner().finally(() => {
+      this.collectingSnapshot = null;
+    });
+
+    return this.collectingSnapshot;
+  }
+
+  private async collectSnapshotInner(): Promise<DashboardSnapshot> {
     const preferences = await this.settingsStore.read();
     try {
       const snapshot = await collectDashboardSnapshot(preferences);

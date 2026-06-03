@@ -146,6 +146,26 @@ function normalizeRateSnapshot(
 
   const primary = rateLimits.primary as Record<string, unknown> | undefined;
   const secondary = rateLimits.secondary as Record<string, unknown> | undefined;
+  const readNumber = (
+    payload: Record<string, unknown>,
+    snakeKey: string,
+    camelKey: string
+  ): number | null => {
+    const value = payload[snakeKey] ?? payload[camelKey];
+    return typeof value === "number" ? value : null;
+  };
+  const readReset = (payload: Record<string, unknown>): string | null => {
+    const value = payload.resets_at ?? payload.resetsAt;
+    if (typeof value === "number") {
+      return new Date(value * 1000).toISOString();
+    }
+
+    if (typeof value === "string") {
+      return value;
+    }
+
+    return null;
+  };
 
   if (!primary && !secondary) {
     return null;
@@ -155,22 +175,24 @@ function normalizeRateSnapshot(
     observedAt: timestamp,
     primary: primary
       ? {
-          usedPercent: Number(primary.used_percent ?? 0),
-          windowMinutes: Number(primary.window_minutes ?? 0) || null,
-          resetsAt:
-            typeof primary.resets_at === "number"
-              ? new Date(primary.resets_at * 1000).toISOString()
-              : null
+          usedPercent: readNumber(primary, "used_percent", "usedPercent"),
+          windowMinutes: readNumber(
+            primary,
+            "window_minutes",
+            "windowDurationMins"
+          ),
+          resetsAt: readReset(primary)
         }
       : null,
     secondary: secondary
       ? {
-          usedPercent: Number(secondary.used_percent ?? 0),
-          windowMinutes: Number(secondary.window_minutes ?? 0) || null,
-          resetsAt:
-            typeof secondary.resets_at === "number"
-              ? new Date(secondary.resets_at * 1000).toISOString()
-              : null
+          usedPercent: readNumber(secondary, "used_percent", "usedPercent"),
+          windowMinutes: readNumber(
+            secondary,
+            "window_minutes",
+            "windowDurationMins"
+          ),
+          resetsAt: readReset(secondary)
         }
       : null,
     planType:

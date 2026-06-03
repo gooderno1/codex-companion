@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-06-03] v0.2.2-dev.9 fix: 优化首屏加载与总览页缩放口径
+
+- 开发原因：用户反馈每次启动都需要等待较久才加载数据，且总览页显示不全不应依赖滚轮解决；同时指出额度剩余百分比可能不对，需要认真核对数据来源。
+- 实现方式：新增 `pending` 快照状态，`DashboardService.getSnapshot(false)` 优先返回内存缓存、磁盘缓存或轻量采集中快照，真实 Codex / Git 采集转为后台刷新；主进程启动阶段不再 `await loadSnapshot(true)` 阻塞启动；渲染层首屏完成后静默调用 `refreshDashboard()` 替换为 live 快照；为采集过程增加并发保护，避免重复扫描本机 Codex session 与 Git 仓库；额度解析兼容 `used_percent / usedPercent`、`window_minutes / windowDurationMins`、`resets_at / resetsAt`，并按 `剩余百分比 = 100 - used_percent` 展示；总览页应用壳层改为基于桌面基准尺寸的内部缩放，收紧项目表、额度环和模型条比例；同步更新 `overview` UI Contract 与设计交付流程中的加载、缩放和视口约束。
+- 当前结果：首屏不再必须等待完整采集才能显示；后台刷新会在 live 数据准备好后替换快照；额度剩余百分比口径回到原始字段语义；总览页在标准桌面窗口下按比例缩放，而不是依赖整体页面滚动。
+- 验证方式：执行 `npm run build` 验证 lint、TypeScript、渲染端打包和主进程编译；执行 `npm start` 启动 Electron 运行态验证；用只输出字段摘要的本地脚本检查最新 rate_limits 字段位置与数值，不输出会话正文。
+- 遗留问题：本轮尝试截图时系统前台被其他全屏窗口占用，截图未能捕获 Codex Companion 窗口，因此视觉对齐仍缺少可信截图基线；下一步应优先接入自动窗口截图或 Playwright/Electron 截图验证。
+
 ## [2026-06-03] v0.2.2-dev.8 fix: 收敛总览页尺寸与配色并暂时隐藏挂件
 
 - 开发原因：用户指出挂件当前应先隐藏，且总览页配色、整体尺寸和区块间距与确认设计图不符，页面在全屏下仍出现超出屏幕范围的问题；同时要求把页面完善流程补强，减少后续返工。

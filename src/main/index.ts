@@ -166,6 +166,9 @@ async function applyWidgetPreferences(preferences: AppPreferences) {
 
 async function loadSnapshot(force = false) {
   latestSnapshot = await dashboardService.getSnapshot(force);
+  if (!force) {
+    dashboardService.refreshSnapshotInBackground();
+  }
   refreshTrayMenu();
   return latestSnapshot;
 }
@@ -424,7 +427,7 @@ async function bootstrap() {
 
   registerIpcHandlers();
   await applyWidgetPreferences(currentPreferences);
-  await loadSnapshot(true);
+  void loadSnapshot(false);
 
   if (isDevelopment()) {
     mainWindow?.webContents.openDevTools({ mode: "detach" });
