@@ -59,6 +59,8 @@ type IconName =
   | "status"
   | "clock"
   | "token"
+  | "calendar"
+  | "month"
   | "code";
 type OverviewMode = "natural" | "billing";
 type NaturalProjectPeriod = "day" | "week" | "month";
@@ -71,6 +73,7 @@ interface OverviewMetricCardData {
   value: string;
   detail: string;
   badge: string;
+  icon: IconName;
   tone: "blue" | "teal" | "amber" | "neutral" | "muted";
 }
 
@@ -274,6 +277,20 @@ function Glyph({ name }: { name: IconName }) {
           <path {...common} d="M9 12h6" />
         </svg>
       );
+    case "calendar":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path {...common} d="M5 5h14v15H5zM8 3v4M16 3v4M5 9h14" />
+          <path {...common} d="M8.5 13h2M13.5 13h2M8.5 16.5h2M13.5 16.5h2" />
+        </svg>
+      );
+    case "month":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path {...common} d="M5 5h14v15H5zM8 3v4M16 3v4M5 9h14" />
+          <path {...common} d="M9 13h6M9 17h4" />
+        </svg>
+      );
     case "code":
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -369,9 +386,12 @@ function MetricCard({ card }: { card: OverviewMetricCardData }) {
   return (
     <article className={`metric-card metric-${card.tone}`}>
       <div className="metric-card-head">
-        <span>{card.label}</span>
+        <span className="metric-icon">
+          <Glyph name={card.icon} />
+        </span>
         <span className="metric-badge">{card.badge}</span>
       </div>
+      <div className="metric-card-title">{card.label}</div>
       <div className="metric-card-value">{card.value}</div>
       <div className="metric-card-detail">{card.detail}</div>
     </article>
@@ -396,7 +416,10 @@ function QuotaWindowCard({
   return (
     <SectionCard className="quota-card">
       <div className="quota-card-head">
-        <div>
+        <div className="quota-title">
+          <span className="quota-title-icon">
+            <Glyph name="clock" />
+          </span>
           <h3>{title}</h3>
         </div>
         <span className={`status-pill ${sourceStatusClass(windowData.sourceStatus)}`}>
@@ -482,6 +505,7 @@ function buildOverviewCards(
           "昨日"
         ),
         badge: "自然日",
+        icon: "token",
         tone: "blue"
       },
       {
@@ -494,6 +518,7 @@ function buildOverviewCards(
           "上周"
         ),
         badge: "自然周",
+        icon: "calendar",
         tone: "teal"
       },
       {
@@ -506,6 +531,7 @@ function buildOverviewCards(
           "上月"
         ),
         badge: "自然月",
+        icon: "month",
         tone: "amber"
       },
       {
@@ -518,6 +544,7 @@ function buildOverviewCards(
           "昨日"
         ),
         badge: "自然日",
+        icon: "code",
         tone: "neutral"
       }
     ];
@@ -534,6 +561,7 @@ function buildOverviewCards(
         "昨日"
       ),
       badge: "当前日",
+      icon: "token",
       tone: "blue"
     },
     {
@@ -546,6 +574,7 @@ function buildOverviewCards(
         "上个额度周"
       ),
       badge: "周额度",
+      icon: "calendar",
       tone: "teal"
     },
     {
@@ -560,6 +589,7 @@ function buildOverviewCards(
           )
         : "计费月数据待补齐",
       badge: billingMonth ? "计费月" : "待补齐",
+      icon: "month",
       tone: billingMonth ? "amber" : "muted"
     },
     {
@@ -572,6 +602,7 @@ function buildOverviewCards(
         "昨日"
       ),
       badge: "当前日",
+      icon: "code",
       tone: "neutral"
     }
   ];

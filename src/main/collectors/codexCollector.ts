@@ -22,6 +22,12 @@ export interface LatestRateSnapshot {
   planType: string | null;
 }
 
+export interface QuotaObservation {
+  timestamp: string;
+  sessionId: string;
+  rateLimits: LatestRateSnapshot;
+}
+
 export interface CodexTokenEvent {
   sessionId: string;
   timestamp: string;
@@ -50,6 +56,7 @@ export interface CollectedCodexData {
   events: CodexTokenEvent[];
   sessions: CodexSessionSummary[];
   latestRateSnapshot: LatestRateSnapshot | null;
+  quotaObservations: QuotaObservation[];
   lastObservedAt: string | null;
   sourceStatus: SourceStatus;
   notes: string[];
@@ -59,6 +66,7 @@ interface SessionParseResult {
   events: CodexTokenEvent[];
   session: CodexSessionSummary | null;
   latestRateSnapshot: LatestRateSnapshot | null;
+  quotaObservations: QuotaObservation[];
 }
 
 function resolveCodexHome(): string {
@@ -72,6 +80,16 @@ function parseTokenBreakdown(payload: Record<string, unknown> | undefined): Toke
     output: Number(payload?.output_tokens ?? 0),
     reasoningOutput: Number(payload?.reasoning_output_tokens ?? 0),
     total: Number(payload?.total_tokens ?? 0)
+  };
+}
+
+function diffTokenBreakdown(current: TokenBreakdown, previous: TokenBreakdown): TokenBreakdown {
+  return {
+    input: Math.max(0, current.input - previous.input),
+    cachedInput: Math.max(0, current.cachedInput - previous.cachedInput),
+    output: Math.max(0, current.output - previous.output),
+    reasoningOutput: Math.max(0, current.reasoningOutput - previous.reasoningOutput),
+    total: Math.max(0, current.total - previous.total)
   };
 }
 
@@ -203,6 +221,7 @@ function normalizeRateSnapshot(
 async function parseSessionFile(filePath: string): Promise<SessionParseResult> {
   const fileName = path.basename(filePath, ".jsonl");
   const events: CodexTokenEvent[] = [];
+  const quotaObservations: QuotaObservation[] = [];
   let sessionId = fileName;
   let cwd: string | null = null;
   let startedAt: string | null = null;
@@ -213,6 +232,7 @@ async function parseSessionFile(filePath: string): Promise<SessionParseResult> {
   let creditsEstimate = 0;
   let latestRateSnapshot: LatestRateSnapshot | null = null;
   const modelTokenTotals = new Map<string, number>();
+  let previousTotalUsage = emptyTokens();
 
   const stream = createReadStream(filePath, { encoding: "utf8" });
   const reader = readline.createInterface({
@@ -261,11 +281,31 @@ async function parseSessionFile(filePath: string): Promise<SessionParseResult> {
       continue;
     }
 
+    const snapshot = normalizeRateSnapshot(
+      timestamp,
+      payload.rate_limits as Record<string, unknown> | undefined
+    );
+    if (snapshot) {
+      quotaObservations.push({ timestamp, sessionId, rateLimits: snapshot });
+      if (
+        !latestRateSnapshot ||
+        compareIso(snapshot.observedAt, latestRateSnapshot.observedAt) > 0
+      ) {
+        latestRateSnapshot = snapshot;
+      }
+    }
+
     const info = payload.info as Record<string, unknown> | undefined;
-    const usage =
-      (info?.last_token_usage as Record<string, unknown> | undefined) ??
-      (info?.total_token_usage as Record<string, unknown> | undefined);
-    const tokenBreakdown = parseTokenBreakdown(usage);
+    const totalUsage = info?.total_token_usage as Record<string, unknown> | undefined;
+    const lastUsage = info?.last_token_usage as Record<string, unknown> | undefined;
+    const tokenBreakdown = totalUsage
+      ? diffTokenBreakdown(parseTokenBreakdown(totalUsage), previousTotalUsage)
+      : parseTokenBreakdown(lastUsage);
+
+    if (totalUsage) {
+      previousTotalUsage = parseTokenBreakdown(totalUsage);
+    }
+
     if (tokenBreakdown.total <= 0) {
       continue;
     }
@@ -291,18 +331,6 @@ async function parseSessionFile(filePath: string): Promise<SessionParseResult> {
       model,
       (modelTokenTotals.get(model) ?? 0) + tokenBreakdown.total
     );
-
-    const snapshot = normalizeRateSnapshot(
-      timestamp,
-      payload.rate_limits as Record<string, unknown> | undefined
-    );
-    if (
-      snapshot &&
-      (!latestRateSnapshot ||
-        compareIso(snapshot.observedAt, latestRateSnapshot.observedAt) > 0)
-    ) {
-      latestRateSnapshot = snapshot;
-    }
   }
 
   stream.close();
@@ -311,7 +339,8 @@ async function parseSessionFile(filePath: string): Promise<SessionParseResult> {
     return {
       events,
       session: null,
-      latestRateSnapshot
+      latestRateSnapshot,
+      quotaObservations
     };
   }
 
@@ -336,7 +365,8 @@ async function parseSessionFile(filePath: string): Promise<SessionParseResult> {
       creditsEstimate: roundTo(creditsEstimate, 6),
       dominantModel
     },
-    latestRateSnapshot
+    latestRateSnapshot,
+    quotaObservations
   };
 }
 
@@ -400,11 +430,13 @@ export async function collectCodexData(
 
   const events: CodexTokenEvent[] = [];
   const sessions: CodexSessionSummary[] = [];
+  const quotaObservations: QuotaObservation[] = [];
   let latestRateSnapshot: LatestRateSnapshot | null = null;
   let lastObservedAt: string | null = null;
 
   for (const result of results) {
     events.push(...result.events);
+    quotaObservations.push(...result.quotaObservations);
     if (result.session) {
       sessions.push(result.session);
       if (compareIso(result.session.lastEventAt, lastObservedAt) > 0) {
@@ -455,6 +487,7 @@ export async function collectCodexData(
     events,
     sessions,
     latestRateSnapshot,
+    quotaObservations,
     lastObservedAt,
     sourceStatus,
     notes

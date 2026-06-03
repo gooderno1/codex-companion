@@ -1,7 +1,7 @@
 # Codex Companion 总览页 UI Contract（v0.1）
 
 - 创建时间：2026-06-03
-- 适用版本：`v0.2.2-dev.11` 之后的总览页实现
+- 适用版本：`v0.2.2-dev.12` 之后的总览页实现
 - 页面来源：`docs/page-design-spec-v0.3.md` 第 2 节
 - 状态：进入实际开发前的最终确认稿
 
@@ -146,6 +146,7 @@
 
 每张卡片包含：
 
+- 指标图标
 - 标题
 - 主数字
 - 次级说明
@@ -243,6 +244,15 @@ Token 数字自动单位：
 当前卡片中心数字统一显示：
 
 - `剩余百分比`
+
+数据口径：
+
+- 圆环中心 `剩余百分比` 来自最近一次 Codex 原始 `rate_limits.<primary|secondary>.used_percent`，计算为 `100 - used_percent`。
+- 右侧 `Token 用量 / API 等价成本 / 会话数 / Top 3 模型占比` 来自当前额度周期内的真实 token 增量。
+- 当前额度周期边界由最近一次 `rate_limits.<primary|secondary>.resets_at` 与 `window_minutes` 反推。
+- token 增量优先使用同一 session 内 `total_token_usage` 累计快照差值，不直接把所有 `total_token_usage` 相加。
+- 无 token 增量但携带 `rate_limits` 的记录仍作为额度观测点保留，用于判断周期与重置。
+- `代码行数` 来自同一额度周期边界内的本地 Git 活动。
 
 不显示：
 

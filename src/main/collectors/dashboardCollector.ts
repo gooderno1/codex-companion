@@ -15,7 +15,9 @@ import {
   collectCodexData,
   type CodexTokenEvent,
   type CodexSessionSummary,
-  type LatestRateSnapshot
+  type LatestRateSnapshot,
+  type ObservedLimitWindow,
+  type QuotaObservation
 } from "./codexCollector";
 import { collectGitData } from "./gitCollector";
 import {
@@ -36,6 +38,410 @@ function clampPercentage(value: number | null): number | null {
   }
 
   return Math.max(0, Math.min(100, roundTo(value, 2)));
+}
+
+const WEEKLY_RATE_LIMIT_WINDOW_MINUTES = 7 * 24 * 60;
+const QUOTA_RESET_DROP_THRESHOLD_PERCENT = 5;
+const QUOTA_RESET_MIN_SEGMENT_PERCENT = 50;
+const QUOTA_RESET_DEDUPE_WINDOW_MS = 12 * 60 * 60 * 1000;
+
+interface QuotaCycleObservation {
+  observedAt: string;
+  usedPercent: number;
+  resetsAt: string | null;
+  sourceId: string | null;
+}
+
+interface QuotaCycleMetric {
+  cycleKey: string;
+  startAt: string;
+  endAt: string;
+  tokens: ReturnType<typeof emptyTokens>;
+  sessions: number;
+  apiCostUsd: number;
+  creditsEstimate: number;
+  usedPercent: number | null;
+  remainingPercent: number | null;
+  maxObservedUsedPercent: number | null;
+  lastObservedAt: string | null;
+  resetCount: number;
+  observations: number;
+}
+
+interface QuotaWindowUsage {
+  currentCycle: QuotaCycleMetric | null;
+  cycles: QuotaCycleMetric[];
+}
+
+function getObservedWindow(
+  snapshot: LatestRateSnapshot | null,
+  windowKey: "primary" | "secondary"
+): ObservedLimitWindow | null {
+  return windowKey === "primary" ? snapshot?.primary ?? null : snapshot?.secondary ?? null;
+}
+
+function isUsableQuotaWindow(
+  windowInfo: ObservedLimitWindow | null,
+  expectedWindowMinutes: number | null = null
+) {
+  const windowMinutes = Number(windowInfo?.windowMinutes ?? 0);
+  if (!Number.isFinite(windowMinutes) || windowMinutes <= 0 || !windowInfo?.resetsAt) {
+    return false;
+  }
+
+  if (expectedWindowMinutes === null) {
+    return true;
+  }
+
+  return Math.abs(windowMinutes - expectedWindowMinutes) <= 60;
+}
+
+function resolveQuotaCycleBounds(
+  timestamp: string,
+  anchorEndAt: string,
+  windowMinutes: number
+) {
+  const timestampMs = new Date(timestamp).getTime();
+  const anchorEndMs = new Date(anchorEndAt).getTime();
+  const windowMs = windowMinutes * 60 * 1000;
+
+  if (!Number.isFinite(timestampMs) || !Number.isFinite(anchorEndMs) || windowMs <= 0) {
+    return null;
+  }
+
+  const cycleIndex = Math.floor((timestampMs - anchorEndMs) / windowMs) + 1;
+  const endMs = anchorEndMs + cycleIndex * windowMs;
+  const startMs = endMs - windowMs;
+  const startAt = new Date(startMs).toISOString();
+  const endAt = new Date(endMs).toISOString();
+
+  return {
+    key: `${startAt}/${endAt}`,
+    startAt,
+    endAt
+  };
+}
+
+function isQuotaResetObservation(
+  previous: QuotaCycleObservation,
+  current: QuotaCycleObservation
+) {
+  const previousResetMs = new Date(previous.resetsAt ?? 0).getTime();
+  const currentResetMs = new Date(current.resetsAt ?? 0).getTime();
+  const resetMovedForward = currentResetMs > previousResetMs + 60 * 1000;
+  const droppedFromPrevious =
+    previous.usedPercent - current.usedPercent >= QUOTA_RESET_DROP_THRESHOLD_PERCENT;
+  const startsFromMeaningfulUsage =
+    previous.usedPercent >= QUOTA_RESET_MIN_SEGMENT_PERCENT;
+
+  return (
+    Number.isFinite(previousResetMs) &&
+    Number.isFinite(currentResetMs) &&
+    resetMovedForward &&
+    droppedFromPrevious &&
+    startsFromMeaningfulUsage
+  );
+}
+
+function analyzeQuotaObservations(observations: QuotaCycleObservation[]) {
+  const ordered = observations
+    .filter((item) => Number.isFinite(item.usedPercent))
+    .sort((left, right) => {
+      const timeDiff = new Date(left.observedAt).getTime() - new Date(right.observedAt).getTime();
+      if (timeDiff !== 0) {
+        return timeDiff;
+      }
+
+      return right.usedPercent - left.usedPercent;
+    });
+
+  const sourceGroups = new Map<string, QuotaCycleObservation[]>();
+  for (const observation of ordered) {
+    const sourceId = observation.sourceId ?? "__unknown__";
+    const group = sourceGroups.get(sourceId) ?? [];
+    group.push(observation);
+    sourceGroups.set(sourceId, group);
+  }
+
+  const resetCandidates: Array<{
+    at: string;
+    beforeObservedAt: string;
+    beforeUsedPercent: number;
+    afterUsedPercent: number;
+    afterWindowResetsAt: string | null;
+  }> = [];
+
+  for (const group of sourceGroups.values()) {
+    for (let index = 1; index < group.length; index += 1) {
+      const previous = group[index - 1];
+      const current = group[index];
+      if (!isQuotaResetObservation(previous, current)) {
+        continue;
+      }
+
+      resetCandidates.push({
+        at: current.observedAt,
+        beforeObservedAt: previous.observedAt,
+        beforeUsedPercent: previous.usedPercent,
+        afterUsedPercent: current.usedPercent,
+        afterWindowResetsAt: current.resetsAt
+      });
+    }
+  }
+
+  const resetEvents: typeof resetCandidates = [];
+  for (const candidate of resetCandidates.sort(
+    (left, right) => new Date(left.at).getTime() - new Date(right.at).getTime()
+  )) {
+    const candidateAtMs = new Date(candidate.at).getTime();
+    const duplicate = resetEvents.some((event) => {
+      const eventAtMs = new Date(event.at).getTime();
+      const eventAfterResetMs = new Date(event.afterWindowResetsAt ?? 0).getTime();
+      const candidateAfterResetMs = new Date(candidate.afterWindowResetsAt ?? 0).getTime();
+      return (
+        Number.isFinite(candidateAtMs) &&
+        Number.isFinite(eventAtMs) &&
+        Math.abs(candidateAtMs - eventAtMs) <= QUOTA_RESET_DEDUPE_WINDOW_MS &&
+        Math.abs(candidate.beforeUsedPercent - event.beforeUsedPercent) <= 1 &&
+        (!Number.isFinite(eventAfterResetMs) ||
+          !Number.isFinite(candidateAfterResetMs) ||
+          Math.abs(candidateAfterResetMs - eventAfterResetMs) <=
+            QUOTA_RESET_DEDUPE_WINDOW_MS)
+      );
+    });
+
+    if (!duplicate) {
+      resetEvents.push(candidate);
+    }
+  }
+
+  const usageSegments =
+    resetEvents.length > 0
+      ? resetEvents.map((event, index) => ({
+          usedPercent: event.beforeUsedPercent,
+          maxObservedAt: event.beforeObservedAt,
+          startAt: index === 0 ? ordered[0]?.observedAt ?? event.beforeObservedAt : resetEvents[index - 1].at,
+          endAt: event.at
+        }))
+      : [];
+
+  if (resetEvents.length === 0) {
+    const maxObservation = ordered.reduce<QuotaCycleObservation | null>(
+      (best, item) => (item.usedPercent > (best?.usedPercent ?? -1) ? item : best),
+      null
+    );
+    if (maxObservation) {
+      usageSegments.push({
+        usedPercent: maxObservation.usedPercent,
+        maxObservedAt: maxObservation.observedAt,
+        startAt: ordered[0]?.observedAt ?? maxObservation.observedAt,
+        endAt: ordered.at(-1)?.observedAt ?? maxObservation.observedAt
+      });
+    }
+  }
+
+  const lastReset = resetEvents.at(-1);
+  if (lastReset) {
+    const postResetMax = ordered
+      .filter((item) => new Date(item.observedAt).getTime() > new Date(lastReset.at).getTime())
+      .reduce<QuotaCycleObservation | null>(
+        (best, item) => (item.usedPercent > (best?.usedPercent ?? -1) ? item : best),
+        null
+      );
+    if (postResetMax && postResetMax.usedPercent > 0) {
+      usageSegments.push({
+        usedPercent: postResetMax.usedPercent,
+        maxObservedAt: postResetMax.observedAt,
+        startAt: lastReset.at,
+        endAt: ordered.at(-1)?.observedAt ?? postResetMax.observedAt
+      });
+    }
+  }
+
+  const cumulativeUsedPercent =
+    usageSegments.length > 0
+      ? roundTo(
+          usageSegments.reduce((sum, segment) => sum + segment.usedPercent, 0),
+          2
+        )
+      : null;
+
+  return {
+    cumulativeUsedPercent,
+    resetCount: resetEvents.length
+  };
+}
+
+function buildQuotaWindowUsage(args: {
+  latestRateSnapshot: LatestRateSnapshot | null;
+  events: CodexTokenEvent[];
+  quotaObservations: QuotaObservation[];
+  windowKey: "primary" | "secondary";
+  expectedWindowMinutes?: number | null;
+}): QuotaWindowUsage {
+  const currentWindow = getObservedWindow(args.latestRateSnapshot, args.windowKey);
+  if (!isUsableQuotaWindow(currentWindow, args.expectedWindowMinutes ?? null)) {
+    return { currentCycle: null, cycles: [] };
+  }
+
+  const usableWindow = currentWindow as ObservedLimitWindow;
+  const anchorEndAt = usableWindow.resetsAt;
+  const windowMinutes = usableWindow.windowMinutes;
+  if (!anchorEndAt || !windowMinutes) {
+    return { currentCycle: null, cycles: [] };
+  }
+
+  const buckets = new Map<
+    string,
+    {
+      cycleKey: string;
+      startAt: string;
+      endAt: string;
+      tokens: ReturnType<typeof emptyTokens>;
+      apiCostUsd: number;
+      creditsEstimate: number;
+      sessionIds: Set<string>;
+      observations: QuotaCycleObservation[];
+      maxObservedUsedPercent: number | null;
+      lastObservedAt: string | null;
+      lastObservedUsedPercent: number | null;
+    }
+  >();
+
+  const getBucket = (timestamp: string) => {
+    const bounds = resolveQuotaCycleBounds(timestamp, anchorEndAt, windowMinutes);
+    if (!bounds) {
+      return null;
+    }
+
+    const existing = buckets.get(bounds.key);
+    if (existing) {
+      return existing;
+    }
+
+    const bucket = {
+      cycleKey: bounds.key,
+      startAt: bounds.startAt,
+      endAt: bounds.endAt,
+      tokens: emptyTokens(),
+      apiCostUsd: 0,
+      creditsEstimate: 0,
+      sessionIds: new Set<string>(),
+      observations: [],
+      maxObservedUsedPercent: null,
+      lastObservedAt: null,
+      lastObservedUsedPercent: null
+    };
+    buckets.set(bounds.key, bucket);
+    return bucket;
+  };
+
+  for (const event of args.events) {
+    const bucket = getBucket(event.timestamp);
+    if (!bucket) {
+      continue;
+    }
+
+    bucket.tokens = sumTokens(bucket.tokens, event.tokens);
+    bucket.apiCostUsd += event.apiCostUsd;
+    bucket.creditsEstimate += event.creditsEstimate;
+    bucket.sessionIds.add(event.sessionId);
+  }
+
+  for (const observation of args.quotaObservations) {
+    const windowInfo = getObservedWindow(observation.rateLimits, args.windowKey);
+    if (!isUsableQuotaWindow(windowInfo, args.expectedWindowMinutes ?? null)) {
+      continue;
+    }
+
+    const usedPercent = clampPercentage(windowInfo?.usedPercent ?? null);
+    if (usedPercent === null) {
+      continue;
+    }
+
+    const bucket = getBucket(observation.timestamp);
+    if (!bucket) {
+      continue;
+    }
+
+    bucket.observations.push({
+      observedAt: observation.timestamp,
+      usedPercent,
+      resetsAt: windowInfo?.resetsAt ?? null,
+      sourceId: observation.sessionId
+    });
+    bucket.maxObservedUsedPercent =
+      bucket.maxObservedUsedPercent === null
+        ? usedPercent
+        : Math.max(bucket.maxObservedUsedPercent, usedPercent);
+    if (
+      !bucket.lastObservedAt ||
+      new Date(observation.timestamp).getTime() >= new Date(bucket.lastObservedAt).getTime()
+    ) {
+      bucket.lastObservedAt = observation.timestamp;
+      bucket.lastObservedUsedPercent = usedPercent;
+    }
+  }
+
+  if (args.latestRateSnapshot) {
+    const latestUsedPercent = clampPercentage(usableWindow.usedPercent);
+    const currentBucket = getBucket(args.latestRateSnapshot.observedAt);
+    if (currentBucket && latestUsedPercent !== null) {
+      currentBucket.observations.push({
+        observedAt: args.latestRateSnapshot.observedAt,
+        usedPercent: latestUsedPercent,
+        resetsAt: usableWindow.resetsAt,
+        sourceId: "current"
+      });
+      currentBucket.maxObservedUsedPercent =
+        currentBucket.maxObservedUsedPercent === null
+          ? latestUsedPercent
+          : Math.max(currentBucket.maxObservedUsedPercent, latestUsedPercent);
+      currentBucket.lastObservedAt = args.latestRateSnapshot.observedAt;
+      currentBucket.lastObservedUsedPercent = latestUsedPercent;
+    }
+  }
+
+  const cycles = [...buckets.values()]
+    .sort((left, right) => new Date(left.startAt).getTime() - new Date(right.startAt).getTime())
+    .map((bucket): QuotaCycleMetric => {
+      const analysis = analyzeQuotaObservations(bucket.observations);
+      const usedPercent =
+        analysis.cumulativeUsedPercent ??
+        bucket.maxObservedUsedPercent ??
+        bucket.lastObservedUsedPercent;
+
+      return {
+        cycleKey: bucket.cycleKey,
+        startAt: bucket.startAt,
+        endAt: bucket.endAt,
+        tokens: bucket.tokens,
+        sessions: bucket.sessionIds.size,
+        apiCostUsd: roundTo(bucket.apiCostUsd, 6),
+        creditsEstimate: roundTo(bucket.creditsEstimate, 6),
+        usedPercent,
+        remainingPercent:
+          usedPercent === null ? null : clampPercentage(100 - usedPercent),
+        maxObservedUsedPercent: bucket.maxObservedUsedPercent,
+        lastObservedAt: bucket.lastObservedAt,
+        resetCount: analysis.resetCount,
+        observations: bucket.observations.length
+      };
+    });
+
+  const currentCycleKey = args.latestRateSnapshot
+    ? resolveQuotaCycleBounds(
+        args.latestRateSnapshot.observedAt,
+        anchorEndAt,
+        windowMinutes
+      )?.key ?? null
+    : null;
+
+  return {
+    currentCycle:
+      cycles.find((cycle) => cycle.cycleKey === currentCycleKey) ?? null,
+    cycles
+  };
 }
 
 function aggregateEvents(
@@ -87,6 +493,31 @@ function buildPeriodMetric(
     code,
     startAt: startAt.toISOString(),
     endAt: endAt.toISOString()
+  };
+}
+
+function buildQuotaCyclePeriodMetric(
+  key: string,
+  label: string,
+  cycle: QuotaCycleMetric | null,
+  fallbackStartAt: Date,
+  fallbackEndAt: Date,
+  code = emptyCodeActivity()
+): PeriodMetric {
+  if (!cycle) {
+    return buildPeriodMetric(key, label, fallbackStartAt, fallbackEndAt, [], code);
+  }
+
+  return {
+    key,
+    label,
+    tokens: cycle.tokens,
+    sessions: cycle.sessions,
+    apiCostUsd: cycle.apiCostUsd,
+    creditsEstimate: cycle.creditsEstimate,
+    code,
+    startAt: cycle.startAt,
+    endAt: cycle.endAt
   };
 }
 
@@ -548,9 +979,26 @@ async function collectDashboardSnapshot(
   now = new Date()
 ): Promise<DashboardSnapshot> {
   const codex = await collectCodexData(now);
-  const primaryWindowRange =
-    codex.latestRateSnapshot?.primary?.resetsAt &&
-    codex.latestRateSnapshot.primary.windowMinutes
+  const primaryQuotaUsage = buildQuotaWindowUsage({
+    latestRateSnapshot: codex.latestRateSnapshot,
+    events: codex.events,
+    quotaObservations: codex.quotaObservations,
+    windowKey: "primary"
+  });
+  const weeklyQuotaUsage = buildQuotaWindowUsage({
+    latestRateSnapshot: codex.latestRateSnapshot,
+    events: codex.events,
+    quotaObservations: codex.quotaObservations,
+    windowKey: "secondary",
+    expectedWindowMinutes: WEEKLY_RATE_LIMIT_WINDOW_MINUTES
+  });
+  const primaryWindowRange = primaryQuotaUsage.currentCycle
+    ? {
+        start: new Date(primaryQuotaUsage.currentCycle.startAt),
+        end: new Date(primaryQuotaUsage.currentCycle.endAt)
+      }
+    : codex.latestRateSnapshot?.primary?.resetsAt &&
+        codex.latestRateSnapshot.primary.windowMinutes
       ? {
           start: addMinutes(
             new Date(codex.latestRateSnapshot.primary.resetsAt),
@@ -559,9 +1007,13 @@ async function collectDashboardSnapshot(
           end: new Date(codex.latestRateSnapshot.primary.resetsAt)
         }
       : null;
-  const secondaryWindowRange =
-    codex.latestRateSnapshot?.secondary?.resetsAt &&
-    codex.latestRateSnapshot.secondary.windowMinutes
+  const secondaryWindowRange = weeklyQuotaUsage.currentCycle
+    ? {
+        start: new Date(weeklyQuotaUsage.currentCycle.startAt),
+        end: new Date(weeklyQuotaUsage.currentCycle.endAt)
+      }
+    : codex.latestRateSnapshot?.secondary?.resetsAt &&
+        codex.latestRateSnapshot.secondary.windowMinutes
       ? {
           start: addMinutes(
             new Date(codex.latestRateSnapshot.secondary.resetsAt),
@@ -655,12 +1107,12 @@ async function collectDashboardSnapshot(
   );
 
   const primaryPeriod = primaryWindowRange
-    ? buildPeriodMetric(
+    ? buildQuotaCyclePeriodMetric(
         "currentFiveHour",
         "当前 5 小时窗口",
+        primaryQuotaUsage.currentCycle,
         primaryWindowRange.start,
         primaryWindowRange.end,
-        codex.events,
         aggregateCodeFromRepos(git.items, "fiveHour")
       )
     : buildPeriodMetric(
@@ -672,12 +1124,12 @@ async function collectDashboardSnapshot(
         emptyCodeActivity()
       );
   const weeklyLimitPeriod = secondaryWindowRange
-    ? buildPeriodMetric(
+    ? buildQuotaCyclePeriodMetric(
         "currentWeekLimit",
         "当前周额度窗口",
+        weeklyQuotaUsage.currentCycle,
         secondaryWindowRange.start,
         secondaryWindowRange.end,
-        codex.events,
         aggregateCodeFromRepos(git.items, "weekLimit")
       )
     : buildPeriodMetric(
@@ -689,29 +1141,23 @@ async function collectDashboardSnapshot(
         emptyCodeActivity()
       );
   const previousFiveHourPeriod =
-    primaryWindowRange && codex.latestRateSnapshot?.primary?.windowMinutes
-      ? buildPeriodMetric(
+    primaryQuotaUsage.cycles.length > 1
+      ? buildQuotaCyclePeriodMetric(
           "previousFiveHour",
           "上一 5 小时窗口",
-          addMinutes(
-            primaryWindowRange.start,
-            -codex.latestRateSnapshot.primary.windowMinutes
-          ),
-          primaryWindowRange.start,
-          codex.events
+          primaryQuotaUsage.cycles.at(-2) ?? null,
+          primaryWindowRange?.start ?? todayStart,
+          primaryWindowRange?.end ?? now
         )
       : null;
   const previousWeekLimitPeriod =
-    secondaryWindowRange && codex.latestRateSnapshot?.secondary?.windowMinutes
-      ? buildPeriodMetric(
+    weeklyQuotaUsage.cycles.length > 1
+      ? buildQuotaCyclePeriodMetric(
           "previousWeekLimit",
           "上一周额度窗口",
-          addMinutes(
-            secondaryWindowRange.start,
-            -codex.latestRateSnapshot.secondary.windowMinutes
-          ),
-          secondaryWindowRange.start,
-          codex.events
+          weeklyQuotaUsage.cycles.at(-2) ?? null,
+          secondaryWindowRange?.start ?? naturalWeekStart,
+          secondaryWindowRange?.end ?? now
         )
       : null;
   const billingMonthPeriod: PeriodMetric | null = null;
@@ -729,10 +1175,10 @@ async function collectDashboardSnapshot(
               ? null
               : 100 - codex.latestRateSnapshot.primary.usedPercent,
           observedAt: codex.latestRateSnapshot.observedAt
-        }
+      }
       : undefined,
     primaryPeriod.apiCostUsd,
-    "基于最近观测到的 Codex rate_limits 主窗口。"
+    "圆环为最近 rate_limits 主窗口余量；右侧为当前 5H 额度周期累计。"
   );
   const weeklyWindow = buildLimitWindow(
     "secondary",
@@ -746,10 +1192,10 @@ async function collectDashboardSnapshot(
               ? null
               : 100 - codex.latestRateSnapshot.secondary.usedPercent,
           observedAt: codex.latestRateSnapshot.observedAt
-        }
+      }
       : undefined,
     weeklyLimitPeriod.apiCostUsd,
-    "基于最近观测到的 Codex rate_limits 次窗口。"
+    "圆环为最近 rate_limits 次窗口余量；右侧为当前周额度周期累计。"
   );
   const observableMonthWindow = buildLimitWindow(
     "observableMonth",

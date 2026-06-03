@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.2.0-dev.1`
+- 对应开发版本：`v0.2.2-dev.12`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -14,6 +14,7 @@
   - `session_meta.id`
   - `session_meta.cwd`
   - `turn_context.model`
+  - `event_msg.payload.info.total_token_usage`
   - `event_msg.payload.info.last_token_usage`
   - `event_msg.payload.rate_limits`
 
@@ -32,8 +33,9 @@
 
 ### 2.1 Token
 
-- 单次增量以 `last_token_usage` 为准
-- 会话总量为会话内所有 `last_token_usage` 累加
+- 单次增量优先使用同一 session 内连续 `total_token_usage` 快照差值
+- 如果当前记录没有 `total_token_usage`，才降级使用 `last_token_usage`
+- 会话总量为会话内真实增量累加，不直接累加所有 `total_token_usage`
 - 自然日、近 7 日、自然周、自然月均按事件时间戳落桶
 
 ### 2.2 额度
@@ -41,12 +43,20 @@
 - `5 小时额度` 使用 `rate_limits.primary`
 - `周额度` 使用 `rate_limits.secondary`
 - `可观测月额度` 仅在本地快照存在月级字段时展示；当前版本若无字段则明确标记 `未观测`
+- 额度圆环的剩余百分比使用最近一次原始 `rate_limits`：
+  - `remainingPercent = 100 - used_percent`
+- 额度卡右侧 Token、成本、会话数、模型占比使用当前额度周期内的 token 增量：
+  - 周期结束时间：最近一次 `rate_limits.<primary|secondary>.resets_at`
+  - 周期长度：`rate_limits.<primary|secondary>.window_minutes`
+  - 周期开始时间：`resets_at - window_minutes`
+- 无 token 增量但包含 `rate_limits` 的记录也保留为额度观测点，用于判断重置与周期边界
+- 如果同一额度周期内观测到 reset，周期使用百分比按 reset 前后观测高点累计；但圆环中心仍显示最近一次剩余百分比
 
 ### 2.3 成本与价值
 
 - API 等价成本使用公开 API 定价按模型估算
 - 周套餐价值折算公式：
-  - `当前周 API 等价成本 / 当前周已用百分比`
+  - `当前周额度周期 API 等价成本 / 当前周已用百分比`
 - 剩余价值空间公式：
   - `折算总价值 - 当前周 API 等价成本`
 

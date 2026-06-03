@@ -478,6 +478,33 @@ svg {
   font-size: 13px;
 }
 
+.metric-icon,
+.quota-title-icon {
+  display: inline-grid;
+  place-items: center;
+  color: var(--accent-blue);
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+  box-shadow: 0 10px 22px rgba(15, 111, 255, 0.18);
+}
+
+.metric-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  color: #ffffff;
+}
+
+.metric-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.metric-card-title {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 650;
+}
+
 .metric-badge {
   display: inline-flex;
   align-items: center;
@@ -539,6 +566,25 @@ svg {
 .section-toolbar,
 .repo-card-head {
   justify-content: space-between;
+}
+
+.quota-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quota-title-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 111, 255, 0.16);
+}
+
+.quota-title-icon svg {
+  width: 13px;
+  height: 13px;
 }
 
 .quota-card-body {
