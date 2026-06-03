@@ -1,10 +1,15 @@
-# Codex Companion 页面设计规格（v0.3 草案）
+# Codex Companion 页面设计规格（v0.3.1 草案）
 
 - 创建时间：2026-06-03
 - 对应阶段：页面视觉重设前的设计确认
 - 当前目标：先确认页面内容、展示方式、尺寸和位置，再进入实际页面开发
 - 涉及页面：总览页、Codex 账本页、代码仓库页
 - 暂缓范围：桌面挂件细化开发。挂件本轮仅改为默认关闭，后续单独设计。
+
+## 0. 修订记录
+
+- `v0.3`：初步规划总览页、Codex 账本页、代码仓库页，并生成三张设计图初稿。
+- `v0.3.1`：先修订全局应用壳层与总览页。重点补齐左侧导航、顶部工具栏、设置入口、总览页时间视角、额度展示边界、数据状态与仓库活跃口径。
 
 ## 1. 总体设计方向
 
@@ -28,28 +33,40 @@ Codex Companion 是工作型桌面应用，不做营销式首页。界面应像�
 - 数字使用等宽字体，标签使用清晰中文。
 - 所有额度状态必须带来源状态：`已观测`、`未观测`、`待刷新`、`数据过期`。
 
-### 1.3 应用框架
+### 1.3 应用壳层
+
+所有页面必须共用同一套左侧导航与顶部工具栏，避免设计图各自生成出不同的外壳。
 
 建议桌面基准画布：`1440 x 960`
 
 固定结构：
 
-- 左侧导航栏：`248px`
-- 顶部工具栏：`72px`
-- 主内容区：自适应，左右留白 `28px`
-- 页面内容最大宽度：`1180px`
+- 左侧导航栏：`248px`，固定全高。
+- 顶部工具栏：`72px`，固定在主内容区顶部。
+- 主内容区：自适应，左右留白 `28px`，顶部工具栏下方留白 `28px`。
+- 页面内容最大宽度：`1180px`。
 
-左侧导航：
+左侧导航栏分区：
 
-- 顶部显示产品名 `Codex Companion` 和非官方状态点。
-- 导航项：总览、Codex 账本、代码仓库。
-- 底部显示数据边界：本机读取、无上传、最近快照时间。
+- 顶部品牌区，高度 `92px`：显示 `Codex Companion`、副标题 `非官方 Codex 本机仪表盘`，并以小状态点标注 `本机读取 · 无上传`。
+- 主导航区：只展示当前已规划页面，依次为 `总览`、`Codex 账本`、`代码仓库`。
+- 系统导航区：底部固定 `设置` 入口，不与主导航混排。
+- 底部状态区：显示当前版本、最近快照时间、数据状态。文案必须避免官方背书，例如 `非官方工具`。
 
-顶部工具栏：
+设置入口首轮只作为页面入口设计，不展开设置页细节。后续设置页至少覆盖：
 
-- 左侧：当前页面标题、副标题。
-- 中部：当前数据源健康状态。
-- 右侧：刷新按钮、快照时间、设置入口。
+- Codex 数据目录。
+- 本地仓库根目录。
+- 桌面挂件开关与样式。
+- 隐私与本地读取说明。
+- 价格表、模型映射和数据来源说明。
+
+顶部工具栏分区：
+
+- 左侧页面识别区，宽度约 `360px`：页面标题、页面副标题。
+- 中部页面控制区，宽度约 `360px` 到 `420px`：放置当前页面最重要的视角切换或筛选。总览页使用 `时间视角：自然时间 / 计费窗口`。
+- 右侧数据操作区，宽度约 `360px`：显示数据状态标签、刷新按钮、最近快照时间。
+- 顶部工具栏不再重复放置设置入口，设置统一固定在左侧底部。
 
 ## 2. 总览页设计
 
@@ -63,61 +80,109 @@ Codex Companion 是工作型桌面应用，不做营销式首页。界面应像�
 
 ### 2.2 内容结构
 
+总览页首版需要同时服务两种视角：
+
+- `自然时间`：用于回答今天、本周、本月实际用了多少 Codex，以及对应本地代码活动。
+- `计费窗口`：用于回答当前 5 小时窗口和当前周额度窗口是否紧张。
+
+时间视角切换放在顶部工具栏中部页面控制区。切换只改变总览页指标口径，不改变左侧导航、顶部数据操作区和页面整体布局。
+
 第一行：核心指标带
 
 - 位置：主内容区顶部，占满宽度。
-- 高度：`132px`
-- 展示 4 个等宽指标：
-  - 今日 Token
-  - 周额度剩余
-  - 本周 Token
-  - 本月 Token
+- 高度：`136px`
+- 展示 4 个等宽指标。
 - 每个指标块包含：标签、主数字、趋势小条、辅助说明。
+- 每个指标块必须标注口径状态：`自然时间`、`计费窗口`、`未观测` 或 `数据过期`。
+
+`自然时间` 模式下的 4 个指标：
+
+- `今日 Token`：自然日 Codex Token，总量、会话数、API 等价成本。
+- `自然本周 Token`：自然周 Codex Token，总量、会话数、API 等价成本。
+- `自然本月 Token`：自然月 Codex Token，总量、会话数、API 等价成本。
+- `今日代码改动`：本地 Git 今日改动行数和提交数。
+
+`计费窗口` 模式下的 4 个指标：
+
+- `当前 5 小时 Token`：按最近观测到的 `rate_limits.primary.resets_at - window_minutes` 到 `resets_at` 聚合 Token。
+- `5 小时剩余`：只展示剩余百分比，来自 `100 - used_percent`。
+- `当前周额度 Token`：按最近观测到的 `rate_limits.secondary.resets_at - window_minutes` 到 `resets_at` 聚合 Token。
+- `周额度剩余`：只展示剩余百分比，来自 `100 - used_percent`。
 
 第二行：额度与活动双栏
 
-- 左侧：额度健康面板，占 `65%` 宽度，高度 `300px`
-- 右侧：数据可信度面板，占 `35%` 宽度，高度 `300px`
+- 左侧：额度健康面板，占 `63%` 宽度，高度 `300px`。
+- 右侧：模型用量分析面板，占 `37%` 宽度，高度 `300px`。
 
 额度健康面板内容：
 
 - 5 小时额度横向进度条
 - 周额度横向进度条
 - 可观测月额度状态行
-- 恢复时间、已用百分比、剩余百分比
-- API 等价成本和套餐价值折算
+- 已用百分比、剩余百分比、恢复时间、观测时间、来源状态
+- API 等价成本和套餐价值折算，但必须标注为估算
 
-数据可信度面板内容：
+额度展示边界：
 
-- Codex session 扫描数
-- archived session 扫描数
-- 仓库数量
-- 最新 token 观测时间
-- 当前状态标签
-- 采集备注列表
+- 当前 Codex 本地快照只稳定暴露 `used_percent`、`window_minutes`、`resets_at` 和观测时间。
+- 首版不展示 `剩余 Token`，因为没有原始字段支撑。
+- 首版不展示 `预计可用时长`，因为需要连续额度快照计算消耗速度；当前只有最近快照时，展示该字段会造成伪精确。
+- 后续若沉淀历史额度快照，可按 `剩余百分比 / 最近消耗百分比速度` 估算可用时长，并用 `resets_at` 做上限约束。
+
+模型用量分析面板内容：
+
+- 默认统计范围跟随总览页时间视角：`自然时间` 使用自然本周，`计费窗口` 使用当前周额度窗口。
+- 顶部切换：`Token`、`API 等价成本`、`事件数`。
+- 使用横向条形列表展示 Top 5 模型，不使用饼图。
+- 每行显示模型名、占比、Token、API 等价成本和事件数。
+
+数据状态展示方式：
+
+- 不再把 `数据可信度` 作为总览页大面板。
+- 顶部工具栏右侧用一个状态标签展示 `已观测`、`待刷新`、`未观测`、`数据过期`。
+- 页面底部用紧凑说明展示 Codex session 扫描数、archived session 扫描数、仓库数量、最新 token 观测时间和采集备注。
+- 如果后续发现用户确实需要排查数据问题，再把数据状态升级为设置页或诊断抽屉。
 
 第三行：Codex 投入与代码产出
 
-- 左侧：今日 / 近 7 日 / 本月代码改动摘要，占 `50%`
-- 右侧：活跃仓库 Top 5，占 `50%`
+- 位置：底部，占满宽度。
+- 高度：`340px` 到 `360px`。
+- 标题建议使用 `投入与产出对照`，避免只写 `仓库活跃` 造成口径混淆。
 
 展示方式：
 
-- 代码改动摘要使用横向小表格。
-- 活跃仓库使用排名列表，显示仓库名、Token、改动行数、提交数。
+- 默认展示 Top 5 仓库对照表。
+- 表格字段：仓库名、Codex Token、归因会话、近 7 日改动行数、今日未提交改动、提交数、匹配状态。
+- 支持排序切换：`按 Codex 投入`、`按 Git 产出`。
+- 首版不做综合活跃分，因为 Codex Token 和 Git 改动行数不是同一量纲，硬合并会削弱可解释性。
 
-### 2.3 设计图生成提示词
+仓库活跃口径：
+
+- `Codex 投入`：通过 Codex 会话 `cwd` 向上查找 Git 根目录后归因 Token。
+- `Git 产出`：通过本地 Git 命令统计提交数、增删行、工作区 diff。
+- `投入产出同步`：同一仓库同时存在 Codex Token 和 Git 改动。
+- `有投入待产出`：存在 Codex Token，但当前观察窗口没有 Git 改动。
+- `有产出未归因`：存在 Git 改动，但没有 Codex 会话归因。
+
+### 2.3 总览页待确认决策
+
+- 是否确认把 `数据可信度` 从大面板降级为顶部状态标签和底部数据来源说明。
+- 是否确认总览页右侧大面板改为 `模型用量分析`。
+- 是否确认首版不展示 `剩余 Token` 和 `预计可用时长`，只展示剩余百分比、恢复时间和观测状态。
+- 是否确认仓库区使用 `Codex 投入` 与 `Git 产出` 两条口径，不做综合活跃分。
+
+### 2.4 设计图生成提示词
 
 ```text
 Use case: ui-mockup
 Asset type: desktop app page design mockup
-Primary request: Create a polished desktop dashboard mockup for the Codex Companion overview page.
+Primary request: Create a polished desktop dashboard mockup for the Codex Companion overview page with a consistent app shell.
 Scene/backdrop: a light local-first engineering analytics app, not a landing page.
 Style/medium: high-fidelity UI mockup, restrained operational dashboard, crisp typography.
-Composition/framing: 1440x960 desktop app screenshot, left navigation rail 248px, top toolbar 72px, dense dashboard content.
+Composition/framing: 1440x960 desktop app screenshot, fixed left navigation rail 248px, fixed top toolbar 72px, main dashboard content with four KPI cards, quota health panel, model usage panel, and repository input-output table.
 Color palette: off-white workspace background, graphite text, blue and cyan as accents, green/amber/red for status, avoid one-note blue dominance.
-Text (verbatim): "Codex Companion", "总览", "今日 Token", "周额度剩余", "本周 Token", "本月 Token", "5 小时额度", "周额度", "数据可信度", "活跃仓库"
-Constraints: no OpenAI logo, no official branding, no marketing hero, no decorative blobs, no nested card-heavy layout, Chinese UI text, 8px card radius.
+Text (verbatim): "Codex Companion", "非官方 Codex 本机仪表盘", "总览", "Codex 账本", "代码仓库", "设置", "时间视角", "自然时间", "计费窗口", "今日 Token", "自然本周 Token", "自然本月 Token", "今日代码改动", "5 小时额度", "周额度", "模型用量分析", "投入与产出对照", "Codex 投入", "Git 产出"
+Constraints: all pages must share the same left nav and top toolbar design, include a bottom-left settings entry, no OpenAI logo, no official branding, no marketing hero, no decorative blobs, no oversized data confidence card, no remaining-token value, no estimated available duration, Chinese UI text, 8px card radius.
 ```
 
 ## 3. Codex 账本页设计
@@ -258,6 +323,7 @@ Constraints: no OpenAI logo, no official branding, no marketing page, no oversiz
 
 设计图确认时重点看：
 
+- 左侧导航、顶部工具栏和设置入口是否在所有页面中保持一致。
 - 页面信息是否完整。
 - 各区块主次是否符合实际使用优先级。
 - 表格、指标、状态标签是否足够清晰。
@@ -276,6 +342,6 @@ Constraints: no OpenAI logo, no official branding, no marketing page, no oversiz
 
 初步观察：
 
-- 总览页的整体层级清晰，但左侧导航出现了部分未规划页面项，确认后如采用该方向，实际开发需收敛为当前三页导航。
+- 总览页的整体层级清晰，但左侧导航出现了部分未规划页面项，且顶部工具栏与其他页面不一致；该图应按 `v0.3.1` 总览页规格重出。
 - Codex 账本页的信息结构较贴近本文档，可作为后续实现参考。
 - 代码仓库页的表格与详情分栏清晰，可作为后续实现参考，但 GitHub 远端区域需在实际开发时继续保持“后续可选能力”口径。
