@@ -901,6 +901,11 @@ svg {
   border-bottom: 1px solid rgba(23, 32, 51, 0.07);
 }
 
+.project-card .project-table th + th,
+.project-card .project-table td + td {
+  border-left: 1px solid rgba(23, 32, 51, 0.055);
+}
+
 .project-table td {
   color: var(--text-secondary);
 }

@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.32`
+- 适用版本：`v0.2.2-dev.33`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -136,6 +136,20 @@
 - `1360 x 900`：左侧导航行更接近设计稿的单行结构，激活态浅蓝底和图标语义保持不变。
 - `1080 x 720`：设置入口、版本号、`非官方工具`、页脚和主内容仍完整可见，未出现页面级溢出。
 - 本轮不改变路由、页面标题、副标题、图标资产或数据口径。
+
+## 4.4 项目表格列线复测
+
+基于 `overview-natural-time.png` 与 `overview-1360x900-dev32.png` 对照：
+
+- 设计稿项目表格有浅色横向行线和纵向列线，列边界更明确。
+- `dev32` 项目表格只有横向行线，列之间主要依靠空白区分。
+- `v0.2.2-dev.33` 只在总览页项目概览表格补充弱纵向列线，不影响其他表格。
+
+`v0.2.2-dev.33` 实测结果：
+
+- `1360 x 900`：项目概览表格列线已生效，线条弱于文字和项目图标，整体更接近设计稿账本结构。
+- `1080 x 720`：项目表仍可读，内部滚动和页面完整性未被破坏。
+- 本轮不改变项目数据、排序、滚动、项目图标或统计口径。
 
 ## 5. 后续页面复用规则
 
