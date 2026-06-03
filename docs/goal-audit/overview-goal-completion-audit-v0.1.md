@@ -1,10 +1,10 @@
 # 总览页目标完成度审计（v0.1）
 
 - 创建时间：2026-06-04
-- 审计版本：`v0.2.2-dev.27`
+- 审计版本：`v0.2.2-dev.29`
 - 审计对象：总览页设计对照、图标资产、额度真实数据和交付验证
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev25.png`、`local_dev_work/overview-1080x720-dev25.png`
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`
 - 比例测量：`docs/design-review/overview-visual-measurement-v0.1.md`
 - 运行快照：`C:\Users\85406\AppData\Roaming\codex-companion\snapshot.json`
 - 参考项目：`D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\dev-ledger`
