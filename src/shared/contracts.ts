@@ -19,6 +19,22 @@ export interface CodeActivity {
   net: number;
 }
 
+export interface QuotaResetEvent {
+  at: string;
+  beforeObservedAt: string;
+  beforeUsedPercent: number;
+  afterUsedPercent: number;
+  beforeWindowResetsAt: string | null;
+  afterWindowResetsAt: string | null;
+}
+
+export interface QuotaUsageSegment {
+  startAt: string;
+  endAt: string;
+  usedPercent: number;
+  maxObservedAt: string;
+}
+
 export interface PeriodQuotaEvidence {
   usedPercent: number | null;
   remainingPercent: number | null;
@@ -26,6 +42,8 @@ export interface PeriodQuotaEvidence {
   lastObservedAt: string | null;
   resetCount: number;
   observations: number;
+  resetEvents: QuotaResetEvent[];
+  usageSegments: QuotaUsageSegment[];
 }
 
 export interface PeriodMetric {
@@ -51,6 +69,7 @@ export interface LimitWindow {
   observedAt: string | null;
   windowMinutes: number | null;
   estimatedSpentUsd: number | null;
+  estimatedValueBasisUsedPercent: number | null;
   estimatedFullValueUsd: number | null;
   estimatedRemainingValueUsd: number | null;
   note: string | null;

@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.31 fix: 修正额度价值折算分母
+
+- 开发原因：继续对照 `dev-ledger` 的额度口径时发现，`v0.2.2-dev.30` 快照中周额度最近一次原始 `used_percent` 为 `1%`，但当前周额度周期累计 `quotaEvidence.usedPercent` 为 `28%`；旧的套餐价值折算使用最近一次百分比作为分母，会把 `$897.86` API 等价成本放大为约 `$89786.35`，不符合周期累计口径。
+- 实现方式：更新数据契约、UI Contract 和额度审计文档，明确圆环余量继续使用最近一次 `rate_limits`，但价值折算必须使用当前周期累计已用百分比；`PeriodMetric.quotaEvidence` 补充 `resetEvents / usageSegments`，`LimitWindow` 增加 `estimatedValueBasisUsedPercent`，并让 `estimatedFullValueUsd / estimatedRemainingValueUsd` 优先使用周期证据分母。
+- 当前结果：额度卡可见 UI 不增加复杂字段，仍保持圆环=最近余量、右侧=当前周期累计；数据层和挂件摘要中的套餐价值折算不再混用最近一次百分比。
+- 验证方式：执行 `npm run typecheck` 与 `npm run build`；生成并人工查看 `local_dev_work/overview-1360x900-dev31.png` 与 `local_dev_work/overview-1080x720-dev31.png`；读取运行态 `snapshot.json` 聚合摘要，确认周额度 `usedPercent=1%` 继续用于圆环、`estimatedValueBasisUsedPercent=28%` 用于价值折算，`estimatedFullValueUsd` 从错误量级收敛到约 `$3310.09`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.30 fix: 微调顶部四卡内部视觉权重
 
 - 开发原因：`v0.2.2-dev.29` 已确认顶部四卡高度不应继续整体拉高，下一步应进入卡片内部标注；当前图标、标题和主数字视觉权重仍可更接近设计稿。

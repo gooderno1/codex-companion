@@ -1,7 +1,7 @@
 # 总览页 Token / 额度数据审计（v0.1）
 
 - 创建时间：2026-06-04
-- 审计基线：`v0.2.2-dev.23`
+- 审计基线：`v0.2.2-dev.31`
 - 参考项目：`D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\dev-ledger`
 - 审计范围：总览页顶部自然时间 Token、5H / 周额度卡 Token、额度余量与周期边界
 - 隐私边界：只读取 `token_count` 数值字段和时间戳，不输出原始会话正文、用户输入、模型回复或本地路径明细
@@ -93,9 +93,39 @@
 - 额度卡右侧 Token / 成本 / 会话来自当前额度周期内的连续快照增量。
 - 顶部四卡来自自然时间周期内的连续快照增量。
 
-本轮不修改运行代码，因为未发现当前实现存在“首个累计快照误计入今日增量”的证据。
+`v0.2.2-dev.23` 审计未发现“首个累计快照误计入今日增量”的证据。
 
-## 7. 后续建议
+## 7. `v0.2.2-dev.31` 价值折算口径复查
+
+继续对照 `dev-ledger` 后，发现当前应用在 `v0.2.2-dev.30` 快照中存在一个隐藏数据口径问题：
+
+- 周额度最近一次原始 `rate_limits.secondary.used_percent`：`1%`
+- 当前周额度周期 `quotaEvidence.usedPercent`：`28%`
+- 周额度周期 API 等价成本：约 `$897.86`
+- 旧的 `LimitWindow.estimatedFullValueUsd` 使用最近一次 `1%` 作为分母，得到约 `$89786.35`
+- 按 `dev-ledger` 的套餐价值折算口径，应使用周期累计 `28%` 作为分母，结果约为 `$3206.65`
+
+原因说明：
+
+- 最近一次 `used_percent` 适合表达圆环中心的“最近额度余量”。
+- 周期累计 `usedPercent` 适合表达“当前额度周期已经消耗了多少额度”。
+- 价值折算回答的是“本周期这些 token / 成本对应多少额度占比”，因此必须使用周期累计百分比，不应使用最近一次百分比。
+
+本轮修正要求：
+
+- `LimitWindow.estimatedFullValueUsd / estimatedRemainingValueUsd` 改为优先使用 `PeriodMetric.quotaEvidence.usedPercent`。
+- `PeriodMetric.quotaEvidence` 补充 `resetEvents / usageSegments`，与 `dev-ledger` 的可追溯口径保持一致。
+- 总览页可见 UI 暂不增加复杂字段，仍保持圆环显示最近余量、右侧显示周期累计 Token / 成本 / 代码 / 会话。
+
+`v0.2.2-dev.31` 运行态验证结果：
+
+- 周额度圆环仍按最近一次原始观测显示：`usedPercent=1%`、`remainingPercent=99%`
+- 周额度价值折算分母改为周期累计：`estimatedValueBasisUsedPercent=28%`
+- 周额度周期 API 等价成本：约 `$926.83`
+- 修正后的满额估值：约 `$3310.09`
+- 周期证据已输出 `usageSegments`，当前周期 `resetEvents=[]`、`observations=1320`
+
+## 8. 后续建议
 
 - 若后续继续增强可信度，可以在快照中增加内部诊断字段，例如 `tokenIncrementEvents`、`largestTokenIncrement` 和 `periodWindowLabel`，但总览页默认不展开。
 - 若用户希望进一步核对数值，可增加一个本地只读诊断命令，输出聚合摘要，不输出原始会话内容。

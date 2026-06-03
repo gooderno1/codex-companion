@@ -4,6 +4,8 @@ import type {
   LimitWindow,
   OverviewProjectItem,
   PeriodMetric,
+  QuotaResetEvent,
+  QuotaUsageSegment,
   SessionAttribution,
   SourceStatus,
   WidgetMetric
@@ -66,6 +68,8 @@ interface QuotaCycleMetric {
   lastObservedAt: string | null;
   resetCount: number;
   observations: number;
+  resetEvents: QuotaResetEvent[];
+  usageSegments: QuotaUsageSegment[];
 }
 
 interface QuotaWindowUsage {
@@ -168,6 +172,7 @@ function analyzeQuotaObservations(observations: QuotaCycleObservation[]) {
     beforeObservedAt: string;
     beforeUsedPercent: number;
     afterUsedPercent: number;
+    beforeWindowResetsAt: string | null;
     afterWindowResetsAt: string | null;
   }> = [];
 
@@ -184,6 +189,7 @@ function analyzeQuotaObservations(observations: QuotaCycleObservation[]) {
         beforeObservedAt: previous.observedAt,
         beforeUsedPercent: previous.usedPercent,
         afterUsedPercent: current.usedPercent,
+        beforeWindowResetsAt: previous.resetsAt,
         afterWindowResetsAt: current.resetsAt
       });
     }
@@ -242,8 +248,17 @@ function analyzeQuotaObservations(observations: QuotaCycleObservation[]) {
 
   const lastReset = resetEvents.at(-1);
   if (lastReset) {
+    const lastResetWindowMs = new Date(lastReset.afterWindowResetsAt ?? 0).getTime();
     const postResetMax = ordered
-      .filter((item) => new Date(item.observedAt).getTime() > new Date(lastReset.at).getTime())
+      .filter((item) => {
+        const itemResetMs = new Date(item.resetsAt ?? 0).getTime();
+        return (
+          new Date(item.observedAt).getTime() > new Date(lastReset.at).getTime() &&
+          (!Number.isFinite(lastResetWindowMs) ||
+            !Number.isFinite(itemResetMs) ||
+            itemResetMs >= lastResetWindowMs - 60 * 1000)
+        );
+      })
       .reduce<QuotaCycleObservation | null>(
         (best, item) => (item.usedPercent > (best?.usedPercent ?? -1) ? item : best),
         null
@@ -268,7 +283,9 @@ function analyzeQuotaObservations(observations: QuotaCycleObservation[]) {
 
   return {
     cumulativeUsedPercent,
-    resetCount: resetEvents.length
+    resetCount: resetEvents.length,
+    resetEvents,
+    usageSegments
   };
 }
 
@@ -425,7 +442,9 @@ function buildQuotaWindowUsage(args: {
         maxObservedUsedPercent: bucket.maxObservedUsedPercent,
         lastObservedAt: bucket.lastObservedAt,
         resetCount: analysis.resetCount,
-        observations: bucket.observations.length
+        observations: bucket.observations.length,
+        resetEvents: analysis.resetEvents,
+        usageSegments: analysis.usageSegments
       };
     });
 
@@ -524,7 +543,9 @@ function buildQuotaCyclePeriodMetric(
       maxObservedUsedPercent: cycle.maxObservedUsedPercent,
       lastObservedAt: cycle.lastObservedAt,
       resetCount: cycle.resetCount,
-      observations: cycle.observations
+      observations: cycle.observations,
+      resetEvents: cycle.resetEvents,
+      usageSegments: cycle.usageSegments
     }
   };
 }
@@ -554,13 +575,19 @@ function buildLimitWindow(
       }
     | undefined,
   estimatedSpentUsd: number | null,
-  note: string | null = null
+  note: string | null = null,
+  estimatedValueBasisUsedPercent: number | null = null
 ): LimitWindow {
   const usedPercent = clampPercentage(window?.usedPercent ?? null);
   const remainingPercent = clampPercentage(window?.remainingPercent ?? null);
+  const rawValueBasisUsedPercent = estimatedValueBasisUsedPercent ?? usedPercent;
+  const valueBasisUsedPercent =
+    rawValueBasisUsedPercent === null || Number.isNaN(rawValueBasisUsedPercent)
+      ? null
+      : Math.max(0, roundTo(rawValueBasisUsedPercent, 2));
   const estimatedFullValueUsd =
-    estimatedSpentUsd !== null && usedPercent !== null && usedPercent > 0
-      ? roundTo(estimatedSpentUsd / (usedPercent / 100), 4)
+    estimatedSpentUsd !== null && valueBasisUsedPercent !== null && valueBasisUsedPercent > 0
+      ? roundTo(estimatedSpentUsd / (valueBasisUsedPercent / 100), 4)
       : null;
 
   return {
@@ -573,6 +600,7 @@ function buildLimitWindow(
     observedAt: window?.observedAt ?? null,
     windowMinutes: window?.windowMinutes ?? null,
     estimatedSpentUsd,
+    estimatedValueBasisUsedPercent: valueBasisUsedPercent,
     estimatedFullValueUsd,
     estimatedRemainingValueUsd:
       estimatedFullValueUsd !== null && estimatedSpentUsd !== null
@@ -868,6 +896,7 @@ function buildPendingDashboardSnapshot(
     observedAt: null,
     windowMinutes: null,
     estimatedSpentUsd: null,
+    estimatedValueBasisUsedPercent: null,
     estimatedFullValueUsd: null,
     estimatedRemainingValueUsd: null,
     note: "正在后台读取 Codex rate_limits 与本地会话数据。"
@@ -1179,7 +1208,8 @@ async function collectDashboardSnapshot(
       }
       : undefined,
     primaryPeriod.apiCostUsd,
-    "圆环=最近余量；右侧=当前 5H 周期累计。"
+    "圆环=最近余量；右侧=当前 5H 周期累计。",
+    primaryPeriod.quotaEvidence?.usedPercent ?? null
   );
   const weeklyWindow = buildLimitWindow(
     "secondary",
@@ -1196,7 +1226,8 @@ async function collectDashboardSnapshot(
       }
       : undefined,
     weeklyLimitPeriod.apiCostUsd,
-    "圆环=最近余量；右侧=当前周额度周期累计。"
+    "圆环=最近余量；右侧=当前周额度周期累计。",
+    weeklyLimitPeriod.quotaEvidence?.usedPercent ?? null
   );
   const observableMonthWindow = buildLimitWindow(
     "observableMonth",

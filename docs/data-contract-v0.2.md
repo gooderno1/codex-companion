@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.2.2-dev.26`
+- 对应开发版本：`v0.2.2-dev.31`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -54,16 +54,19 @@
 - `PeriodMetric.quotaEvidence` 暴露当前额度周期的可见证据：
   - `observations`：周期内有效 `rate_limits` 观测次数
   - `resetCount`：周期内按相邻同 session 观测识别到的额度重置次数
+  - `resetEvents`：周期内识别到的重置事件摘要，只包含观测时间、重置前后百分比和窗口恢复时间，不包含原始会话正文
+  - `usageSegments`：周期内用于累计额度用量的分段摘要，只包含时间范围、分段最高百分比和最高点观测时间
   - `maxObservedUsedPercent`：周期内原始观测最高已用百分比
   - `usedPercent / remainingPercent`：考虑重置段后的周期累计已用百分比和余量百分比
   - `lastObservedAt`：周期内最近一次额度观测时间
 - 总览页额度卡圆环中心和弧线都显示最近一次 `rate_limits` 余量；圆环下方将重置时间和当前额度周期起止合并为一行，用于解释右侧 token / 成本为什么可能小于自然日累计；底部短注记只说明 `圆环=最近余量；右侧=当前周期累计`，并以 `观测 N 次 · 重置 N 次` 展示 `observations / resetCount`，不在总览页展开历史重置明细。
+- `LimitWindow.estimatedFullValueUsd / estimatedRemainingValueUsd` 是套餐价值折算字段，必须使用当前额度周期的累计已用百分比作为分母，优先取 `PeriodMetric.quotaEvidence.usedPercent`，不能使用最近一次原始 `rate_limits.used_percent`。原因是最近一次百分比只适合表达当前圆环余量，遇到同周期多观测、重置或额度池观测回落时，不足以代表周期累计消耗。
 
 ### 2.3 成本与价值
 
 - API 等价成本使用公开 API 定价按模型估算
 - 周套餐价值折算公式：
-  - `当前周额度周期 API 等价成本 / 当前周已用百分比`
+  - `当前周额度周期 API 等价成本 / 当前周周期累计已用百分比 * 100`
 - 剩余价值空间公式：
   - `折算总价值 - 当前周 API 等价成本`
 
