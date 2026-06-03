@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.30`
+- 适用版本：`v0.2.2-dev.32`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（本轮验证）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -122,6 +122,20 @@
 - `1360 x 900`：顶部四卡图标、标题和主数字权重更接近设计稿，卡片高度和区块比例未继续膨胀。
 - `1080 x 720`：顶部四卡无数字换行；5H / 周额度、项目概览和底部来源说明仍可见，未出现页面级溢出。
 - 本轮只调整视觉权重，不改变自然时间 / 计费时间切换、日 / 周 / 月统计字段、额度窗口字段或项目概览字段。
+
+## 4.3 左侧导航单行化复测
+
+基于 `overview-natural-time.png` 与 `overview-1360x900-dev31.png` 对照：
+
+- 设计稿左侧导航项只显示图标和主标签，行高克制。
+- `dev31` 导航项包含二级说明，导致左侧导航比设计稿更密、更像信息摘要。
+- `v0.2.2-dev.32` 移除导航二级说明，只保留 `总览 / Codex 账本 / 代码仓库 / 设置` 主标签。
+
+`v0.2.2-dev.32` 实测结果：
+
+- `1360 x 900`：左侧导航行更接近设计稿的单行结构，激活态浅蓝底和图标语义保持不变。
+- `1080 x 720`：设置入口、版本号、`非官方工具`、页脚和主内容仍完整可见，未出现页面级溢出。
+- 本轮不改变路由、页面标题、副标题、图标资产或数据口径。
 
 ## 5. 后续页面复用规则
 

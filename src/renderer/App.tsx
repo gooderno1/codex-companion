@@ -24,12 +24,11 @@ import type {
 const NAV_ITEMS: Array<{
   page: Extract<AppPage, "overview" | "ledger" | "repositories">;
   label: string;
-  detail: string;
   icon: IconName;
 }> = [
-  { page: "overview", label: "总览", detail: "用量、额度、项目概览", icon: "overview" },
-  { page: "ledger", label: "Codex 账本", detail: "口径、模型、会话归因", icon: "ledger" },
-  { page: "repositories", label: "代码仓库", detail: "仓库搜索与活动归因", icon: "repo" }
+  { page: "overview", label: "总览", icon: "overview" },
+  { page: "ledger", label: "Codex 账本", icon: "ledger" },
+  { page: "repositories", label: "代码仓库", icon: "repo" }
 ];
 
 const PAGE_META: Record<
@@ -1207,7 +1206,6 @@ export default function App() {
                 </span>
                 <span className="nav-copy">
                   <strong>{item.label}</strong>
-                  <small>{item.detail}</small>
                 </span>
               </button>
             ))}
@@ -1221,7 +1219,6 @@ export default function App() {
             </span>
             <span className="nav-copy">
               <strong>设置</strong>
-              <small>后续页面设计中</small>
             </span>
           </button>
           <div className="sidebar-meta">

@@ -245,12 +245,13 @@ svg {
 }
 
 .nav-copy {
-  gap: 4px;
+  gap: 0;
   text-align: left;
 }
 
 .nav-copy strong {
-  font-size: 15px;
+  font-size: 16px;
+  line-height: 1.15;
 }
 
 .nav-copy small {
