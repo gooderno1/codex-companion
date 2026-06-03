@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.23 fix: 展示额度周期起止时间
+
+- 开发原因：继续复核真实额度数据时，发现顶部自然日 Token 与当前 5H 额度窗口 Token 差距较大；代码已按 `total_token_usage` 差值计算增量，差异主要来自自然日统计与当前额度窗口起止不同。如果总览页不展示额度周期范围，用户容易误判为额度数据错误。
+- 实现方式：更新 UI Contract、数据契约、组件映射和分区审计，明确额度卡圆环下方展示当前额度周期起止；`QuotaWindowCard` 使用 `period.startAt / period.endAt` 渲染 `周期 HH:mm - HH:mm`，不改变 token 增量、额度余量、重置识别和周期聚合逻辑。
+- 当前结果：5H / 周额度卡在重置时间下方展示当前周期范围，能够解释右侧周期累计 Token 与顶部自然时间累计 Token 的口径差异；底部注记仍保持短句化。
+- 验证方式：执行 `npm run build`；生成并人工查看 `local_dev_work/overview-1360x900-dev23.png` 与 `local_dev_work/overview-1080x720-dev23.png`；读取运行态 `snapshot.json` 确认 `fiveHour.startAt/endAt` 与 `weekLimit.startAt/endAt` 已用于界面展示。
+
 ## [2026-06-04] v0.2.2-dev.22 fix: 调整项目概览标题区层级
 
 - 开发原因：继续按设计稿分区对照总览页，发现底部项目概览区的 `日 / 周 / 月` 二级周期切换被放在右上角并与排序按钮堆叠；设计稿中周期切换应紧跟 `项目概览` 标题，排序按钮才位于右侧操作区。

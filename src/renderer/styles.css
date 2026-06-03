@@ -657,9 +657,14 @@ svg {
 
 .quota-ring-inner span,
 .quota-reset-label,
+.quota-cycle-range,
 .quota-models-title,
 .quota-note {
   font-size: 12px;
+}
+
+.quota-cycle-range {
+  color: var(--text-tertiary);
 }
 
 .quota-metrics {

@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.22`
+- 当前适用版本：`v0.2.2-dev.23`
 - 当前覆盖页面：总览页
 
 ## 总览页
@@ -28,6 +28,7 @@
 - `QuotaWindowCard` 标题只显示一次，不额外显示 `额度窗口` 辅助行。
 - `QuotaWindowCard` 圆环显示最近 `rate_limits` 剩余量，右侧数据使用当前额度周期内真实 token 增量。
 - `QuotaWindowCard` 圆环弧线和中心数字都使用剩余百分比，不允许弧线使用已用百分比。
+- `QuotaWindowCard` 圆环下方必须展示当前额度周期起止时间，使用 `period.startAt / period.endAt`，不额外读取原始日志。
 - `QuotaWindowCard` 底部展示当前额度周期 `rate_limits` 观测次数和重置次数，作为真实额度数据的可见证据；可见文案统一为 `观测 N 次 · 重置 N 次`，不额外重复 `额度观测`。
 - `QuotaWindowCard` 底部口径说明必须短句化，不在总览页展开原始字段名和计算公式。
 - `QuotaWindowCard` 底部口径说明与观测证据应尽量保持同一视觉行，避免额外挤占额度卡高度。

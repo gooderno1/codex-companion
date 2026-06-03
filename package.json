@@ -1,6 +1,6 @@
 {
   "name": "codex-companion",
-  "version": "0.2.2-dev.22",
+  "version": "0.2.2-dev.23",
   "private": true,
   "description": "非官方 Codex 额度、Token 与代码活动桌面伴侣",
   "license": "MIT",
