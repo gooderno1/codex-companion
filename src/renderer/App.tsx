@@ -397,7 +397,6 @@ function QuotaWindowCard({
     <SectionCard className="quota-card">
       <div className="quota-card-head">
         <div>
-          <div className="eyebrow">额度窗口</div>
           <h3>{title}</h3>
         </div>
         <span className={`status-pill ${sourceStatusClass(windowData.sourceStatus)}`}>
@@ -1088,9 +1087,9 @@ export default function App() {
           <div className="brand-block">
             <BrandMark />
             <div>
-              <span className="eyebrow">非官方 Codex 本机仪表盘</span>
               <h1>Codex Companion</h1>
-              <p>本机读取 · 无上传</p>
+              <p className="brand-caption">非官方 Codex 本机仪表盘</p>
+              <p className="brand-status">本机读取 · 无上传</p>
             </div>
           </div>
 
