@@ -28,6 +28,7 @@ let dashboardService: DashboardService;
 let currentPreferences: AppPreferences | null = null;
 let latestSnapshot: DashboardSnapshot | null = null;
 let persistBoundsTimer: NodeJS.Timeout | null = null;
+const WIDGET_DISABLED = true;
 
 const preloadPath = path.join(__dirname, "preload.js");
 
@@ -49,16 +50,21 @@ function createTrayIcon() {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
       <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#2F8CFF"/>
-          <stop offset="100%" stop-color="#12BFD1"/>
+        <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#2563EB"/>
+          <stop offset="100%" stop-color="#06B6D4"/>
         </linearGradient>
       </defs>
-      <rect x="6" y="14" width="52" height="36" rx="10" fill="url(#g)" opacity="0.92"/>
-      <rect x="14" y="24" width="14" height="4" rx="2" fill="#F5FAFF"/>
-      <rect x="14" y="34" width="22" height="4" rx="2" fill="#F5FAFF" opacity="0.9"/>
-      <circle cx="47" cy="32" r="7" fill="#F5FAFF"/>
-      <circle cx="47" cy="32" r="3" fill="#2F8CFF"/>
+      <path d="M22 10c7-4 16-4 23 0 10 6 15 18 13 29" fill="none" stroke="url(#orbit)" stroke-width="4" stroke-linecap="round"/>
+      <path d="M42 54c-7 4-16 4-23 0C9 48 4 36 6 25" fill="none" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="48" cy="12" r="4.5" fill="#ffffff" stroke="#2563EB" stroke-width="3"/>
+      <circle cx="54" cy="43" r="4.5" fill="#ffffff" stroke="#2563EB" stroke-width="3"/>
+      <circle cx="10" cy="31" r="4.5" fill="#ffffff" stroke="#2563EB" stroke-width="3"/>
+      <path d="M32 16 18 24v16l14 8 14-8V24Z" fill="none" stroke="#06B6D4" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="24" y="26" width="6" height="6" rx="1.5" fill="#1F2937"/>
+      <rect x="34" y="26" width="6" height="6" rx="1.5" fill="#1F2937"/>
+      <rect x="24" y="36" width="6" height="6" rx="1.5" fill="#1F2937"/>
+      <rect x="34" y="36" width="6" height="6" rx="1.5" fill="#1F2937"/>
     </svg>
   `;
 
@@ -110,11 +116,19 @@ function normalizeWidgetBounds(
 async function broadcastPreferences(preferences: AppPreferences) {
   currentPreferences = preferences;
   mainWindow?.webContents.send("preferences:updated", preferences);
-  widgetWindow?.webContents.send("preferences:updated", preferences);
+  if (!WIDGET_DISABLED) {
+    widgetWindow?.webContents.send("preferences:updated", preferences);
+  }
   refreshTrayMenu();
 }
 
 async function applyWidgetPreferences(preferences: AppPreferences) {
+  if (WIDGET_DISABLED) {
+    const next = await dashboardService.updateWidgetPreferences({ visible: false });
+    await broadcastPreferences(next);
+    return;
+  }
+
   if (!widgetWindow) {
     return;
   }
@@ -175,65 +189,69 @@ function refreshTrayMenu() {
         await openPage("overview");
       }
     },
-    {
-      label: "显示挂件",
-      type: "checkbox",
-      checked: currentPreferences.widget.visible,
-      click: async () => {
-        const next = await dashboardService.updateWidgetPreferences({
-          visible: !currentPreferences?.widget.visible
-        });
-        await applyWidgetPreferences(next);
-      }
-    },
-    {
-      label: "锁定位置",
-      type: "checkbox",
-      checked: currentPreferences.widget.locked,
-      click: async () => {
-        const next = await dashboardService.updateWidgetPreferences({
-          locked: !currentPreferences?.widget.locked
-        });
-        await applyWidgetPreferences(next);
-      }
-    },
-    {
-      label: "点击穿透",
-      type: "checkbox",
-      checked: currentPreferences.widget.clickThrough,
-      click: async () => {
-        const next = await dashboardService.updateWidgetPreferences({
-          clickThrough: !currentPreferences?.widget.clickThrough
-        });
-        await applyWidgetPreferences(next);
-      }
-    },
-    {
-      label: "隐私模式",
-      type: "checkbox",
-      checked: currentPreferences.widget.privacyMode,
-      click: async () => {
-        const next = await dashboardService.updateWidgetPreferences({
-          privacyMode: !currentPreferences?.widget.privacyMode
-        });
-        await applyWidgetPreferences(next);
-      }
-    },
-    {
-      label:
-        currentPreferences.widget.preset === "signal-bar"
-          ? "切换到极简胶囊"
-          : "切换到顶部信号条",
-      click: async () => {
-        const next = await dashboardService.updateWidgetPreferences({
-          preset:
-            currentPreferences?.widget.preset === "signal-bar"
-              ? "mini-capsule"
-              : "signal-bar"
-        });
-        await applyWidgetPreferences(next);
-      }
-    },
+    ...(WIDGET_DISABLED
+      ? []
+      : [
+          {
+            label: "显示挂件",
+            type: "checkbox" as const,
+            checked: currentPreferences.widget.visible,
+            click: async () => {
+              const next = await dashboardService.updateWidgetPreferences({
+                visible: !currentPreferences?.widget.visible
+              });
+              await applyWidgetPreferences(next);
+            }
+          },
+          {
+            label: "锁定位置",
+            type: "checkbox" as const,
+            checked: currentPreferences.widget.locked,
+            click: async () => {
+              const next = await dashboardService.updateWidgetPreferences({
+                locked: !currentPreferences?.widget.locked
+              });
+              await applyWidgetPreferences(next);
+            }
+          },
+          {
+            label: "点击穿透",
+            type: "checkbox" as const,
+            checked: currentPreferences.widget.clickThrough,
+            click: async () => {
+              const next = await dashboardService.updateWidgetPreferences({
+                clickThrough: !currentPreferences?.widget.clickThrough
+              });
+              await applyWidgetPreferences(next);
+            }
+          },
+          {
+            label: "隐私模式",
+            type: "checkbox" as const,
+            checked: currentPreferences.widget.privacyMode,
+            click: async () => {
+              const next = await dashboardService.updateWidgetPreferences({
+                privacyMode: !currentPreferences?.widget.privacyMode
+              });
+              await applyWidgetPreferences(next);
+            }
+          },
+          {
+            label:
+              currentPreferences.widget.preset === "signal-bar"
+                ? "切换到极简胶囊"
+                : "切换到顶部信号条",
+            click: async () => {
+              const next = await dashboardService.updateWidgetPreferences({
+                preset:
+                  currentPreferences?.widget.preset === "signal-bar"
+                    ? "mini-capsule"
+                    : "signal-bar"
+              });
+              await applyWidgetPreferences(next);
+            }
+          }
+        ]),
     { type: "separator" },
     {
       label: "刷新数据",
@@ -255,7 +273,6 @@ function refreshTrayMenu() {
 
 async function openPage(page: AppPage) {
   if (page === "widget") {
-    widgetWindow?.showInactive();
     return;
   }
 
@@ -273,10 +290,10 @@ async function openPage(page: AppPage) {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 960,
-    minWidth: 1200,
-    minHeight: 820,
+    width: 1360,
+    height: 900,
+    minWidth: 1080,
+    minHeight: 720,
     title: "Codex Companion",
     backgroundColor: "#F5FAFF",
     autoHideMenuBar: true,
@@ -372,12 +389,20 @@ function registerIpcHandlers() {
     await openPage(page);
   });
   ipcMain.handle("widget:show", async () => {
+    if (WIDGET_DISABLED) {
+      return dashboardService.getPreferences();
+    }
     const next = await dashboardService.updateWidgetPreferences({ visible: true });
     await applyWidgetPreferences(next);
+    return next;
   });
   ipcMain.handle("widget:hide", async () => {
+    if (WIDGET_DISABLED) {
+      return dashboardService.getPreferences();
+    }
     const next = await dashboardService.updateWidgetPreferences({ visible: false });
     await applyWidgetPreferences(next);
+    return next;
   });
 }
 
@@ -388,7 +413,9 @@ async function bootstrap() {
   currentPreferences = await dashboardService.getPreferences();
 
   createMainWindow();
-  createWidgetWindow(currentPreferences);
+  if (!WIDGET_DISABLED) {
+    createWidgetWindow(currentPreferences);
+  }
 
   tray = new Tray(createTrayIcon().resize({ width: 18, height: 18 }));
   tray.on("double-click", () => {

@@ -21,10 +21,10 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   background:
-    radial-gradient(circle at top left, rgba(44, 127, 184, 0.16), transparent 30%),
-    radial-gradient(circle at 85% 12%, rgba(20, 154, 155, 0.14), transparent 24%),
-    radial-gradient(circle at 85% 85%, rgba(212, 132, 47, 0.12), transparent 24%),
-    linear-gradient(180deg, #fbf8f2 0%, var(--bg-canvas) 100%);
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 28%),
+    radial-gradient(circle at 90% 10%, rgba(6, 182, 212, 0.10), transparent 20%),
+    linear-gradient(180deg, #fbfdff 0%, var(--bg-canvas) 100%);
+  overflow: hidden;
 }
 
 button,
@@ -56,29 +56,31 @@ svg {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 288px minmax(0, 1fr);
-  min-height: 100vh;
-  padding: var(--space-6);
-  gap: var(--space-6);
+  grid-template-columns: 264px minmax(0, 1fr);
+  height: 100vh;
+  padding: 12px;
+  gap: 12px;
 }
 
 .sidebar-shell,
 .main-shell {
-  min-height: calc(100vh - 48px);
+  min-height: 0;
+  height: 100%;
 }
 
 .sidebar-shell {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: var(--space-7);
-  border: 1px solid rgba(255, 255, 255, 0.42);
+  padding: var(--space-6);
+  border: 1px solid rgba(37, 99, 235, 0.10);
   border-radius: var(--radius-shell);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(252, 248, 241, 0.8)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 251, 255, 0.92)),
     var(--bg-veil);
   backdrop-filter: blur(24px);
   box-shadow: var(--shadow-soft);
+  overflow: hidden;
 }
 
 .sidebar-top,
@@ -111,6 +113,7 @@ svg {
   margin: 0;
   font-family: var(--font-sans);
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .brand-block p,
@@ -134,44 +137,28 @@ svg {
 
 .brand-block p {
   margin: 6px 0 0;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .brand-mark {
+  width: 56px;
+  height: 56px;
   display: grid;
-  grid-template-columns: repeat(2, 14px);
-  grid-template-rows: repeat(2, 14px);
-  gap: 6px;
-  padding: 4px;
+  place-items: center;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
 }
 
-.brand-mark span {
-  display: block;
-  width: 14px;
-  height: 14px;
-  border-radius: 5px;
-}
-
-.brand-mark span:nth-child(1) {
-  background: linear-gradient(135deg, var(--accent-blue), #74b7da);
-}
-
-.brand-mark span:nth-child(2) {
-  background: linear-gradient(135deg, var(--accent-teal), #6ed0c6);
-}
-
-.brand-mark span:nth-child(3) {
-  background: linear-gradient(135deg, var(--accent-amber), #e5b15f);
-}
-
-.brand-mark span:nth-child(4) {
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+.brand-mark svg {
+  width: 48px;
+  height: 48px;
 }
 
 .sidebar-nav {
   display: grid;
   gap: var(--space-3);
-  margin-top: var(--space-8);
+  margin-top: var(--space-7);
 }
 
 .sidebar-nav button,
@@ -190,23 +177,23 @@ svg {
 .sidebar-nav button:hover,
 .settings-entry:hover {
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.56);
+  background: rgba(248, 251, 255, 0.72);
 }
 
 .sidebar-nav button.active {
   background:
-    linear-gradient(135deg, rgba(44, 127, 184, 0.14), rgba(20, 154, 155, 0.08)),
-    rgba(255, 255, 255, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(44, 127, 184, 0.18);
+    linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(6, 182, 212, 0.05)),
+    rgba(240, 247, 255, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12);
 }
 
 .nav-icon {
   display: inline-grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.74);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(246, 249, 255, 0.96);
   color: var(--accent-blue);
 }
 
@@ -232,7 +219,7 @@ svg {
   width: 100%;
   text-align: left;
   border: 1px solid var(--line-soft);
-  background: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.78);
 }
 
 .settings-entry:disabled {
@@ -249,14 +236,17 @@ svg {
 }
 
 .main-shell {
-  padding: var(--space-7);
-  border: 1px solid rgba(255, 255, 255, 0.42);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  border: 1px solid rgba(37, 99, 235, 0.10);
   border-radius: var(--radius-shell);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(252, 248, 241, 0.74)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.90), rgba(248, 251, 255, 0.92)),
     var(--bg-veil);
   backdrop-filter: blur(28px);
   box-shadow: var(--shadow-strong);
+  overflow: hidden;
 }
 
 .topbar,
@@ -280,7 +270,9 @@ svg {
 .topbar {
   justify-content: space-between;
   gap: var(--space-6);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(37, 99, 235, 0.08);
 }
 
 .topbar-copy {
@@ -289,7 +281,7 @@ svg {
 
 .topbar-copy p {
   margin: 4px 0 0;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .topbar-center {
@@ -319,7 +311,7 @@ svg {
   align-items: center;
   gap: var(--space-2);
   border-radius: var(--radius-pill);
-  padding: 10px 14px;
+  padding: 9px 13px;
 }
 
 .action-button {
@@ -377,10 +369,10 @@ svg {
 .loading-card,
 .loading-hint,
 .error-banner {
-  padding: 14px 16px;
-  margin-bottom: var(--space-4);
+  padding: 12px 14px;
+  margin-bottom: var(--space-3);
   border-radius: var(--radius-card);
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.82);
   box-shadow: inset 0 0 0 1px var(--line-soft);
 }
 
@@ -389,18 +381,25 @@ svg {
   box-shadow: inset 0 0 0 1px rgba(214, 103, 97, 0.18);
 }
 
+.page-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
 .overview-layout,
 .page-stack {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .surface-card {
-  gap: var(--space-5);
-  padding: var(--space-6);
+  gap: var(--space-4);
+  padding: var(--space-5);
   border-radius: var(--radius-panel);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 250, 244, 0.84)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92)),
     var(--surface-primary);
   box-shadow: inset 0 0 0 1px var(--line-soft), var(--shadow-soft);
 }
@@ -412,12 +411,12 @@ svg {
 }
 
 .metric-card {
-  gap: 14px;
-  min-height: 174px;
-  padding: 22px 20px;
+  gap: 12px;
+  min-height: 152px;
+  padding: 18px 18px;
   border-radius: var(--radius-card);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 250, 244, 0.88)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.94)),
     var(--surface-strong);
   box-shadow: inset 0 0 0 1px var(--line-soft), var(--shadow-soft);
 }
@@ -435,49 +434,49 @@ svg {
   align-items: center;
   padding: 5px 10px;
   border-radius: var(--radius-pill);
-  background: rgba(23, 32, 51, 0.06);
+  background: rgba(22, 163, 74, 0.08);
   color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .metric-card-value {
   font-family: var(--font-mono);
-  font-size: 34px;
+  font-size: 30px;
   line-height: 1.05;
 }
 
 .metric-card-detail {
   margin-top: auto;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .metric-blue {
   background:
-    linear-gradient(180deg, rgba(247, 252, 255, 0.96), rgba(236, 246, 251, 0.92)),
+    linear-gradient(180deg, rgba(251, 253, 255, 0.98), rgba(241, 247, 255, 0.94)),
     var(--surface-strong);
 }
 
 .metric-teal {
   background:
-    linear-gradient(180deg, rgba(246, 253, 252, 0.96), rgba(234, 247, 243, 0.92)),
+    linear-gradient(180deg, rgba(249, 254, 255, 0.98), rgba(240, 251, 255, 0.94)),
     var(--surface-strong);
 }
 
 .metric-amber {
   background:
-    linear-gradient(180deg, rgba(255, 251, 244, 0.96), rgba(249, 242, 229, 0.92)),
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(252, 247, 236, 0.94)),
     var(--surface-strong);
 }
 
 .metric-neutral {
   background:
-    linear-gradient(180deg, rgba(252, 252, 252, 0.96), rgba(244, 244, 244, 0.92)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.94)),
     var(--surface-strong);
 }
 
 .metric-muted {
   background:
-    linear-gradient(180deg, rgba(250, 248, 246, 0.96), rgba(238, 234, 229, 0.92)),
+    linear-gradient(180deg, rgba(250, 252, 255, 0.98), rgba(240, 244, 249, 0.94)),
     var(--surface-strong);
 }
 
@@ -495,7 +494,7 @@ svg {
 
 .quota-card-body {
   align-items: stretch;
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 .quota-ring-block {
@@ -503,14 +502,14 @@ svg {
   align-content: start;
   justify-items: center;
   gap: var(--space-3);
-  min-width: 200px;
+  min-width: 184px;
 }
 
 .quota-ring {
   display: grid;
   place-items: center;
-  width: 172px;
-  height: 172px;
+  width: 156px;
+  height: 156px;
   border-radius: 50%;
   background:
     conic-gradient(
@@ -523,8 +522,8 @@ svg {
 .quota-ring-inner {
   place-items: center;
   gap: 6px;
-  width: 124px;
-  height: 124px;
+  width: 112px;
+  height: 112px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: inset 0 0 0 1px rgba(23, 32, 51, 0.06);
@@ -532,7 +531,7 @@ svg {
 
 .quota-ring-inner strong {
   font-family: var(--font-mono);
-  font-size: 30px;
+  font-size: 28px;
 }
 
 .quota-ring-inner span,
@@ -545,7 +544,7 @@ svg {
 .quota-metrics {
   flex: 1;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .quota-metric-row {
@@ -575,7 +574,7 @@ svg {
 
 .quota-models {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .quota-model-row {
@@ -622,7 +621,7 @@ svg {
 .repo-card-head h3,
 .quota-card-head h3 {
   margin-top: 4px;
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .project-toolbar {
@@ -976,13 +975,19 @@ svg {
 }
 
 @media (max-width: 1180px) {
+  body {
+    overflow: auto;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
+    height: auto;
   }
 
   .sidebar-shell,
   .main-shell {
     min-height: auto;
+    height: auto;
   }
 
   .topbar,
@@ -1016,8 +1021,8 @@ svg {
 
 @media (max-width: 760px) {
   .app-shell {
-    padding: 16px;
-    gap: 16px;
+    padding: 12px;
+    gap: 12px;
   }
 
   .sidebar-shell,

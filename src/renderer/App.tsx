@@ -288,10 +288,42 @@ function Glyph({ name }: { name: IconName }) {
 function BrandMark() {
   return (
     <div className="brand-mark" aria-hidden="true">
-      <span />
-      <span />
-      <span />
-      <span />
+      <svg viewBox="0 0 64 64">
+        <defs>
+          <linearGradient id="brandOrbit" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#2563eb" />
+            <stop offset="100%" stopColor="#06b6d4" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M22 10c7-4 16-4 23 0 10 6 15 18 13 29"
+          fill="none"
+          stroke="url(#brandOrbit)"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+        <path
+          d="M42 54c-7 4-16 4-23 0C9 48 4 36 6 25"
+          fill="none"
+          stroke="#2563eb"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+        <circle cx="48" cy="12" r="4.5" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
+        <circle cx="54" cy="43" r="4.5" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
+        <circle cx="10" cy="31" r="4.5" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
+        <path
+          d="M32 16 18 24v16l14 8 14-8V24Z"
+          fill="none"
+          stroke="#06b6d4"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+        <rect x="24" y="26" width="6" height="6" rx="1.5" fill="#1f2937" />
+        <rect x="34" y="26" width="6" height="6" rx="1.5" fill="#1f2937" />
+        <rect x="24" y="36" width="6" height="6" rx="1.5" fill="#1f2937" />
+        <rect x="34" y="36" width="6" height="6" rx="1.5" fill="#1f2937" />
+      </svg>
     </div>
   );
 }
@@ -1145,8 +1177,9 @@ export default function App() {
         {loading && !snapshot ? <div className="loading-card">正在读取本机 Codex 与 Git 数据…</div> : null}
         {isPending ? <div className="loading-hint">界面正在切换到最新快照…</div> : null}
 
-        {snapshot ? (
-          <>
+        <div className="page-viewport">
+          {snapshot ? (
+            <>
             {currentPage === "overview" ? (
               <OverviewPage snapshot={snapshot} mode={overviewMode} />
             ) : null}
@@ -1157,8 +1190,9 @@ export default function App() {
               <span>定价来源：{snapshot.pricingMeta.apiRateSource}</span>
               <span>{snapshot.pricingMeta.codexRateSource}</span>
             </footer>
-          </>
-        ) : null}
+            </>
+          ) : null}
+        </div>
       </main>
     </div>
   );
