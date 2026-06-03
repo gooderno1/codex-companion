@@ -158,6 +158,7 @@
 建议新增产物：
 
 - `docs/ui-contract/overview-v0.3.4.md`
+- `docs/ui-contract/overview-v0.1.md`
 - `docs/component-map.md`
 - `src/renderer/design-tokens.ts`
 - `tests/visual/overview.spec.ts`
@@ -197,6 +198,97 @@
 5. 开始总览页实际开发
 6. 用截图基线校验总览页
 7. 再进入 Codex 账本页和代码仓库页
+
+## 5.1 目录约定
+
+为了让后续页面都按同一方式交付，建议固定目录和命名，不再临时起文件名。
+
+推荐目录：
+
+- `docs/page-design-spec-v*.md`
+- `docs/ui-contract/`
+- `docs/assets/design/`
+- `src/renderer/design-tokens.ts`
+- `tests/visual/`
+
+推荐命名：
+
+- 页面确认稿：`docs/ui-contract/<page>-vX.Y.md`
+- 组件映射：`docs/component-map.md`
+- 视觉基线：`tests/visual/<page>.spec.ts`
+- 设计图：`docs/assets/design/<version>/`
+
+## 5.2 每页交付清单
+
+每个页面在“进入实际开发”前，至少要有下面 5 项：
+
+1. 页面规格已冻结
+2. 页面 `ui-contract` 已落盘
+3. 组件映射已补齐
+4. 设计 token 已能覆盖当前页面
+5. 页面级设计图已确认
+
+如果缺任意一项，不进入正式实现。
+
+## 5.3 页面确认门
+
+每个页面在设计阶段要经过三个门：
+
+### Gate A：方向确认
+
+产物：
+
+- 1 到 2 张页面设计图
+- 简短反馈结论
+
+通过标准：
+
+- 信息结构对
+- 视觉方向对
+- 壳层一致
+
+### Gate B：规格确认
+
+产物：
+
+- 页面 `ui-contract`
+- 当前生效字段表
+- 状态与边界说明
+
+通过标准：
+
+- 不再依赖图片口头解释
+- 可直接指导组件拆分
+- 数据口径无冲突
+
+### Gate C：实现确认
+
+产物：
+
+- 真实页面实现
+- 截图基线
+- 验证记录
+
+通过标准：
+
+- 与 `ui-contract` 一致
+- 与设计 token 一致
+- 页面截图通过视觉回归
+
+## 5.4 当前项目建议
+
+对 `codex-companion`，当前最合理的推进方式是：
+
+1. 总览页先完成 Gate B
+2. 直接开始总览页实现
+3. 总览页跑通后，把壳层、卡片、表格沉淀成复用组件
+4. 再进入 Codex 账本页和代码仓库页
+
+原因：
+
+- 总览页已经反复出过多轮图，继续只改图收益很低
+- 当前真正缺的是结构化交付，而不是更多视觉草稿
+- 总览页一旦完成 `ui-contract + token + component map`，后两页的确认效率会明显提高
 
 ## 6. 参考依据
 

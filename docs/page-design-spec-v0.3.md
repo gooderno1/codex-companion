@@ -20,6 +20,7 @@
 - 当前总览页实现与后续出图，统一以 **第 2 节** 为准。
 - **第 6 节到第 11 节** 仅保留历史设计图和迭代记录，不再作为当前实现依据。
 - 设计图过渡到实际产品的流程，以 [design-to-product-workflow-v0.1.md](./design-to-product-workflow-v0.1.md) 为准。
+- 总览页进入实际开发前的最终确认稿，以 [ui-contract/overview-v0.1.md](./ui-contract/overview-v0.1.md) 为准。
 
 ## 1. 总体设计方向
 
