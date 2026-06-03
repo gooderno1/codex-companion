@@ -683,12 +683,30 @@ function sortProjectRows(rows: OverviewProjectItem[], sort: ProjectSort) {
   });
 }
 
+function FooterNote({ snapshot }: { snapshot: DashboardSnapshot }) {
+  return (
+    <footer className="footer-note">
+      <span className="footer-source">
+        数据来源：Codex 本地 sessions、archived_sessions、本地 Git；不读取云端仓库信息。
+      </span>
+      <span className="footer-chip">session {snapshot.sourceHealth.sessionFilesScanned}</span>
+      <span className="footer-chip">archived {snapshot.sourceHealth.archivedFilesScanned}</span>
+      <span className="footer-chip">仓库 {snapshot.sourceHealth.repoCount}</span>
+      <span className="footer-pricing">
+        定价来源：{snapshot.pricingMeta.apiRateSource}；{snapshot.pricingMeta.codexRateSource}
+      </span>
+    </footer>
+  );
+}
+
 function OverviewPage({
   snapshot,
-  mode
+  mode,
+  footer
 }: {
   snapshot: DashboardSnapshot;
   mode: OverviewMode;
+  footer: React.ReactNode;
 }) {
   const [sort, setSort] = useState<ProjectSort>("token");
   const [naturalPeriod, setNaturalPeriod] = useState<NaturalProjectPeriod>("day");
@@ -812,6 +830,8 @@ function OverviewPage({
             </tbody>
           </table>
         </div>
+
+        {footer}
       </SectionCard>
     </div>
   );
@@ -1279,22 +1299,12 @@ export default function App() {
           {snapshot ? (
             <>
             {currentPage === "overview" ? (
-              <OverviewPage snapshot={snapshot} mode={overviewMode} />
+              <OverviewPage snapshot={snapshot} mode={overviewMode} footer={<FooterNote snapshot={snapshot} />} />
             ) : null}
             {currentPage === "ledger" ? <LedgerPage snapshot={snapshot} /> : null}
             {currentPage === "repositories" ? <RepositoriesPage snapshot={snapshot} /> : null}
 
-            <footer className="footer-note">
-              <span className="footer-source">
-                数据来源：Codex 本地 sessions、archived_sessions、本地 Git；不读取云端仓库信息。
-              </span>
-              <span className="footer-chip">session {snapshot.sourceHealth.sessionFilesScanned}</span>
-              <span className="footer-chip">archived {snapshot.sourceHealth.archivedFilesScanned}</span>
-              <span className="footer-chip">仓库 {snapshot.sourceHealth.repoCount}</span>
-              <span className="footer-pricing">
-                定价来源：{snapshot.pricingMeta.apiRateSource}；{snapshot.pricingMeta.codexRateSource}
-              </span>
-            </footer>
+            {currentPage === "overview" ? null : <FooterNote snapshot={snapshot} />}
             </>
           ) : null}
         </div>

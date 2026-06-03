@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.33`
+- 当前适用版本：`v0.2.2-dev.34`
 - 当前覆盖页面：总览页
 
 ## 总览页
@@ -17,7 +17,7 @@
 | 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、排序 | `snapshot.overview.projectOverview` |
 | 项目排序标签 | `TextTabs` `variant=chip` | 可复用 | `token / cost / code / recent` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
-| 页脚数据来源 | `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
+| 页脚数据来源 | `FooterNote` / `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
 
 ## 当前约束
 
@@ -49,6 +49,7 @@
 - 项目概览必须保留所有已发现本地项目，当前周期无活动项目显示 0 / `--`，不能因为无活动而从表格中消失。
 - 项目表 `项目` 列必须显示项目小图标和项目名，小图标由项目名稳定映射颜色，只作为扫读锚点，不表示官方身份。
 - 项目概览表格需要保留轻量横向和纵向网格线；纵向线只用于增强列扫读，不应变成强边框。
+- 总览页的页脚数据来源必须归入项目概览卡底部，视觉上属于同一张底部表格卡；账本页和仓库页可继续在页面底部复用同一 `FooterNote`。
 - 页脚必须展示本地数据来源与 `session / archived / 仓库` 统计 chip。
 - 当前 `设置` 仅作为壳层保留入口，正式设置页待后续单独设计。
 - 挂件入口不再放在主页面工具栏，保持默认关闭策略。

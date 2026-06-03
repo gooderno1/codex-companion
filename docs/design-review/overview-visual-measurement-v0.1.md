@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.33`
+- 适用版本：`v0.2.2-dev.34`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -150,6 +150,20 @@
 - `1360 x 900`：项目概览表格列线已生效，线条弱于文字和项目图标，整体更接近设计稿账本结构。
 - `1080 x 720`：项目表仍可读，内部滚动和页面完整性未被破坏。
 - 本轮不改变项目数据、排序、滚动、项目图标或统计口径。
+
+## 4.5 页脚归属复测
+
+基于 `overview-natural-time.png` 与 `overview-1360x900-dev33.png` 对照：
+
+- 设计稿数据来源说明和 `session / archived / 仓库` chips 位于项目概览卡底部。
+- `dev33` 页脚内容正确，但位于项目概览卡外，视觉归属弱于设计稿。
+- `v0.2.2-dev.34` 抽出 `FooterNote`，总览页将同一份数据来源信息渲染在项目概览卡内部。
+
+`v0.2.2-dev.34` 实测结果：
+
+- `1360 x 900`：数据来源、chips 和定价来源已归入项目概览卡底部，和设计稿结构更一致。
+- `1080 x 720`：项目表使用内部滚动承载更多行，页脚和主要区块仍完整可见，未出现页面级溢出。
+- 本轮不改变 session / archived / 仓库数量、定价来源文案、项目表数据或统计口径。
 
 ## 5. 后续页面复用规则
 
