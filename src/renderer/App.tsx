@@ -1195,7 +1195,6 @@ export default function App() {
       <main className="main-shell">
         <header className="topbar">
           <div className="topbar-copy">
-            <span className="eyebrow">桌面总控台</span>
             <h2>{PAGE_META[currentPage].title}</h2>
             <p>{PAGE_META[currentPage].subtitle}</p>
           </div>

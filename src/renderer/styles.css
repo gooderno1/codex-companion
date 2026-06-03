@@ -21,9 +21,9 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   background:
-    radial-gradient(circle at 0 0, rgba(15, 111, 255, 0.10), transparent 30%),
-    radial-gradient(circle at 100% 0, rgba(18, 184, 215, 0.07), transparent 22%),
-    linear-gradient(135deg, #f8fbff 0%, #ffffff 40%, var(--bg-canvas) 100%);
+    radial-gradient(circle at 0 0, rgba(15, 111, 255, 0.055), transparent 28%),
+    radial-gradient(circle at 100% 0, rgba(18, 184, 215, 0.04), transparent 22%),
+    linear-gradient(135deg, #f8fbff 0%, #ffffff 44%, var(--bg-canvas) 100%);
   overflow: hidden;
 }
 
@@ -60,8 +60,8 @@ svg {
   grid-template-columns: 264px minmax(0, 1fr);
   width: calc(100vw / var(--app-scale));
   height: calc(100vh / var(--app-scale));
-  padding: 10px;
-  gap: 10px;
+  padding: 0;
+  gap: 0;
   transform: scale(var(--app-scale));
   transform-origin: top left;
 }
@@ -76,14 +76,9 @@ svg {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 18px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-shell);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 251, 255, 0.94)),
-    var(--bg-veil);
-  backdrop-filter: blur(18px);
-  box-shadow: var(--shadow-soft);
+  padding: 22px 14px 18px;
+  border-right: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 251, 255, 0.94));
   overflow: hidden;
 }
 
@@ -275,14 +270,8 @@ svg {
 .main-shell {
   display: flex;
   flex-direction: column;
-  padding: 18px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-shell);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 251, 255, 0.94)),
-    var(--bg-veil);
-  backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-strong);
+  padding: 20px 22px 14px;
+  background: rgba(255, 255, 255, 0.94);
   overflow: hidden;
 }
 
@@ -307,18 +296,22 @@ svg {
 .topbar {
   justify-content: space-between;
   gap: var(--space-5);
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line-soft);
 }
 
 .topbar-copy {
-  gap: 4px;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  min-width: 0;
 }
 
 .topbar-copy p {
-  margin: 4px 0 0;
-  font-size: 12px;
+  margin: 0;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .topbar-center {
@@ -447,9 +440,7 @@ svg {
   gap: 12px;
   padding: 16px;
   border-radius: var(--radius-panel);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 251, 255, 0.94)),
-    var(--surface-primary);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(248, 251, 255, 0.72) 100%);
   box-shadow: inset 0 0 0 1px var(--line-soft), var(--shadow-soft);
 }
 
@@ -465,9 +456,7 @@ svg {
   min-height: 126px;
   padding: 16px;
   border-radius: var(--radius-card);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 251, 255, 0.96)),
-    var(--surface-strong);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(248, 251, 255, 0.62) 100%);
   box-shadow: inset 0 0 0 1px var(--line-soft), var(--shadow-soft);
 }
 
@@ -540,33 +529,23 @@ svg {
 }
 
 .metric-blue {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(239, 247, 255, 0.94)),
-    var(--surface-strong);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(241, 248, 255, 0.56) 100%);
 }
 
 .metric-teal {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(239, 252, 255, 0.94)),
-    var(--surface-strong);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(239, 252, 255, 0.50) 100%);
 }
 
 .metric-amber {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 250, 239, 0.94)),
-    var(--surface-strong);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 250, 239, 0.42) 100%);
 }
 
 .metric-neutral {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.94)),
-    var(--surface-strong);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(246, 249, 255, 0.50) 100%);
 }
 
 .metric-muted {
-  background:
-    linear-gradient(180deg, rgba(250, 252, 255, 0.98), rgba(240, 244, 249, 0.94)),
-    var(--surface-strong);
+  background: linear-gradient(180deg, rgba(250, 252, 255, 0.98), rgba(240, 244, 249, 0.50));
 }
 
 .quota-grid {
