@@ -1186,7 +1186,7 @@ async function collectDashboardSnapshot(
       }
       : undefined,
     primaryPeriod.apiCostUsd,
-    "圆环为最近 rate_limits 主窗口余量；右侧为当前 5H 额度周期累计。"
+    "圆环=最近余量；右侧=当前 5H 周期累计。"
   );
   const weeklyWindow = buildLimitWindow(
     "secondary",
@@ -1203,7 +1203,7 @@ async function collectDashboardSnapshot(
       }
       : undefined,
     weeklyLimitPeriod.apiCostUsd,
-    "圆环为最近 rate_limits 次窗口余量；右侧为当前周额度周期累计。"
+    "圆环=最近余量；右侧=当前周额度周期累计。"
   );
   const observableMonthWindow = buildLimitWindow(
     "observableMonth",
