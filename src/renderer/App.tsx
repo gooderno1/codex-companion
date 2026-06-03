@@ -322,39 +322,39 @@ function BrandMark() {
     <div className="brand-mark" aria-hidden="true">
       <svg viewBox="0 0 64 64">
         <defs>
-          <linearGradient id="brandOrbit" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="brandMarkGradient" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#2563eb" />
             <stop offset="100%" stopColor="#06b6d4" />
           </linearGradient>
         </defs>
         <path
-          d="M22 10c7-4 16-4 23 0 10 6 15 18 13 29"
+          d="M43 8 55 15v11"
           fill="none"
-          stroke="url(#brandOrbit)"
-          strokeWidth="4"
+          stroke="url(#brandMarkGradient)"
+          strokeWidth="5"
           strokeLinecap="round"
-        />
-        <path
-          d="M42 54c-7 4-16 4-23 0C9 48 4 36 6 25"
-          fill="none"
-          stroke="#2563eb"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-        <circle cx="48" cy="12" r="4.5" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
-        <circle cx="54" cy="43" r="4.5" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
-        <circle cx="10" cy="31" r="4.5" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
-        <path
-          d="M32 16 18 24v16l14 8 14-8V24Z"
-          fill="none"
-          stroke="#06b6d4"
-          strokeWidth="4"
           strokeLinejoin="round"
         />
-        <rect x="24" y="26" width="6" height="6" rx="1.5" fill="#1f2937" />
-        <rect x="34" y="26" width="6" height="6" rx="1.5" fill="#1f2937" />
-        <rect x="24" y="36" width="6" height="6" rx="1.5" fill="#1f2937" />
-        <rect x="34" y="36" width="6" height="6" rx="1.5" fill="#1f2937" />
+        <path
+          d="M43 56H22L8 48V16l14-8h21"
+          fill="none"
+          stroke="#2563eb"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M39 22 31 18 22 23v18l9 5 8-4"
+          fill="none"
+          stroke="#06b6d4"
+          strokeWidth="4.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="55" cy="28" r="4.5" fill="#ffffff" stroke="#06b6d4" strokeWidth="3" />
+        <circle cx="44" cy="8" r="4" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
+        <circle cx="44" cy="56" r="4" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
+        <circle cx="31" cy="32" r="3.5" fill="#0f172a" />
       </svg>
     </div>
   );
