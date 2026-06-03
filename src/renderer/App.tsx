@@ -437,14 +437,6 @@ function QuotaWindowCard({
             <span>会话数</span>
             <strong>{period.sessions}</strong>
           </div>
-          <div className="quota-metric-row">
-            <span>观测时间</span>
-            <strong>{formatDateTime(windowData.observedAt)}</strong>
-          </div>
-          <div className="quota-metric-row">
-            <span>来源状态</span>
-            <strong>{sourceStatusLabel(windowData.sourceStatus)}</strong>
-          </div>
         </div>
       </div>
 

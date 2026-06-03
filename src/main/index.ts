@@ -7,6 +7,7 @@ import {
   screen,
   Tray
 } from "electron";
+import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -36,6 +37,11 @@ function isDevelopment() {
   return Boolean(process.env.VITE_DEV_SERVER_URL);
 }
 
+function numberFromEnv(name: string, fallback: number): number {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
 function resolveRendererUrl(page: AppPage): string {
   const route = `#/${page}`;
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -44,6 +50,29 @@ function resolveRendererUrl(page: AppPage): string {
 
   const indexPath = path.join(app.getAppPath(), "dist", "index.html");
   return `${pathToFileURL(indexPath).toString()}${route}`;
+}
+
+function scheduleMainWindowCapture() {
+  const capturePath = process.env.CODEX_COMPANION_CAPTURE_PATH;
+  if (!capturePath || !mainWindow) {
+    return;
+  }
+
+  const delayMs = numberFromEnv("CODEX_COMPANION_CAPTURE_DELAY_MS", 5000);
+  mainWindow.webContents.once("did-finish-load", () => {
+    setTimeout(() => {
+      void (async () => {
+        if (!mainWindow) {
+          return;
+        }
+
+        const image = await mainWindow.capturePage();
+        await writeFile(capturePath, image.toPNG());
+        isQuitting = true;
+        app.quit();
+      })();
+    }, delayMs);
+  });
 }
 
 function createTrayIcon() {
@@ -293,8 +322,8 @@ async function openPage(page: AppPage) {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1360,
-    height: 900,
+    width: numberFromEnv("CODEX_COMPANION_WINDOW_WIDTH", 1360),
+    height: numberFromEnv("CODEX_COMPANION_WINDOW_HEIGHT", 900),
     minWidth: 1080,
     minHeight: 720,
     title: "Codex Companion",
@@ -307,6 +336,7 @@ function createMainWindow() {
     }
   });
 
+  scheduleMainWindowCapture();
   void mainWindow.loadURL(resolveRendererUrl("overview"));
 
   mainWindow.on("close", (event) => {

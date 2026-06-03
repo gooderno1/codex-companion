@@ -21,9 +21,9 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 28%),
-    radial-gradient(circle at 90% 10%, rgba(6, 182, 212, 0.10), transparent 20%),
-    linear-gradient(180deg, #fbfdff 0%, var(--bg-canvas) 100%);
+    radial-gradient(circle at 0 0, rgba(37, 99, 235, 0.12), transparent 30%),
+    radial-gradient(circle at 100% 0, rgba(6, 182, 212, 0.08), transparent 22%),
+    linear-gradient(135deg, #f8fbff 0%, #ffffff 36%, var(--bg-canvas) 100%);
   overflow: hidden;
 }
 
@@ -60,8 +60,8 @@ svg {
   grid-template-columns: 264px minmax(0, 1fr);
   width: calc(100vw / var(--app-scale));
   height: calc(100vh / var(--app-scale));
-  padding: 12px;
-  gap: 12px;
+  padding: 10px;
+  gap: 10px;
   transform: scale(var(--app-scale));
   transform-origin: top left;
 }
@@ -76,7 +76,7 @@ svg {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: var(--space-6);
+  padding: 18px;
   border: 1px solid rgba(37, 99, 235, 0.10);
   border-radius: var(--radius-shell);
   background:
@@ -105,7 +105,7 @@ svg {
 
 .brand-block {
   grid-template-columns: auto 1fr;
-  gap: var(--space-4);
+  gap: var(--space-3);
   align-items: start;
 }
 
@@ -144,34 +144,46 @@ svg {
   font-size: 13px;
 }
 
+.brand-block h1 {
+  font-size: 27px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.topbar-copy h2 {
+  font-size: 28px;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
 .brand-mark {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
-  border-radius: 18px;
+  border-radius: 17px;
   background: rgba(255, 255, 255, 0.88);
   box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
 }
 
 .brand-mark svg {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
 }
 
 .sidebar-nav {
   display: grid;
-  gap: var(--space-3);
-  margin-top: var(--space-7);
+  gap: 10px;
+  margin-top: 22px;
 }
 
 .sidebar-nav button,
 .settings-entry {
   display: grid;
-  grid-template-columns: 44px 1fr;
+  grid-template-columns: 40px 1fr;
   gap: var(--space-3);
   align-items: center;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-radius: var(--radius-card);
   background: transparent;
   cursor: pointer;
@@ -194,8 +206,8 @@ svg {
 .nav-icon {
   display: inline-grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 12px;
   background: rgba(246, 249, 255, 0.96);
   color: var(--accent-blue);
@@ -216,7 +228,7 @@ svg {
 }
 
 .sidebar-bottom {
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .settings-entry {
@@ -242,7 +254,7 @@ svg {
 .main-shell {
   display: flex;
   flex-direction: column;
-  padding: var(--space-6);
+  padding: 18px;
   border: 1px solid rgba(37, 99, 235, 0.10);
   border-radius: var(--radius-shell);
   background:
@@ -273,9 +285,9 @@ svg {
 
 .topbar {
   justify-content: space-between;
-  gap: var(--space-6);
-  margin-bottom: var(--space-5);
-  padding-bottom: 14px;
+  gap: var(--space-5);
+  margin-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px solid rgba(37, 99, 235, 0.08);
 }
 
@@ -285,7 +297,7 @@ svg {
 
 .topbar-copy p {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .topbar-center {
@@ -315,7 +327,7 @@ svg {
   align-items: center;
   gap: var(--space-2);
   border-radius: var(--radius-pill);
-  padding: 9px 13px;
+  padding: 8px 12px;
 }
 
 .action-button {
@@ -342,7 +354,7 @@ svg {
 
 .snapshot-label strong {
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .status-pill {
@@ -390,17 +402,27 @@ svg {
   min-height: 0;
   overflow: hidden;
   padding-right: 2px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 8px;
 }
 
 .overview-layout,
 .page-stack {
   display: grid;
-  gap: var(--space-4);
+  gap: 12px;
+  min-height: 0;
+}
+
+.overview-layout {
+  height: 100%;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
 }
 
 .surface-card {
-  gap: var(--space-4);
-  padding: var(--space-5);
+  gap: 12px;
+  padding: 16px;
   border-radius: var(--radius-panel);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92)),
@@ -411,13 +433,13 @@ svg {
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .metric-card {
-  gap: 12px;
-  min-height: 152px;
-  padding: 18px 18px;
+  gap: 10px;
+  min-height: 126px;
+  padding: 16px;
   border-radius: var(--radius-card);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.94)),
@@ -445,7 +467,7 @@ svg {
 
 .metric-card-value {
   font-family: var(--font-mono);
-  font-size: 30px;
+  font-size: 28px;
   line-height: 1.05;
 }
 
@@ -487,7 +509,7 @@ svg {
 .quota-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-5);
+  gap: 12px;
 }
 
 .quota-card-head,
@@ -498,7 +520,7 @@ svg {
 
 .quota-card-body {
   align-items: stretch;
-  gap: var(--space-5);
+  gap: 16px;
 }
 
 .quota-ring-block {
@@ -506,14 +528,14 @@ svg {
   align-content: start;
   justify-items: center;
   gap: var(--space-2);
-  min-width: 170px;
+  min-width: 154px;
 }
 
 .quota-ring {
   display: grid;
   place-items: center;
-  width: 148px;
-  height: 148px;
+  width: 132px;
+  height: 132px;
   border-radius: 50%;
   background:
     conic-gradient(
@@ -526,8 +548,8 @@ svg {
 .quota-ring-inner {
   place-items: center;
   gap: 6px;
-  width: 104px;
-  height: 104px;
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: inset 0 0 0 1px rgba(23, 32, 51, 0.06);
@@ -535,7 +557,7 @@ svg {
 
 .quota-ring-inner strong {
   font-family: var(--font-mono);
-  font-size: 30px;
+  font-size: 28px;
 }
 
 .quota-ring-inner span,
@@ -548,14 +570,15 @@ svg {
 .quota-metrics {
   flex: 1;
   display: grid;
-  gap: 10px;
+  gap: 7px;
 }
 
 .quota-metric-row {
   justify-content: space-between;
   gap: var(--space-4);
-  padding-bottom: 9px;
+  padding-bottom: 7px;
   border-bottom: 1px dashed rgba(23, 32, 51, 0.08);
+  font-size: 14px;
 }
 
 .quota-metric-row:last-child {
@@ -578,21 +601,24 @@ svg {
 
 .quota-models {
   display: grid;
-  gap: 10px;
+  gap: 7px;
 }
 
 .quota-model-row {
-  gap: var(--space-4);
+  gap: 10px;
+  min-height: 22px;
 }
 
 .quota-model-label {
-  gap: 2px;
-  min-width: 180px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 166px;
 }
 
 .quota-model-label span {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .quota-model-bar,
@@ -613,24 +639,30 @@ svg {
 }
 
 .quota-note {
-  padding-top: 4px;
+  padding-top: 2px;
   border-top: 1px dashed rgba(23, 32, 51, 0.1);
 }
 
 .section-toolbar {
-  gap: var(--space-5);
+  gap: 14px;
 }
 
 .section-toolbar h3,
 .repo-card-head h3,
 .quota-card-head h3 {
-  margin-top: 4px;
-  font-size: 22px;
+  margin-top: 3px;
+  font-size: 20px;
+}
+
+.project-card {
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .project-toolbar {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   justify-items: end;
 }
 
@@ -657,7 +689,7 @@ svg {
 }
 
 .text-tabs-chip button {
-  padding: 8px 12px;
+  padding: 7px 10px;
   border-radius: var(--radius-pill);
   background: rgba(23, 32, 51, 0.05);
 }
@@ -670,21 +702,22 @@ svg {
 .project-table-wrap,
 .table-shell {
   overflow: auto;
-  max-height: 254px;
+  min-height: 0;
+  max-height: none;
   border-radius: var(--radius-card);
   box-shadow: inset 0 0 0 1px var(--line-soft);
 }
 
 .project-table {
   width: 100%;
-  min-width: 860px;
+  min-width: 800px;
   border-collapse: collapse;
   background: rgba(255, 255, 255, 0.62);
 }
 
 .project-table th,
 .project-table td {
-  padding: 11px 16px;
+  padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid rgba(23, 32, 51, 0.08);
 }
@@ -868,8 +901,9 @@ svg {
 }
 
 .footer-note {
-  margin-top: var(--space-5);
+  margin-top: 0;
   font-size: 12px;
+  line-height: 1.35;
 }
 
 .widget-root {
@@ -979,15 +1013,15 @@ svg {
   }
 }
 
-@media (max-width: 1360px), (max-height: 900px) {
+@media (max-width: 1500px), (max-height: 960px) {
   .app-shell {
-    --app-scale: 0.92;
+    --app-scale: 0.84;
   }
 }
 
-@media (max-width: 1160px), (max-height: 760px) {
+@media (max-width: 1160px), (max-height: 780px) {
   .app-shell {
-    --app-scale: 0.82;
+    --app-scale: 0.7;
   }
 }
 
