@@ -1273,9 +1273,6 @@ export default function App() {
 
           <div className="topbar-actions">
             <span className={`status-pill ${sourceStatusClass(snapshot?.sourceHealth.sourceStatus ?? "pending")}`}>
-              <span className="pill-icon">
-                <Glyph name="status" />
-              </span>
               {sourceStatusLabel(snapshot?.sourceHealth.sourceStatus ?? "pending")}
             </span>
             <button type="button" className="action-button" onClick={() => void refresh(true)}>

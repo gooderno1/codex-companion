@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.34`
+- 适用版本：`v0.2.2-dev.35`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -164,6 +164,20 @@
 - `1360 x 900`：数据来源、chips 和定价来源已归入项目概览卡底部，和设计稿结构更一致。
 - `1080 x 720`：项目表使用内部滚动承载更多行，页脚和主要区块仍完整可见，未出现页面级溢出。
 - 本轮不改变 session / archived / 仓库数量、定价来源文案、项目表数据或统计口径。
+
+## 4.6 顶栏状态胶囊复测
+
+基于 `overview-natural-time.png` 与 `overview-1360x900-dev34.png` 对照：
+
+- 设计稿右上角状态胶囊只显示 `已观测` 文本，不包含额外图标。
+- `dev34` 顶栏状态胶囊包含状态图标，视觉上更接近一个操作按钮，并拉宽了右侧工具区。
+- `v0.2.2-dev.35` 移除顶栏状态胶囊内的图标，仅保留状态文案；额度卡和指标卡的状态标签仍沿用文字-only 规则。
+
+`v0.2.2-dev.35` 实测结果：
+
+- `1360 x 900`：顶栏状态胶囊宽度收敛，右侧工具区更接近设计稿的文字状态 + 刷新按钮结构。
+- `1080 x 720`：时间视角、状态胶囊、刷新按钮和快照时间仍保持单行，未出现顶栏换行。
+- 本轮不改变状态枚举、状态文案、刷新按钮、快照时间、额度卡状态或任何数据口径。
 
 ## 5. 后续页面复用规则
 
