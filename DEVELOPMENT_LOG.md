@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.39 test: 增加设计 token 校验
+
+- 开发原因：继续推进“按流程从设计图过渡到实际产品”的目标；虽然运行时已有 `src/renderer/design-tokens.ts`，但缺少正式 token 文档和可执行校验，后续配色、圆角和核心间距容易在页面迭代中漂移。
+- 实现方式：新增 `scripts/verify-design-tokens.mjs` 和 `npm run verify:design`，校验 `styles.css` 中全局 token 引用都已在 `design-tokens.ts` 定义，并锁定关键色阶、圆角和间距；新增 `docs/design-tokens-v0.1.md`，同步更新设计流程、组件映射和目标完成度审计。
+- 当前结果：总览页设计 token 从“运行时已有”补齐为“文档化 + 可执行校验”的正式交付物；组件局部变量如 `--quota-progress` 明确不纳入全局 token。
+- 验证方式：执行 `npm run verify:design`，确认全局 token 引用和关键视觉变量通过；执行 `npm run verify:quota`；执行 `npm run build`；本轮不修改 UI，不生成新截图；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.38 docs: 刷新总览页目标审计证据
 
 - 开发原因：继续推进“认真对照并争取全部改完”的目标；目标完成度审计虽然已引用 `verify:quota`，但截图和部分运行态摘要仍停留在 `dev25/dev28`，与当前实现证据不一致。

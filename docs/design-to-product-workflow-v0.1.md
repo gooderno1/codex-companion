@@ -224,6 +224,7 @@
 建议新增产物：
 
 - `docs/ui-contract/overview-v0.1.md`
+- `docs/design-tokens-v0.1.md`
 - `docs/component-map.md`
 - `docs/design-review/overview-block-audit-v0.1.md`
 - `src/renderer/design-tokens.ts`
@@ -294,7 +295,7 @@
 1. 页面规格已冻结
 2. 页面 `ui-contract` 已落盘
 3. 组件映射已补齐
-4. 设计 token 已能覆盖当前页面
+4. 设计 token 已能覆盖当前页面，并通过 `npm run verify:design`
 5. 页面级设计图已确认
 
 如果缺任意一项，不进入正式实现。

@@ -1,11 +1,12 @@
 # 总览页目标完成度审计（v0.1）
 
 - 创建时间：2026-06-04
-- 审计版本：`v0.2.2-dev.38`
+- 审计版本：`v0.2.2-dev.39`
 - 审计对象：总览页设计对照、图标资产、额度真实数据和交付验证
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
 - 实现截图：`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`
 - 比例测量：`docs/design-review/overview-visual-measurement-v0.1.md`
+- 设计 token：`docs/design-tokens-v0.1.md`、`src/renderer/design-tokens.ts`、`npm run verify:design`
 - 运行快照：`C:\Users\85406\AppData\Roaming\codex-companion\snapshot.json`
 - 额度校验：`npm run verify:quota`
 - 参考项目：`D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\dev-ledger`
@@ -16,6 +17,7 @@
 
 - 已按左侧导航、顶部工具栏、顶部四卡、额度卡、项目概览和页脚拆分区块做设计对照。
 - 已补充设计稿与实现截图的区块比例测量，用于后续精修判断。
+- 已补齐设计 token 文件和可执行校验，避免配色、圆角和核心间距在后续页面中漂移。
 - 已按“文档先行 -> 实现 -> 构建 -> 真实 Electron 截图”的流程迭代。
 - 已补齐非官方品牌图标、导航图标、指标图标、额度明细图标和项目图标。
 - 额度卡已接入真实 Codex `rate_limits`、本地 session token 增量和本地 Git 数据，不再使用静态估算。
@@ -34,7 +36,7 @@
 | 要求 | 当前状态 | 证据 | 说明 |
 | --- | --- | --- | --- |
 | 将页面分成多个区块并分别对照设计图 | 已完成 | `docs/design-review/overview-block-audit-v0.1.md` 第 1-6 节、第 8-20 节 | 已按左侧导航、顶部工具栏、顶部四卡、额度卡、项目概览、页脚逐块审计并持续记录每轮差异。 |
-| 将设计差异量化为后续验收依据 | 已完成 | `docs/design-review/overview-visual-measurement-v0.1.md` | 已记录设计稿和实现截图尺寸、主要区块比例、当前达标项和后续可精修项。 |
+| 将设计差异量化为后续验收依据 | 已完成 | `docs/design-review/overview-visual-measurement-v0.1.md`、`docs/design-tokens-v0.1.md`、`npm run verify:design` | 已记录设计稿和实现截图尺寸、主要区块比例、当前达标项和后续可精修项；设计 token 已有可执行校验。 |
 | 按既定流程先补文档再改实现 | 已完成 | `docs/ui-contract/overview-v0.1.md`、`docs/component-map.md`、`DEVELOPMENT_LOG.md` | 每轮涉及页面结构、数据口径或视觉约束的改动均同步更新正式文档和开发记录。 |
 | 需要时补充图标等资产 | 已完成 | `src/renderer/App.tsx` 中 `BrandMark`、`Glyph`、项目图标映射；`docs/component-map.md` 当前约束 | 当前使用本项目自定义内联 SVG，不使用 OpenAI / Codex 官方 logo 或第三方品牌资产。 |
 | 额度数据接入真实数据 | 已完成 | `src/main/collectors/codexCollector.ts`、`src/main/collectors/dashboardCollector.ts`、`docs/data-contract-v0.2.md`、`docs/data-audit/overview-token-quota-audit-v0.1.md`、`npm run verify:quota` | 额度余量来自最近 `rate_limits`，周期边界来自 `resets_at + window_minutes`，右侧 token / 成本 / 会话 / 模型占比来自当前额度周期内的真实 token 增量；`verify:quota` 用运行态快照自动断言这些关键不变量。 |
@@ -124,6 +126,7 @@
 最新已执行验证：
 
 - `npm run build`：通过
+- `npm run verify:design`：通过，校验 `styles.css` 的 token 引用和核心设计变量
 - `npm run verify:quota`：通过，校验 5H / 周额度窗口、周期边界、观测证据和价值折算分母
 - `git diff --check`：通过，仅有 Windows 换行提示
 - 真实 Electron 截图：`local_dev_work/overview-1360x900-dev36.png`
