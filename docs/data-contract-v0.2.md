@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.2.2-dev.24`
+- 对应开发版本：`v0.2.2-dev.26`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -57,7 +57,7 @@
   - `maxObservedUsedPercent`：周期内原始观测最高已用百分比
   - `usedPercent / remainingPercent`：考虑重置段后的周期累计已用百分比和余量百分比
   - `lastObservedAt`：周期内最近一次额度观测时间
-- 总览页额度卡圆环中心和弧线都显示最近一次 `rate_limits` 余量；圆环下方展示当前额度周期起止时间，用于解释右侧 token / 成本为什么可能小于自然日累计；底部短注记只说明 `圆环=最近余量；右侧=当前周期累计`，并以 `观测 N 次 · 重置 N 次` 展示 `observations / resetCount`，不在总览页展开历史重置明细。
+- 总览页额度卡圆环中心和弧线都显示最近一次 `rate_limits` 余量；圆环下方将重置时间和当前额度周期起止合并为一行，用于解释右侧 token / 成本为什么可能小于自然日累计；底部短注记只说明 `圆环=最近余量；右侧=当前周期累计`，并以 `观测 N 次 · 重置 N 次` 展示 `observations / resetCount`，不在总览页展开历史重置明细。
 
 ### 2.3 成本与价值
 
@@ -89,3 +89,4 @@
 ## 5. 审计记录
 
 - `docs/data-audit/overview-token-quota-audit-v0.1.md`：复核总览页自然时间 Token 与额度窗口 Token 差异，确认当前实现没有把今日首个 `total_token_usage` 累计快照直接计为自然日增量。
+- `docs/goal-audit/overview-goal-completion-audit-v0.1.md`：按原目标逐项复核设计对照、图标资产、真实额度数据和当前可交付状态。
