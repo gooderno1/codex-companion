@@ -426,7 +426,7 @@ svg {
 .overview-layout,
 .page-stack {
   display: grid;
-  gap: 12px;
+  gap: 13px;
   min-height: 0;
 }
 
@@ -453,7 +453,7 @@ svg {
 .metric-card {
   align-content: start;
   gap: 9px;
-  min-height: 126px;
+  min-height: 132px;
   padding: 16px;
   border-radius: var(--radius-card);
   background: linear-gradient(180deg, #ffffff 0%, rgba(248, 251, 255, 0.62) 100%);

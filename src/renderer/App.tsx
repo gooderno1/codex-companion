@@ -702,8 +702,7 @@ function OverviewPage({
       <SectionCard className="project-card">
         <div className="section-toolbar">
           <div>
-            <div className="eyebrow">项目概览</div>
-            <h3>当前周期内的项目消耗与工程活动</h3>
+            <h3>项目概览</h3>
           </div>
           <div className="project-toolbar">
             <TextTabs
