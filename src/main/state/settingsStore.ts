@@ -13,7 +13,7 @@ function defaultWidgetPreferences(): WidgetPreferences {
     clickThrough: false,
     opacity: 0.94,
     privacyMode: false,
-    visible: true,
+    visible: false,
     bounds: null
   };
 }
