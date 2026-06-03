@@ -508,15 +508,15 @@ svg {
 
 .metric-icon {
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
   color: #ffffff;
 }
 
 .metric-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 25px;
+  height: 25px;
 }
 
 .metric-card-copy {
@@ -528,7 +528,7 @@ svg {
 .metric-card-title {
   color: var(--text-primary);
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .metric-status {
@@ -544,7 +544,7 @@ svg {
 
 .metric-card-value {
   font-family: var(--font-sans);
-  font-size: 30px;
+  font-size: 31px;
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.05;
