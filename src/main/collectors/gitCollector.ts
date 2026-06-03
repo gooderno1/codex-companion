@@ -9,6 +9,11 @@ import type { CodexSessionSummary } from "./codexCollector";
 interface CollectGitDataArgs {
   repoRoots: string[];
   sessions: CodexSessionSummary[];
+  activityWindows?: Array<{
+    key: "fiveHour" | "weekLimit";
+    start: Date;
+    end: Date;
+  }>;
   now?: Date;
 }
 
@@ -83,12 +88,28 @@ function parseNumstat(output: string | null) {
 }
 
 async function collectCodeActivitySince(repoPath: string, since: Date) {
+  return collectCodeActivityRange(repoPath, since);
+}
+
+async function collectCodeActivityRange(
+  repoPath: string,
+  since: Date,
+  until?: Date
+) {
+  const commitArgs = ["rev-list", "--count", `--since=${since.toISOString()}`];
+  const logArgs = ["log", `--since=${since.toISOString()}`];
+
+  if (until) {
+    commitArgs.push(`--until=${until.toISOString()}`);
+    logArgs.push(`--until=${until.toISOString()}`);
+  }
+
+  commitArgs.push("HEAD");
+  logArgs.push("--numstat", "--format=tformat:");
+
   const [commitCountOutput, numstatOutput] = await Promise.all([
-    runGit(["rev-list", "--count", `--since=${since.toISOString()}`, "HEAD"], repoPath),
-    runGit(
-      ["log", `--since=${since.toISOString()}`, "--numstat", "--format=tformat:"],
-      repoPath
-    )
+    runGit(commitArgs, repoPath),
+    runGit(logArgs, repoPath)
   ]);
 
   const { additions, deletions } = parseNumstat(numstatOutput);
@@ -229,6 +250,7 @@ async function discoverReposUnderRoot(
 export async function collectGitData({
   repoRoots,
   sessions,
+  activityWindows = [],
   now = new Date()
 }: CollectGitDataArgs): Promise<CollectedGitData> {
   const sessionRepoMap = new Map<string, string>();
@@ -303,7 +325,11 @@ export async function collectGitData({
       null
     );
 
-    const [remoteUrl, defaultBranchOutput, currentBranch, today, sevenDays, naturalWeek, month, workingTree, recentCommits, fileFootprint] =
+    const customActivityPromises = activityWindows.map((windowRange) =>
+      collectCodeActivityRange(repoPath, windowRange.start, windowRange.end)
+    );
+
+    const [remoteUrl, defaultBranchOutput, currentBranch, today, sevenDays, naturalWeek, month, workingTree, recentCommits, fileFootprint, ...customActivities] =
       await Promise.all([
         runGit(["remote", "get-url", "origin"], repoPath),
         runGit(
@@ -317,8 +343,20 @@ export async function collectGitData({
         collectCodeActivitySince(repoPath, startOfMonth),
         collectWorkingTreeActivity(repoPath),
         collectRecentCommits(repoPath),
-        collectFileFootprint(repoPath)
+        collectFileFootprint(repoPath),
+        ...customActivityPromises
       ]);
+
+    const customActivityMap = new Map<
+      "fiveHour" | "weekLimit",
+      ReturnType<typeof emptyCodeActivity>
+    >();
+    activityWindows.forEach((windowRange, index) => {
+      customActivityMap.set(
+        windowRange.key,
+        customActivities[index] ?? emptyCodeActivity()
+      );
+    });
 
     repoItems.push({
       id: repoId,
@@ -332,7 +370,9 @@ export async function collectGitData({
         sevenDays: sevenDays ?? emptyCodeActivity(),
         naturalWeek: naturalWeek ?? emptyCodeActivity(),
         month: month ?? emptyCodeActivity(),
-        workingTree: workingTree ?? emptyCodeActivity()
+        workingTree: workingTree ?? emptyCodeActivity(),
+        fiveHour: customActivityMap.get("fiveHour") ?? emptyCodeActivity(),
+        weekLimit: customActivityMap.get("weekLimit") ?? emptyCodeActivity()
       },
       tokens: tokenTotal,
       apiCostUsd,

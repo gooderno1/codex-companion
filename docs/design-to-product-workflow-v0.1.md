@@ -157,7 +157,6 @@
 
 建议新增产物：
 
-- `docs/ui-contract/overview-v0.3.4.md`
 - `docs/ui-contract/overview-v0.1.md`
 - `docs/component-map.md`
 - `src/renderer/design-tokens.ts`

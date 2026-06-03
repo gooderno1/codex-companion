@@ -2,6 +2,7 @@ import type {
   AppPreferences,
   DashboardSnapshot,
   LimitWindow,
+  OverviewProjectItem,
   PeriodMetric,
   SessionAttribution,
   SourceStatus,
@@ -202,7 +203,7 @@ function serializeSessions(
     );
 }
 
-function buildModelMetrics(events: CodexTokenEvent[], monthPeriod: PeriodMetric) {
+function buildModelMetrics(events: CodexTokenEvent[], period: PeriodMetric) {
   const modelMap = new Map<
     string,
     {
@@ -214,8 +215,8 @@ function buildModelMetrics(events: CodexTokenEvent[], monthPeriod: PeriodMetric)
     }
   >();
 
-  const startAt = new Date(monthPeriod.startAt);
-  const endAt = new Date(monthPeriod.endAt);
+  const startAt = new Date(period.startAt);
+  const endAt = new Date(period.endAt);
 
   for (const event of events) {
     const timestamp = new Date(event.timestamp);
@@ -247,8 +248,8 @@ function buildModelMetrics(events: CodexTokenEvent[], monthPeriod: PeriodMetric)
       events: metric.events,
       sessions: metric.sessionIds.size,
       sharePercent:
-        monthPeriod.tokens.total > 0
-          ? roundTo((metric.tokens.total / monthPeriod.tokens.total) * 100, 2)
+        period.tokens.total > 0
+          ? roundTo((metric.tokens.total / period.tokens.total) * 100, 2)
           : 0
     }))
     .sort((left, right) => right.tokens.total - left.tokens.total);
@@ -256,12 +257,124 @@ function buildModelMetrics(events: CodexTokenEvent[], monthPeriod: PeriodMetric)
 
 function aggregateCodeFromRepos(
   repoItems: Awaited<ReturnType<typeof collectGitData>>["items"],
-  field: "today" | "sevenDays" | "naturalWeek" | "month"
+  field:
+    | "today"
+    | "sevenDays"
+    | "naturalWeek"
+    | "month"
+    | "fiveHour"
+    | "weekLimit"
 ) {
   return repoItems.reduce(
-    (total, repo) => sumCodeActivity(total, repo.activity[field]),
+    (total, repo) =>
+      sumCodeActivity(total, repo.activity[field] ?? emptyCodeActivity()),
     emptyCodeActivity()
   );
+}
+
+function latestIsoValue(left: string | null, right: string | null) {
+  if (!left) {
+    return right;
+  }
+
+  if (!right) {
+    return left;
+  }
+
+  return new Date(left).getTime() >= new Date(right).getTime() ? left : right;
+}
+
+function buildProjectOverviewPeriod(args: {
+  repoItems: Awaited<ReturnType<typeof collectGitData>>["items"];
+  events: CodexTokenEvent[];
+  sessionRepoMap: Map<string, string>;
+  startAt: Date;
+  endAt: Date;
+  activityField:
+    | "today"
+    | "naturalWeek"
+    | "month"
+    | "fiveHour"
+    | "weekLimit";
+}): OverviewProjectItem[] {
+  const aggregateMap = new Map<
+    string,
+    {
+      tokenTotal: number;
+      apiCostUsd: number;
+      sessionIds: Set<string>;
+      latestTokenAt: string | null;
+    }
+  >();
+
+  for (const event of args.events) {
+    const timestamp = new Date(event.timestamp);
+    if (timestamp < args.startAt || timestamp > args.endAt) {
+      continue;
+    }
+
+    const repoId = args.sessionRepoMap.get(event.sessionId);
+    if (!repoId) {
+      continue;
+    }
+
+    const current = aggregateMap.get(repoId) ?? {
+      tokenTotal: 0,
+      apiCostUsd: 0,
+      sessionIds: new Set<string>(),
+      latestTokenAt: null
+    };
+
+    current.tokenTotal += event.tokens.total;
+    current.apiCostUsd += event.apiCostUsd;
+    current.sessionIds.add(event.sessionId);
+    current.latestTokenAt = latestIsoValue(current.latestTokenAt, event.timestamp);
+    aggregateMap.set(repoId, current);
+  }
+
+  return args.repoItems
+    .map((repo) => {
+      const aggregate = aggregateMap.get(repo.id);
+      const activity = repo.activity[args.activityField] ?? emptyCodeActivity();
+      const recentCommitAt =
+        repo.recentCommits.find((commit) => {
+          const authoredAt = new Date(commit.authoredAt);
+          return authoredAt >= args.startAt && authoredAt <= args.endAt;
+        })?.authoredAt ?? null;
+      const recentActivityAt = latestIsoValue(
+        aggregate?.latestTokenAt ?? null,
+        recentCommitAt
+      );
+
+      return {
+        id: repo.id,
+        name: repo.name,
+        tokenTotal: roundTo(aggregate?.tokenTotal ?? 0, 2),
+        apiCostUsd: roundTo(aggregate?.apiCostUsd ?? 0, 6),
+        codeChangedLines: activity.changedLines,
+        commits: activity.commits,
+        sessions: aggregate?.sessionIds.size ?? 0,
+        recentActivityAt
+      };
+    })
+    .filter(
+      (item) =>
+        item.tokenTotal > 0 ||
+        item.codeChangedLines > 0 ||
+        item.commits > 0 ||
+        item.sessions > 0
+    )
+    .sort((left, right) => {
+      if (right.tokenTotal !== left.tokenTotal) {
+        return right.tokenTotal - left.tokenTotal;
+      }
+
+      if (right.codeChangedLines !== left.codeChangedLines) {
+        return right.codeChangedLines - left.codeChangedLines;
+      }
+
+      return (right.recentActivityAt ?? "").localeCompare(left.recentActivityAt ?? "");
+    });
 }
 
 async function collectDashboardSnapshot(
@@ -269,9 +382,39 @@ async function collectDashboardSnapshot(
   now = new Date()
 ): Promise<DashboardSnapshot> {
   const codex = await collectCodexData(now);
+  const primaryWindowRange =
+    codex.latestRateSnapshot?.primary?.resetsAt &&
+    codex.latestRateSnapshot.primary.windowMinutes
+      ? {
+          start: addMinutes(
+            new Date(codex.latestRateSnapshot.primary.resetsAt),
+            -codex.latestRateSnapshot.primary.windowMinutes
+          ),
+          end: new Date(codex.latestRateSnapshot.primary.resetsAt)
+        }
+      : null;
+  const secondaryWindowRange =
+    codex.latestRateSnapshot?.secondary?.resetsAt &&
+    codex.latestRateSnapshot.secondary.windowMinutes
+      ? {
+          start: addMinutes(
+            new Date(codex.latestRateSnapshot.secondary.resetsAt),
+            -codex.latestRateSnapshot.secondary.windowMinutes
+          ),
+          end: new Date(codex.latestRateSnapshot.secondary.resetsAt)
+        }
+      : null;
   const git = await collectGitData({
     repoRoots: preferences.repoRoots,
     sessions: codex.sessions,
+    activityWindows: [
+      ...(primaryWindowRange
+        ? [{ key: "fiveHour" as const, start: primaryWindowRange.start, end: primaryWindowRange.end }]
+        : []),
+      ...(secondaryWindowRange
+        ? [{ key: "weekLimit" as const, start: secondaryWindowRange.start, end: secondaryWindowRange.end }]
+        : [])
+    ],
     now
   });
 
@@ -312,29 +455,38 @@ async function collectDashboardSnapshot(
     codex.events,
     aggregateCodeFromRepos(git.items, "month")
   );
-
-  const primaryWindowRange =
-    codex.latestRateSnapshot?.primary?.resetsAt &&
-    codex.latestRateSnapshot.primary.windowMinutes
-      ? {
-          start: addMinutes(
-            new Date(codex.latestRateSnapshot.primary.resetsAt),
-            -codex.latestRateSnapshot.primary.windowMinutes
-          ),
-          end: new Date(codex.latestRateSnapshot.primary.resetsAt)
-        }
-      : null;
-  const secondaryWindowRange =
-    codex.latestRateSnapshot?.secondary?.resetsAt &&
-    codex.latestRateSnapshot.secondary.windowMinutes
-      ? {
-          start: addMinutes(
-            new Date(codex.latestRateSnapshot.secondary.resetsAt),
-            -codex.latestRateSnapshot.secondary.windowMinutes
-          ),
-          end: new Date(codex.latestRateSnapshot.secondary.resetsAt)
-        }
-      : null;
+  const yesterdayStart = addMinutes(todayStart, -24 * 60);
+  const yesterdayPeriod = buildPeriodMetric(
+    "yesterday",
+    "昨日",
+    yesterdayStart,
+    todayStart,
+    codex.events
+  );
+  const previousNaturalWeekStart = addMinutes(naturalWeekStart, -7 * 24 * 60);
+  const previousNaturalWeekPeriod = buildPeriodMetric(
+    "previousNaturalWeek",
+    "上一个自然周",
+    previousNaturalWeekStart,
+    naturalWeekStart,
+    codex.events
+  );
+  const previousMonthStart = new Date(
+    monthStart.getFullYear(),
+    monthStart.getMonth() - 1,
+    1,
+    0,
+    0,
+    0,
+    0
+  );
+  const previousMonthPeriod = buildPeriodMetric(
+    "previousMonth",
+    "上一个自然月",
+    previousMonthStart,
+    monthStart,
+    codex.events
+  );
 
   const primaryPeriod = primaryWindowRange
     ? buildPeriodMetric(
@@ -342,7 +494,8 @@ async function collectDashboardSnapshot(
         "当前 5 小时窗口",
         primaryWindowRange.start,
         primaryWindowRange.end,
-        codex.events
+        codex.events,
+        aggregateCodeFromRepos(git.items, "fiveHour")
       )
     : buildPeriodMetric(
         "currentFiveHour",
@@ -358,7 +511,8 @@ async function collectDashboardSnapshot(
         "当前周额度窗口",
         secondaryWindowRange.start,
         secondaryWindowRange.end,
-        codex.events
+        codex.events,
+        aggregateCodeFromRepos(git.items, "weekLimit")
       )
     : buildPeriodMetric(
         "currentWeekLimit",
@@ -368,6 +522,34 @@ async function collectDashboardSnapshot(
         [],
         emptyCodeActivity()
       );
+  const previousFiveHourPeriod =
+    primaryWindowRange && codex.latestRateSnapshot?.primary?.windowMinutes
+      ? buildPeriodMetric(
+          "previousFiveHour",
+          "上一 5 小时窗口",
+          addMinutes(
+            primaryWindowRange.start,
+            -codex.latestRateSnapshot.primary.windowMinutes
+          ),
+          primaryWindowRange.start,
+          codex.events
+        )
+      : null;
+  const previousWeekLimitPeriod =
+    secondaryWindowRange && codex.latestRateSnapshot?.secondary?.windowMinutes
+      ? buildPeriodMetric(
+          "previousWeekLimit",
+          "上一周额度窗口",
+          addMinutes(
+            secondaryWindowRange.start,
+            -codex.latestRateSnapshot.secondary.windowMinutes
+          ),
+          secondaryWindowRange.start,
+          codex.events
+        )
+      : null;
+  const billingMonthPeriod: PeriodMetric | null = null;
+  const previousBillingMonthPeriod: PeriodMetric | null = null;
 
   const primaryWindow = buildLimitWindow(
     "primary",
@@ -451,6 +633,52 @@ async function collectDashboardSnapshot(
 
   const sessions = serializeSessions(codex.sessions, git.sessionRepoMap);
   const modelMetrics = buildModelMetrics(codex.events, monthPeriod);
+  const fiveHourModels = buildModelMetrics(codex.events, primaryPeriod).slice(0, 3);
+  const weekLimitModels = buildModelMetrics(codex.events, weeklyLimitPeriod).slice(0, 3);
+  const naturalProjectDay = buildProjectOverviewPeriod({
+    repoItems: git.items,
+    events: codex.events,
+    sessionRepoMap: git.sessionRepoMap,
+    startAt: todayStart,
+    endAt: now,
+    activityField: "today"
+  });
+  const naturalProjectWeek = buildProjectOverviewPeriod({
+    repoItems: git.items,
+    events: codex.events,
+    sessionRepoMap: git.sessionRepoMap,
+    startAt: naturalWeekStart,
+    endAt: now,
+    activityField: "naturalWeek"
+  });
+  const naturalProjectMonth = buildProjectOverviewPeriod({
+    repoItems: git.items,
+    events: codex.events,
+    sessionRepoMap: git.sessionRepoMap,
+    startAt: monthStart,
+    endAt: now,
+    activityField: "month"
+  });
+  const billingProjectFiveHour = primaryWindowRange
+    ? buildProjectOverviewPeriod({
+        repoItems: git.items,
+        events: codex.events,
+        sessionRepoMap: git.sessionRepoMap,
+        startAt: primaryWindowRange.start,
+        endAt: primaryWindowRange.end,
+        activityField: "fiveHour"
+      })
+    : [];
+  const billingProjectWeekLimit = secondaryWindowRange
+    ? buildProjectOverviewPeriod({
+        repoItems: git.items,
+        events: codex.events,
+        sessionRepoMap: git.sessionRepoMap,
+        startAt: secondaryWindowRange.start,
+        endAt: secondaryWindowRange.end,
+        activityField: "weekLimit"
+      })
+    : [];
 
   return {
     generatedAt: now.toISOString(),
@@ -473,7 +701,35 @@ async function collectDashboardSnapshot(
       sevenDays: sevenDayPeriod,
       naturalWeek: naturalWeekPeriod,
       month: monthPeriod,
+      previous: {
+        yesterday: yesterdayPeriod,
+        naturalWeek: previousNaturalWeekPeriod,
+        month: previousMonthPeriod,
+        fiveHour: previousFiveHourPeriod,
+        weekLimit: previousWeekLimitPeriod,
+        billingMonth: previousBillingMonthPeriod
+      },
+      windowPeriods: {
+        fiveHour: primaryPeriod,
+        weekLimit: weeklyLimitPeriod,
+        billingMonth: billingMonthPeriod
+      },
       limitWindows: [primaryWindow, weeklyWindow, observableMonthWindow],
+      modelWindows: {
+        fiveHour: fiveHourModels,
+        weekLimit: weekLimitModels
+      },
+      projectOverview: {
+        natural: {
+          day: naturalProjectDay,
+          week: naturalProjectWeek,
+          month: naturalProjectMonth
+        },
+        billing: {
+          fiveHour: billingProjectFiveHour,
+          weekLimit: billingProjectWeekLimit
+        }
+      },
       apiValueSummaryUsd: weeklyWindow.estimatedFullValueUsd
     },
     ledger: {

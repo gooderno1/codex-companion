@@ -1,0 +1,26 @@
+# 组件映射表
+
+- 创建时间：2026-06-03
+- 当前适用版本：`v0.2.2-dev.7`
+- 当前覆盖页面：总览页
+
+## 总览页
+
+| 设计区块 | 代码组件 / 位置 | 复用性 | 关键 props / 状态 | 数据来源 |
+| --- | --- | --- | --- | --- |
+| 左侧导航 | `src/renderer/App.tsx` `sidebar-shell` | 全局复用 | `currentPage` | 本地路由 hash |
+| 顶部工具栏 | `src/renderer/App.tsx` `topbar` | 全局复用 | `currentPage`、`overviewMode`、`sourceStatus`、`generatedAt` | `snapshot.sourceHealth`、`snapshot.generatedAt` |
+| 时间视角切换 | `TextTabs` | 可复用 | `natural / billing` | 本地页面状态 |
+| 顶部四卡 | `MetricCard` | 可复用 | `label`、`value`、`detail`、`badge`、`tone` | `snapshot.overview`、`snapshot.overview.previous` |
+| 5H 额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models` | `snapshot.overview.limitWindows[0]`、`windowPeriods.fiveHour`、`modelWindows.fiveHour` |
+| 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models` | `snapshot.overview.limitWindows[1]`、`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
+| 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、排序 | `snapshot.overview.projectOverview` |
+| 项目排序标签 | `TextTabs` `variant=chip` | 可复用 | `token / cost / code / recent` | 本地页面状态 |
+| 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
+
+## 当前约束
+
+- `自然时间 / 计费时间` 只改变总览页统计口径，不改变壳层和顶部四卡字段。
+- `5H / 周额度窗口` 统一复用 `QuotaWindowCard`，不额外派生其他布局。
+- 当前 `设置` 仅作为壳层保留入口，正式设置页待后续单独设计。
+- 挂件入口不再放在主页面工具栏，保持默认关闭策略。

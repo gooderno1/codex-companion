@@ -93,6 +93,8 @@ export interface RepoMetric {
     naturalWeek: CodeActivity;
     month: CodeActivity;
     workingTree: CodeActivity;
+    fiveHour?: CodeActivity;
+    weekLimit?: CodeActivity;
   };
   tokens: TokenBreakdown;
   apiCostUsd: number;
@@ -101,6 +103,17 @@ export interface RepoMetric {
   lastCodexAt: string | null;
   recentCommits: CommitMetric[];
   fileFootprint: FileFootprint[];
+}
+
+export interface OverviewProjectItem {
+  id: string;
+  name: string;
+  tokenTotal: number;
+  apiCostUsd: number;
+  codeChangedLines: number;
+  commits: number;
+  sessions: number;
+  recentActivityAt: string | null;
 }
 
 export interface WidgetMetric {
@@ -129,7 +142,35 @@ export interface DashboardSnapshot {
     sevenDays: PeriodMetric;
     naturalWeek: PeriodMetric;
     month: PeriodMetric;
+    previous: {
+      yesterday: PeriodMetric;
+      naturalWeek: PeriodMetric;
+      month: PeriodMetric;
+      fiveHour: PeriodMetric | null;
+      weekLimit: PeriodMetric | null;
+      billingMonth: PeriodMetric | null;
+    };
+    windowPeriods: {
+      fiveHour: PeriodMetric;
+      weekLimit: PeriodMetric;
+      billingMonth: PeriodMetric | null;
+    };
     limitWindows: LimitWindow[];
+    modelWindows: {
+      fiveHour: ModelMetric[];
+      weekLimit: ModelMetric[];
+    };
+    projectOverview: {
+      natural: {
+        day: OverviewProjectItem[];
+        week: OverviewProjectItem[];
+        month: OverviewProjectItem[];
+      };
+      billing: {
+        fiveHour: OverviewProjectItem[];
+        weekLimit: OverviewProjectItem[];
+      };
+    };
     apiValueSummaryUsd: number | null;
   };
   ledger: {
