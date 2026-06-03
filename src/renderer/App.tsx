@@ -225,21 +225,24 @@ function Glyph({ name }: { name: IconName }) {
     case "overview":
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path {...common} d="M4 5h7v6H4zM13 5h7v10h-7zM4 13h7v6H4zM13 17h7v2h-7z" />
+          <path {...common} d="M4 11.5 12 5l8 6.5" />
+          <path {...common} d="M6.5 10.5V20h11v-9.5" />
+          <path {...common} d="M10 20v-5h4v5" />
         </svg>
       );
     case "ledger":
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path {...common} d="M5 4h14v16H5z" />
-          <path {...common} d="M8 8h8M8 12h8M8 16h5" />
+          <path {...common} d="M6 4.5h10.5A2.5 2.5 0 0 1 19 7v12.5H7.5A2.5 2.5 0 0 1 5 17V6.5a2 2 0 0 1 2-2Z" />
+          <path {...common} d="M8.5 8.5h6M8.5 12h6M8.5 15.5h4" />
+          <path {...common} d="M16 4.5v5l-1.8-1.1-1.8 1.1v-5" />
         </svg>
       );
     case "repo":
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path {...common} d="M4 7.5 12 4l8 3.5v9L12 20l-8-3.5z" />
-          <path {...common} d="M12 4v16M4 7.5 12 11l8-3.5" />
+          <rect {...common} x="4.5" y="5" width="15" height="14" rx="3" />
+          <path {...common} d="m10 9-3 3 3 3M14 9l3 3-3 3" />
         </svg>
       );
     case "settings":
