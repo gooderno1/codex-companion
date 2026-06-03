@@ -13,6 +13,13 @@
 - `v0.3.1-image.1`：根据总览页修订稿生成两张总览页状态图，分别用于确认 `自然时间` 和 `计费窗口`。
 - `v0.3.2`：根据用户对 `S1-S5` 的反馈修订总览页。重点调整为：设置入口固定到左侧最底部、快照只保留一处、补充图标体系、时间视角改为无边框 `日 / 周 / 月` 文本切换、顶部四卡固定为日周月 Token 与日代码改动、中部卡片改为 `5H 额度窗口` 与 `当前周期用量`、底部表格改为项目周期消耗排行。
 - `v0.3.3`：根据新一轮反馈恢复页级 `自然时间 / 计费时间` 视角；顶部四卡避免重复展示数值；中部固定为 `5H` 与 `周` 两张额度卡；底部改为可滚动 `项目概览`，并在不同视角下切换周期口径。
+- `v0.3.4`：修正总览页当前生效规则。明确 `自然时间 / 计费时间` 只改变统计口径，不改变顶部四卡字段；中部固定为 `5H / 周额度窗口`；补充“设计图到产品实现”的标准交付流程。
+
+## 0.1 当前生效范围
+
+- 当前总览页实现与后续出图，统一以 **第 2 节** 为准。
+- **第 6 节到第 11 节** 仅保留历史设计图和迭代记录，不再作为当前实现依据。
+- 设计图过渡到实际产品的流程，以 [design-to-product-workflow-v0.1.md](./design-to-product-workflow-v0.1.md) 为准。
 
 ## 1. 总体设计方向
 
@@ -67,7 +74,7 @@ Codex Companion 是工作型桌面应用，不做营销式首页。界面应像�
 顶部工具栏分区：
 
 - 左侧页面识别区，宽度约 `360px`：页面标题、页面副标题。
-- 中部页面控制区，宽度约 `360px` 到 `420px`：放置当前页面最重要的视角切换或筛选。总览页使用 `时间视角：自然时间 / 计费窗口`。
+- 中部页面控制区，宽度约 `360px` 到 `420px`：放置当前页面最重要的视角切换或筛选。总览页使用 `时间视角：自然时间 / 计费时间`。
 - 右侧数据操作区，宽度约 `360px`：显示数据状态标签、刷新按钮、最近快照时间。
 - 顶部工具栏不再重复放置设置入口，设置统一固定在左侧底部。
 
@@ -83,109 +90,131 @@ Codex Companion 是工作型桌面应用，不做营销式首页。界面应像�
 
 ### 2.2 内容结构
 
-总览页首版需要同时服务两种视角：
+总览页当前生效规则如下。
 
-- `自然时间`：用于回答今天、本周、本月实际用了多少 Codex，以及对应本地代码活动。
-- `计费窗口`：用于回答当前 5 小时窗口和当前周额度窗口是否紧张。
+页级时间视角：
 
-时间视角切换放在顶部工具栏中部页面控制区。切换只改变总览页指标口径，不改变左侧导航、顶部数据操作区和页面整体布局。
+- `自然时间`：按自然日、自然周、自然月统计。
+- `计费时间`：只改变统计口径，不改变页面结构和顶部四卡字段。
+- `自然时间 / 计费时间` 的核心差异是 **周和月的起止定义不同**。
+- `今日` 口径当前保持一致；差异主要体现在 `本周` 和 `本月`。
 
 第一行：核心指标带
 
 - 位置：主内容区顶部，占满宽度。
 - 高度：`136px`
-- 展示 4 个等宽指标。
-- 每个指标块包含：标签、主数字、趋势小条、辅助说明。
-- 每个指标块必须标注口径状态：`自然时间`、`计费窗口`、`未观测` 或 `数据过期`。
+- 固定展示 4 个等宽指标，不因为时间视角切换而更换字段。
 
-`自然时间` 模式下的 4 个指标：
+固定四卡：
 
-- `今日 Token`：自然日 Codex Token，总量、会话数、API 等价成本。
-- `自然本周 Token`：自然周 Codex Token，总量、会话数、API 等价成本。
-- `自然本月 Token`：自然月 Codex Token，总量、会话数、API 等价成本。
-- `今日代码改动`：本地 Git 今日改动行数和提交数。
+- `今日 Token`
+- `本周 Token`
+- `本月 Token`
+- `今日代码改动`
 
-`计费窗口` 模式下的 4 个指标：
+四卡展示规则：
 
-- `当前 5 小时 Token`：按最近观测到的 `rate_limits.primary.resets_at - window_minutes` 到 `resets_at` 聚合 Token。
-- `5 小时剩余`：只展示剩余百分比，来自 `100 - used_percent`。
-- `当前周额度 Token`：按最近观测到的 `rate_limits.secondary.resets_at - window_minutes` 到 `resets_at` 聚合 Token。
-- `周额度剩余`：只展示剩余百分比，来自 `100 - used_percent`。
+- 主数字只显示一次。
+- 不再在卡片下方重复展示完整 Token 数字。
+- 次级说明使用增减百分比或状态说明：
+  - `较昨日 +12.4%`
+  - `较上周 +8.7%`
+  - `较上月 +15.2%`
+  - `较昨日 -3.1%`
+- 不在顶部四卡中展示 `会话数`、`事件数`、`等价成本` 等附加字段。
+- 不展示趋势曲线。
+- Token 数字自动单位：
+  - `< 10,000`：整数
+  - `>= 10,000 && < 100,000,000`：`万`
+  - `>= 100,000,000`：`亿`
 
-第二行：额度与活动双栏
+四卡口径定义：
 
-- 左侧：额度健康面板，占 `63%` 宽度，高度 `300px`。
-- 右侧：模型用量分析面板，占 `37%` 宽度，高度 `300px`。
+- `自然时间`：
+  - `今日 Token`：自然日 Token
+  - `本周 Token`：自然周 Token
+  - `本月 Token`：自然月 Token
+  - `今日代码改动`：自然日代码改动
+- `计费时间`：
+  - `今日 Token`：当前日 Token
+  - `本周 Token`：当前周额度窗口 Token
+  - `本月 Token`：当前计费月窗口 Token；如果当前数据源尚不可稳定观测，则保持同一卡位，但状态标记为 `未观测` 或 `待补齐`
+  - `今日代码改动`：当前日代码改动
 
-额度健康面板内容：
+第二行：双额度卡
 
-- 5 小时额度横向进度条
-- 周额度横向进度条
-- 可观测月额度状态行
-- 已用百分比、剩余百分比、恢复时间、观测时间、来源状态
-- API 等价成本和套餐价值折算，但必须标注为估算
+- 左卡：`5H 额度窗口`
+- 右卡：`周额度窗口`
+- 两张卡在 `自然时间 / 计费时间` 下保持同一结构。
 
-额度展示边界：
+两张额度卡结构：
 
-- 当前 Codex 本地快照只稳定暴露 `used_percent`、`window_minutes`、`resets_at` 和观测时间。
-- 首版不展示 `剩余 Token`，因为没有原始字段支撑。
-- 首版不展示 `预计可用时长`，因为需要连续额度快照计算消耗速度；当前只有最近快照时，展示该字段会造成伪精确。
-- 后续若沉淀历史额度快照，可按 `剩余百分比 / 最近消耗百分比速度` 估算可用时长，并用 `resets_at` 做上限约束。
+- 左半区使用圆环。
+- 圆环中心显示 **剩余百分比**，不是剩余 Token。
+- 圆环下方显示重置时间。
+- 右半区显示紧凑数据列表：
+  - `Token 用量`
+  - `API 等价成本`
+  - `代码行数`
+  - `会话数`
+  - `观测时间`
+  - `来源状态`
+- 卡片底部显示 Top 3 模型占比条。
 
-模型用量分析面板内容：
+额度卡展示边界：
 
-- 默认统计范围跟随总览页时间视角：`自然时间` 使用自然本周，`计费窗口` 使用当前周额度窗口。
-- 顶部切换：`Token`、`API 等价成本`、`事件数`。
-- 使用横向条形列表展示 Top 5 模型，不使用饼图。
-- 每行显示模型名、占比、Token、API 等价成本和事件数。
+- 当前 Codex 本地快照稳定暴露的是 `used_percent`、`window_minutes`、`resets_at` 和观测时间。
+- 当前阶段不展示 `剩余 Token`，因为没有稳定原始字段。
+- 当前阶段不展示 `预计可用时长`，因为缺少稳定的连续窗口消耗速度。
+- 圆环中心统一显示剩余百分比，并在卡片底部注记：`无剩余 Token 原始字段，圆环中心显示剩余百分比。`
+
+第三行：项目概览
+
+- 底部区域名称固定为 `项目概览`。
+- 使用可滚动表格，允许查看全部项目。
+- 默认按 Token 降序。
+- 保留排序入口：`按 Token`、`按成本`、`按代码行`、`按最近活动`。
+
+表格字段：
+
+- `项目`
+- `Token`
+- `API 等价成本`
+- `代码行数`
+- `提交`
+- `会话`
+- `最近活动`
+
+二级周期切换：
+
+- 当页级视角为 `自然时间` 时，二级切换为 `日 / 周 / 月`。
+- 当页级视角为 `计费时间` 时，项目概览暂按当前版本保留 `5H / 周额度` 二级切换。
 
 数据状态展示方式：
 
-- 不再把 `数据可信度` 作为总览页大面板。
-- 顶部工具栏右侧用一个状态标签展示 `已观测`、`待刷新`、`未观测`、`数据过期`。
-- 页面底部用紧凑说明展示 Codex session 扫描数、archived session 扫描数、仓库数量、最新 token 观测时间和采集备注。
-- 如果后续发现用户确实需要排查数据问题，再把数据状态升级为设置页或诊断抽屉。
-
-第三行：Codex 投入与代码产出
-
-- 位置：底部，占满宽度。
-- 高度：`340px` 到 `360px`。
-- 标题建议使用 `投入与产出对照`，避免只写 `仓库活跃` 造成口径混淆。
-
-展示方式：
-
-- 默认展示 Top 5 仓库对照表。
-- 表格字段：仓库名、Codex Token、归因会话、近 7 日改动行数、今日未提交改动、提交数、匹配状态。
-- 支持排序切换：`按 Codex 投入`、`按 Git 产出`。
-- 首版不做综合活跃分，因为 Codex Token 和 Git 改动行数不是同一量纲，硬合并会削弱可解释性。
-
-仓库活跃口径：
-
-- `Codex 投入`：通过 Codex 会话 `cwd` 向上查找 Git 根目录后归因 Token。
-- `Git 产出`：通过本地 Git 命令统计提交数、增删行、工作区 diff。
-- `投入产出同步`：同一仓库同时存在 Codex Token 和 Git 改动。
-- `有投入待产出`：存在 Codex Token，但当前观察窗口没有 Git 改动。
-- `有产出未归因`：存在 Git 改动，但没有 Codex 会话归因。
+- 顶部工具栏右侧显示统一状态标签：`已观测`、`待刷新`、`未观测`、`数据过期`。
+- 页面底部使用紧凑说明展示数据来源、session 数、archived 数和仓库数。
+- 不再在总览页单独保留 `数据可信度` 大面板。
 
 ### 2.3 总览页待确认决策
 
-- 是否确认把 `数据可信度` 从大面板降级为顶部状态标签和底部数据来源说明。
-- 是否确认总览页右侧大面板改为 `模型用量分析`。
-- 是否确认首版不展示 `剩余 Token` 和 `预计可用时长`，只展示剩余百分比、恢复时间和观测状态。
-- 是否确认仓库区使用 `Codex 投入` 与 `Git 产出` 两条口径，不做综合活跃分。
+- 是否接受 `计费时间` 下顶部四卡与 `自然时间` 保持同一字段，只改变周/月统计边界。
+- 是否接受 `本月 Token` 在计费时间下先保留字段结构，待月窗口定义补齐后再完全落地。
+- 是否接受额度卡圆环中心统一显示剩余百分比，而不是剩余 Token。
+- 是否接受项目概览在计费时间下继续保留 `5H / 周额度` 二级切换。
 
 ### 2.4 设计图生成提示词
 
 ```text
 Use case: ui-mockup
 Asset type: desktop app page design mockup
-Primary request: Create a polished desktop dashboard mockup for the Codex Companion overview page with a consistent app shell.
+Primary request: Create a polished desktop dashboard mockup for the Codex Companion overview page with a consistent app shell and fixed four-card layout.
 Scene/backdrop: a light local-first engineering analytics app, not a landing page.
 Style/medium: high-fidelity UI mockup, restrained operational dashboard, crisp typography.
-Composition/framing: 1440x960 desktop app screenshot, fixed left navigation rail 248px, fixed top toolbar 72px, main dashboard content with four KPI cards, quota health panel, model usage panel, and repository input-output table.
+Composition/framing: 1440x960 desktop app screenshot, fixed left navigation rail 248px, fixed top toolbar 72px, main dashboard content with four KPI cards, two quota window cards, and a scrollable project overview table.
 Color palette: off-white workspace background, graphite text, blue and cyan as accents, green/amber/red for status, avoid one-note blue dominance.
-Text (verbatim): "Codex Companion", "非官方 Codex 本机仪表盘", "总览", "Codex 账本", "代码仓库", "设置", "时间视角", "自然时间", "计费窗口", "今日 Token", "自然本周 Token", "自然本月 Token", "今日代码改动", "5 小时额度", "周额度", "模型用量分析", "投入与产出对照", "Codex 投入", "Git 产出"
-Constraints: all pages must share the same left nav and top toolbar design, include a bottom-left settings entry, no OpenAI logo, no official branding, no marketing hero, no decorative blobs, no oversized data confidence card, no remaining-token value, no estimated available duration, Chinese UI text, 8px card radius.
+Text (verbatim): "Codex Companion", "非官方 Codex 本机仪表盘", "总览", "Codex 账本", "代码仓库", "设置", "时间视角", "自然时间", "计费时间", "今日 Token", "本周 Token", "本月 Token", "今日代码改动", "5H 额度窗口", "周额度窗口", "项目概览"
+Constraints: the top four cards must stay the same under both natural-time and billing-time views; only the statistical boundaries change. No duplicate full token numbers in card helper text. No OpenAI logo, no official branding, no marketing hero, no decorative blobs, no remaining-token value, no estimated available duration, Chinese UI text, 8px card radius.
 ```
 
 ## 3. Codex 账本页设计
@@ -195,7 +224,7 @@ Constraints: all pages must share the same left nav and top toolbar design, incl
 回答四个问题：
 
 - 当前额度窗口具体用了多少？
-- 自然时间和计费窗口的 Token 口径如何区分？
+- 自然时间和计费时间的 Token 口径如何区分？
 - 不同模型贡献了多少 Token 和成本？
 - 哪些会话能归因到哪些项目或仓库？
 
