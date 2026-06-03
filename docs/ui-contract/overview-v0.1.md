@@ -1,7 +1,7 @@
 # Codex Companion 总览页 UI Contract（v0.1）
 
 - 创建时间：2026-06-03
-- 适用版本：`v0.2.2-dev.19` 之后的总览页实现
+- 适用版本：`v0.2.2-dev.20` 之后的总览页实现
 - 页面来源：`docs/page-design-spec-v0.3.md` 第 2 节
 - 状态：进入实际开发前的最终确认稿
 
@@ -278,6 +278,7 @@ Token 数字自动单位：
 数据口径：
 
 - 圆环中心 `剩余百分比` 来自最近一次 Codex 原始 `rate_limits.<primary|secondary>.used_percent`，计算为 `100 - used_percent`。
+- 圆环弧线也必须使用同一个 `剩余百分比`，不能使用已用百分比；否则会出现中心显示 `99% 剩余` 但弧线只有极小一段的反向表达。
 - 右侧 `Token 用量 / API 等价成本 / 会话数 / Top 3 模型占比` 来自当前额度周期内的真实 token 增量。
 - 当前额度周期边界由最近一次 `rate_limits.<primary|secondary>.resets_at` 与 `window_minutes` 反推。
 - token 增量优先使用同一 session 内 `total_token_usage` 累计快照差值，不直接把所有 `total_token_usage` 相加。
@@ -342,6 +343,11 @@ Token 数字自动单位：
 - `提交`
 - `会话`
 - `最近活动`
+
+展示规则：
+
+- `项目` 列必须包含项目小图标和项目名，图标使用本项目自定义轻量图标，不使用第三方或官方 logo。
+- 项目图标颜色可按项目名稳定映射，目的是提供可扫读锚点，不表示真实仓库类型或官方身份。
 
 ## 7.5 页脚数据来源
 

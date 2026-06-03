@@ -476,6 +476,11 @@ svg {
   box-shadow: 0 10px 22px rgba(15, 111, 255, 0.18);
 }
 
+.metric-neutral .metric-icon {
+  background: linear-gradient(135deg, var(--accent-green), #22c55e);
+  box-shadow: 0 10px 22px rgba(22, 163, 74, 0.18);
+}
+
 .metric-icon {
   flex: 0 0 auto;
   width: 42px;
@@ -555,6 +560,16 @@ svg {
   gap: 12px;
 }
 
+.quota-card {
+  --quota-accent: var(--accent-blue);
+  --quota-accent-end: var(--accent-teal);
+}
+
+.quota-green {
+  --quota-accent: var(--accent-green);
+  --quota-accent-end: #22c55e;
+}
+
 .quota-card-head,
 .section-toolbar,
 .repo-card-head {
@@ -576,6 +591,7 @@ svg {
   height: 20px;
   border-radius: 50%;
   color: #ffffff;
+  background: linear-gradient(135deg, var(--quota-accent), var(--quota-accent-end));
   box-shadow: 0 8px 18px rgba(15, 111, 255, 0.16);
 }
 
@@ -606,7 +622,7 @@ svg {
   background:
     conic-gradient(
       from -90deg,
-      var(--accent-blue) 0 var(--quota-progress),
+      var(--quota-accent) 0 var(--quota-progress),
       rgba(23, 32, 51, 0.08) var(--quota-progress) 100%
     );
 }
@@ -721,6 +737,10 @@ svg {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-teal));
+}
+
+.quota-card .quota-model-bar span {
+  background: linear-gradient(90deg, var(--quota-accent), var(--quota-accent-end));
 }
 
 .quota-note {
@@ -856,6 +876,48 @@ svg {
   min-width: 220px;
   color: var(--text-primary);
   font-weight: 600;
+}
+
+.project-name-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.project-row-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  color: #ffffff;
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.08);
+}
+
+.project-row-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.project-icon-blue {
+  background: linear-gradient(135deg, var(--accent-blue), #38bdf8);
+}
+
+.project-icon-teal {
+  background: linear-gradient(135deg, var(--accent-teal), #2dd4bf);
+}
+
+.project-icon-green {
+  background: linear-gradient(135deg, var(--accent-green), #84cc16);
+}
+
+.project-icon-amber {
+  background: linear-gradient(135deg, var(--accent-amber), #f59e0b);
+}
+
+.project-icon-rose {
+  background: linear-gradient(135deg, var(--accent-rose), #fb7185);
 }
 
 .table-empty {

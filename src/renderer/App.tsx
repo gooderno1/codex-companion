@@ -68,6 +68,8 @@ type OverviewMode = "natural" | "billing";
 type NaturalProjectPeriod = "day" | "week" | "month";
 type BillingProjectPeriod = "fiveHour" | "weekLimit";
 type ProjectSort = "token" | "cost" | "code" | "recent";
+type ProjectIconTone = "blue" | "teal" | "green" | "amber" | "rose";
+type QuotaTone = "blue" | "green";
 
 interface OverviewMetricCardData {
   key: string;
@@ -274,8 +276,9 @@ function Glyph({ name }: { name: IconName }) {
     case "token":
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path {...common} d="M4 12 12 4l8 8-8 8-8-8Z" />
-          <path {...common} d="M9 12h6" />
+          <ellipse {...common} cx="12" cy="6.5" rx="6" ry="2.7" />
+          <path {...common} d="M6 6.5v9c0 1.5 2.7 2.7 6 2.7s6-1.2 6-2.7v-9" />
+          <path {...common} d="M6 10.8c0 1.5 2.7 2.7 6 2.7s6-1.2 6-2.7M6 15c0 1.5 2.7 2.7 6 2.7s6-1.2 6-2.7" />
         </svg>
       );
     case "calendar":
@@ -409,6 +412,16 @@ function deltaToneClass(detail: string) {
   return "is-neutral";
 }
 
+function projectIconTone(projectName: string): ProjectIconTone {
+  const tones: ProjectIconTone[] = ["blue", "teal", "green", "amber", "rose"];
+  const hash = [...projectName].reduce(
+    (sum, char) => sum + char.charCodeAt(0),
+    0
+  );
+
+  return tones[hash % tones.length];
+}
+
 function MetricCard({
   card,
   sourceStatus
@@ -439,20 +452,22 @@ function QuotaWindowCard({
   title,
   windowData,
   period,
-  models
+  models,
+  tone = "blue"
 }: {
   title: string;
   windowData: LimitWindow;
   period: PeriodMetric;
   models: ModelMetric[];
+  tone?: QuotaTone;
 }) {
   const ringStyle = {
-    "--quota-progress": `${Math.max(0, Math.min(windowData.usedPercent ?? 0, 100))}%`
+    "--quota-progress": `${Math.max(0, Math.min(windowData.remainingPercent ?? 0, 100))}%`
   } as CSSProperties;
   const quotaEvidence = period.quotaEvidence;
 
   return (
-    <SectionCard className="quota-card">
+    <SectionCard className={`quota-card quota-${tone}`}>
       <div className="quota-card-head">
         <div className="quota-title">
           <span className="quota-title-icon">
@@ -698,12 +713,14 @@ function OverviewPage({
           windowData={snapshot.overview.limitWindows[0]}
           period={snapshot.overview.windowPeriods.fiveHour}
           models={snapshot.overview.modelWindows.fiveHour}
+          tone="blue"
         />
         <QuotaWindowCard
           title="周额度窗口"
           windowData={snapshot.overview.limitWindows[1]}
           period={snapshot.overview.windowPeriods.weekLimit}
           models={snapshot.overview.modelWindows.weekLimit}
+          tone="green"
         />
       </section>
 
@@ -764,7 +781,14 @@ function OverviewPage({
               {rows.length > 0 ? (
                 rows.map((row) => (
                   <tr key={row.id}>
-                    <td className="project-name-cell">{row.name}</td>
+                    <td className="project-name-cell">
+                      <span className="project-name-content">
+                        <span className={`project-row-icon project-icon-${projectIconTone(row.name)}`}>
+                          <Glyph name="repo" />
+                        </span>
+                        <span>{row.name}</span>
+                      </span>
+                    </td>
                     <td>{formatCompactToken(row.tokenTotal)}</td>
                     <td>{formatUsd(row.apiCostUsd)}</td>
                     <td>{formatNumber(row.codeChangedLines)} 行</td>
@@ -819,12 +843,14 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
           windowData={snapshot.ledger.limitWindows[0]}
           period={snapshot.overview.windowPeriods.fiveHour}
           models={snapshot.overview.modelWindows.fiveHour}
+          tone="blue"
         />
         <QuotaWindowCard
           title="周额度窗口"
           windowData={snapshot.ledger.limitWindows[1]}
           period={snapshot.overview.windowPeriods.weekLimit}
           models={snapshot.overview.modelWindows.weekLimit}
+          tone="green"
         />
       </section>
 
