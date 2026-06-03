@@ -716,8 +716,17 @@ svg {
 }
 
 .quota-note {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
   padding-top: 2px;
   border-top: 1px dashed rgba(23, 32, 51, 0.1);
+}
+
+.quota-evidence {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
 }
 
 .section-toolbar {

@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.16`
+- 当前适用版本：`v0.2.2-dev.17`
 - 当前覆盖页面：总览页
 
 ## 总览页
@@ -12,8 +12,8 @@
 | 顶部工具栏 | `src/renderer/App.tsx` `topbar` | 全局复用 | `currentPage`、`overviewMode`、`sourceStatus`、`generatedAt` | `snapshot.sourceHealth`、`snapshot.generatedAt` |
 | 时间视角切换 | `TextTabs` | 可复用 | `natural / billing` | 本地页面状态 |
 | 顶部四卡 | `MetricCard` | 可复用 | `label`、`value`、`detail`、`icon`、`tone`、`sourceStatus` | `snapshot.overview`、`snapshot.overview.previous`、`snapshot.sourceHealth` |
-| 5H 额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models` | 圆环：`snapshot.overview.limitWindows[0]`；右侧：`windowPeriods.fiveHour`、`modelWindows.fiveHour` |
-| 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models` | 圆环：`snapshot.overview.limitWindows[1]`；右侧：`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
+| 5H 额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`snapshot.overview.limitWindows[0]`；右侧：`windowPeriods.fiveHour`、`modelWindows.fiveHour` |
+| 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`snapshot.overview.limitWindows[1]`；右侧：`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
 | 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、排序 | `snapshot.overview.projectOverview` |
 | 项目排序标签 | `TextTabs` `variant=chip` | 可复用 | `token / cost / code / recent` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
@@ -26,6 +26,7 @@
 - `5H / 周额度窗口` 统一复用 `QuotaWindowCard`，不额外派生其他布局。
 - `QuotaWindowCard` 标题只显示一次，不额外显示 `额度窗口` 辅助行。
 - `QuotaWindowCard` 圆环显示最近 `rate_limits` 剩余量，右侧数据使用当前额度周期内真实 token 增量。
+- `QuotaWindowCard` 底部展示当前额度周期 `rate_limits` 观测次数和重置次数，作为真实额度数据的可见证据。
 - `QuotaWindowCard` 右侧明细行必须带小图标。
 - 顶部 `时间视角` 与 `自然时间 / 计费时间` 使用同一行文本切换。
 - 顶部工具栏不显示 `桌面总控台` 等额外眉标，页面标题与副标题横向组成同一信息组。

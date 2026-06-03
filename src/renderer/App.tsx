@@ -449,6 +449,7 @@ function QuotaWindowCard({
   const ringStyle = {
     "--quota-progress": `${Math.max(0, Math.min(windowData.usedPercent ?? 0, 100))}%`
   } as CSSProperties;
+  const quotaEvidence = period.quotaEvidence;
 
   return (
     <SectionCard className="quota-card">
@@ -519,7 +520,14 @@ function QuotaWindowCard({
         )}
       </div>
 
-      <div className="quota-note">{windowData.note}</div>
+      <div className="quota-note">
+        <span>{windowData.note}</span>
+        {quotaEvidence ? (
+          <span className="quota-evidence">
+            额度观测 {quotaEvidence.observations} 次 · 重置 {quotaEvidence.resetCount} 次
+          </span>
+        ) : null}
+      </div>
     </SectionCard>
   );
 }

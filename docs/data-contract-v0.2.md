@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.2.2-dev.12`
+- 对应开发版本：`v0.2.2-dev.17`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -51,6 +51,13 @@
   - 周期开始时间：`resets_at - window_minutes`
 - 无 token 增量但包含 `rate_limits` 的记录也保留为额度观测点，用于判断重置与周期边界
 - 如果同一额度周期内观测到 reset，周期使用百分比按 reset 前后观测高点累计；但圆环中心仍显示最近一次剩余百分比
+- `PeriodMetric.quotaEvidence` 暴露当前额度周期的可见证据：
+  - `observations`：周期内有效 `rate_limits` 观测次数
+  - `resetCount`：周期内按相邻同 session 观测识别到的额度重置次数
+  - `maxObservedUsedPercent`：周期内原始观测最高已用百分比
+  - `usedPercent / remainingPercent`：考虑重置段后的周期累计已用百分比和余量百分比
+  - `lastObservedAt`：周期内最近一次额度观测时间
+- 总览页额度卡圆环仍显示最近一次 `rate_limits` 余量；底部注记展示 `observations / resetCount`，不在总览页展开历史重置明细。
 
 ### 2.3 成本与价值
 

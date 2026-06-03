@@ -19,6 +19,15 @@ export interface CodeActivity {
   net: number;
 }
 
+export interface PeriodQuotaEvidence {
+  usedPercent: number | null;
+  remainingPercent: number | null;
+  maxObservedUsedPercent: number | null;
+  lastObservedAt: string | null;
+  resetCount: number;
+  observations: number;
+}
+
 export interface PeriodMetric {
   key: string;
   label: string;
@@ -29,6 +38,7 @@ export interface PeriodMetric {
   code: CodeActivity;
   startAt: string;
   endAt: string;
+  quotaEvidence?: PeriodQuotaEvidence;
 }
 
 export interface LimitWindow {

@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.17 fix: 展示额度周期观测证据
+
+- 开发原因：继续复核额度卡真实数据口径时，确认本项目已经参考 `dev-ledger` 实现了 `rate_limits` 周期边界、重置识别和累计高水位逻辑，但前端额度卡没有展示观测点和重置次数，用户难以判断额度数据为什么可信。
+- 实现方式：扩展 `PeriodMetric`，新增 `quotaEvidence` 字段，透出当前额度周期的 `usedPercent / remainingPercent / maxObservedUsedPercent / lastObservedAt / resetCount / observations`；`buildQuotaCyclePeriodMetric` 将已有 `QuotaCycleMetric` 证据写入共享快照；`QuotaWindowCard` 底部注记新增 `额度观测 N 次 · 重置 N 次`；同步更新数据契约、UI Contract、组件映射和分区审计文档。
+- 当前结果：5H 与周额度卡继续使用最近 `rate_limits` 余量作为圆环中心，右侧继续使用当前额度周期累计 Token、成本、代码和会话；底部新增观测次数与重置次数，增强额度数据可信度解释。
+- 验证方式：执行 `npm run build` 验证 lint、TypeScript、渲染端打包和主进程编译；生成并人工查看 `local_dev_work/overview-1360x900-dev17.png` 与 `local_dev_work/overview-1080x720-dev17.png`，确认新增证据不造成溢出；读取运行态 `snapshot.json` 确认 `fiveHour/weekLimit.quotaEvidence` 已写入观测次数和重置次数。
+
 ## [2026-06-04] v0.2.2-dev.16 fix: 收敛左侧品牌标识尺寸与形态
 
 - 开发原因：继续按设计稿分区对照总览页，`v0.2.2-dev.15` 的左侧品牌图标仍带圆角容器和较多内部留白，视觉尺寸明显小于设计稿中的蓝色几何标识，导致品牌区和设计稿仍有差距。

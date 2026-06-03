@@ -517,7 +517,15 @@ function buildQuotaCyclePeriodMetric(
     creditsEstimate: cycle.creditsEstimate,
     code,
     startAt: cycle.startAt,
-    endAt: cycle.endAt
+    endAt: cycle.endAt,
+    quotaEvidence: {
+      usedPercent: cycle.usedPercent,
+      remainingPercent: cycle.remainingPercent,
+      maxObservedUsedPercent: cycle.maxObservedUsedPercent,
+      lastObservedAt: cycle.lastObservedAt,
+      resetCount: cycle.resetCount,
+      observations: cycle.observations
+    }
   };
 }
 
