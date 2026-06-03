@@ -524,7 +524,7 @@ function QuotaWindowCard({
         <span>{windowData.note}</span>
         {quotaEvidence ? (
           <span className="quota-evidence">
-            额度观测 {quotaEvidence.observations} 次 · 重置 {quotaEvidence.resetCount} 次
+            观测 {quotaEvidence.observations} 次 · 重置 {quotaEvidence.resetCount} 次
           </span>
         ) : null}
       </div>

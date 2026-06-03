@@ -796,13 +796,6 @@ function buildProjectOverviewPeriod(args: {
         recentActivityAt
       };
     })
-    .filter(
-      (item) =>
-        item.tokenTotal > 0 ||
-        item.codeChangedLines > 0 ||
-        item.commits > 0 ||
-        item.sessions > 0
-    )
     .sort((left, right) => {
       if (right.tokenTotal !== left.tokenTotal) {
         return right.tokenTotal - left.tokenTotal;

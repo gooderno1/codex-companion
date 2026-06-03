@@ -21,9 +21,9 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   background:
-    radial-gradient(circle at 0 0, rgba(15, 111, 255, 0.055), transparent 28%),
-    radial-gradient(circle at 100% 0, rgba(18, 184, 215, 0.04), transparent 22%),
-    linear-gradient(135deg, #f8fbff 0%, #ffffff 44%, var(--bg-canvas) 100%);
+    radial-gradient(circle at 0 0, rgba(15, 111, 255, 0.045), transparent 28%),
+    radial-gradient(circle at 100% 0, rgba(18, 184, 215, 0.032), transparent 22%),
+    linear-gradient(135deg, #f8fbff 0%, #ffffff 48%, var(--bg-canvas) 100%);
   overflow: hidden;
 }
 
@@ -99,8 +99,8 @@ svg {
 }
 
 .brand-block {
-  grid-template-columns: 64px 1fr;
-  gap: 6px;
+  grid-template-columns: 62px 1fr;
+  gap: 12px;
   align-items: flex-start;
 }
 
@@ -140,13 +140,13 @@ svg {
 }
 
 .brand-block h1 {
-  font-size: 26px;
-  line-height: 1.02;
-  letter-spacing: -0.04em;
+  font-size: 24px;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
 }
 
 .brand-caption {
-  margin-top: 7px;
+  margin-top: 5px;
   color: var(--text-tertiary);
 }
 
@@ -154,7 +154,7 @@ svg {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-top: 11px;
+  margin-top: 8px;
   color: var(--text-secondary);
 }
 
@@ -173,15 +173,15 @@ svg {
 }
 
 .brand-mark {
-  width: 64px;
-  height: 64px;
+  width: 62px;
+  height: 62px;
   display: grid;
   place-items: center;
 }
 
 .brand-mark svg {
-  width: 62px;
-  height: 62px;
+  width: 60px;
+  height: 60px;
 }
 
 .sidebar-nav {
@@ -268,7 +268,7 @@ svg {
   display: flex;
   flex-direction: column;
   padding: 20px 22px 14px;
-  background: rgba(255, 255, 255, 0.94);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 251, 255, 0.92));
   overflow: hidden;
 }
 
@@ -292,7 +292,7 @@ svg {
 
 .topbar {
   justify-content: space-between;
-  gap: var(--space-5);
+  gap: var(--space-4);
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line-soft);
@@ -307,21 +307,24 @@ svg {
 
 .topbar-copy p {
   margin: 0;
+  color: var(--text-tertiary);
   font-size: 13px;
   white-space: nowrap;
 }
 
 .topbar-center {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 14px;
+  min-width: max-content;
   white-space: nowrap;
 }
 
 .topbar-switch-label {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
 }
 
 .topbar-placeholder {
@@ -330,7 +333,8 @@ svg {
 }
 
 .topbar-actions {
-  gap: var(--space-3);
+  gap: 10px;
+  flex: 0 0 auto;
 }
 
 .action-button,
@@ -437,7 +441,7 @@ svg {
   gap: 12px;
   padding: 16px;
   border-radius: var(--radius-panel);
-  background: linear-gradient(180deg, #ffffff 0%, rgba(248, 251, 255, 0.72) 100%);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(248, 251, 255, 0.66) 100%);
   box-shadow: inset 0 0 0 1px var(--line-soft), var(--shadow-soft);
 }
 
@@ -453,7 +457,7 @@ svg {
   min-height: 132px;
   padding: 16px;
   border-radius: var(--radius-card);
-  background: linear-gradient(180deg, #ffffff 0%, rgba(248, 251, 255, 0.62) 100%);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(248, 251, 255, 0.54) 100%);
   box-shadow: inset 0 0 0 1px var(--line-soft), var(--shadow-soft);
 }
 
@@ -555,6 +559,10 @@ svg {
 .section-toolbar,
 .repo-card-head {
   justify-content: space-between;
+}
+
+.quota-card-head {
+  min-height: 32px;
 }
 
 .quota-title {
@@ -716,12 +724,19 @@ svg {
 }
 
 .quota-note {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 10px;
   padding-top: 2px;
   border-top: 1px dashed rgba(23, 32, 51, 0.1);
+  white-space: nowrap;
+}
+
+.quota-note > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .quota-evidence {
@@ -738,6 +753,11 @@ svg {
 .quota-card-head h3 {
   margin-top: 3px;
   font-size: 20px;
+}
+
+.quota-card-head h3 {
+  margin-top: 0;
+  line-height: 1.05;
 }
 
 .project-card {
@@ -759,9 +779,14 @@ svg {
   flex-wrap: wrap;
 }
 
+.topbar-center .text-tabs {
+  flex-wrap: nowrap;
+}
+
 .text-tabs button {
   cursor: pointer;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .text-tabs-underline button {
@@ -808,15 +833,19 @@ svg {
   border-bottom: 1px solid rgba(23, 32, 51, 0.08);
 }
 
+.project-table td {
+  color: var(--text-secondary);
+}
+
 .project-table thead th {
   position: sticky;
   top: 0;
   z-index: 1;
   background: rgba(248, 251, 255, 0.96);
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   font-size: 12px;
   letter-spacing: 0;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .project-table tbody tr:last-child td {
@@ -825,6 +854,7 @@ svg {
 
 .project-name-cell {
   min-width: 220px;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
