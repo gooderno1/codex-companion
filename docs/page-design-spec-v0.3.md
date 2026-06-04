@@ -1,4 +1,4 @@
-# Codex Companion 页面设计规格（v0.3.3 草案）
+# Codex Companion 页面设计规格（v0.3.6 草案）
 
 - 创建时间：2026-06-03
 - 对应阶段：页面视觉重设前的设计确认
@@ -14,13 +14,20 @@
 - `v0.3.2`：根据用户对 `S1-S5` 的反馈修订总览页。重点调整为：设置入口固定到左侧最底部、快照只保留一处、补充图标体系、时间视角改为无边框 `日 / 周 / 月` 文本切换、顶部四卡固定为日周月 Token 与日代码改动、中部卡片改为 `5H 额度窗口` 与 `当前周期用量`、底部表格改为项目周期消耗排行。
 - `v0.3.3`：根据新一轮反馈恢复页级 `自然时间 / 计费时间` 视角；顶部四卡避免重复展示数值；中部固定为 `5H` 与 `周` 两张额度卡；底部改为可滚动 `项目概览`，并在不同视角下切换周期口径。
 - `v0.3.4`：修正总览页当前生效规则。明确 `自然时间 / 计费时间` 只改变统计口径，不改变顶部四卡字段；中部固定为 `5H / 周额度窗口`；补充“设计图到产品实现”的标准交付流程。
+- `v0.3.5`：基于第一页最新实际截图和账本页真实数据边界，重构 `Codex 账本页` 设计。统一应用壳层以已落地总览页为准；保留 `5H / 周 / 可观测月` 三张额度卡；把中部重心改为 `周额度账本` 与真实模型构成；移除旧稿中的伪字段与相对周命名。
+- `v0.3.6`：基于第一页最新实际截图和第三页现有采集链路，重构 `代码仓库页` 设计。统一以本地 Git 仓库为唯一主对象；保留顶部筛选与选中仓库联动；移除 `归因 Token`、`文件体量` 与独立远端大卡；左侧从“排行”改为可排序仓库详情表。
 
 ## 0.1 当前生效范围
 
 - 当前总览页实现与后续出图，统一以 **第 2 节** 为准。
+- 当前账本页设计与后续出图，统一以 **第 3 节** 和 [ui-contract/ledger-v0.1.md](./ui-contract/ledger-v0.1.md) 为准。
+- 当前代码仓库页设计与后续出图，统一以 **第 4 节** 和 [ui-contract/repositories-v0.1.md](./ui-contract/repositories-v0.1.md) 为准。
 - **第 6 节到第 11 节** 仅保留历史设计图和迭代记录，不再作为当前实现依据。
 - 设计图过渡到实际产品的流程，以 [design-to-product-workflow-v0.1.md](./design-to-product-workflow-v0.1.md) 为准。
 - 总览页进入实际开发前的最终确认稿，以 [ui-contract/overview-v0.1.md](./ui-contract/overview-v0.1.md) 为准。
+- 第二页的应用壳层基准不再参考第一页旧设计稿，而是直接参考实际截图：
+  - [overview-1360x900-dev53.png](../local_dev_work/overview-1360x900-dev53.png)
+  - [overview-billing-1360x900-dev53.png](../local_dev_work/overview-billing-1360x900-dev53.png)
 
 ## 1. 总体设计方向
 
@@ -224,70 +231,169 @@ Constraints: the top four cards must stay the same under both natural-time and b
 
 回答四个问题：
 
-- 当前额度窗口具体用了多少？
-- 自然时间和计费时间的 Token 口径如何区分？
-- 不同模型贡献了多少 Token 和成本？
-- 哪些会话能归因到哪些项目或仓库？
+- 当前 `5H / 周 / 可观测月` 额度窗口到底用了多少、还剩多少百分比？
+- 最近几周计费周期的 Codex 投入强度、重置情况和 API 等价价值折算是什么样？
+- 哪些真实模型在当前阶段消耗了主要 Token、成本和额度？
+- 哪些会话可以被归因到项目或仓库，哪些仍应明确标为 `未归因`？
 
-### 3.2 内容结构
+### 3.2 壳层基准
+
+账本页的左侧导航、顶部工具栏、卡片圆角、留白密度和右上操作区，直接复用第一页最新实际截图，不再以第一页旧设计稿为壳层来源。
+
+统一规则：
+
+- 左侧品牌区、主导航、底部设置入口与第一页一致。
+- 顶部工具栏沿用 `左侧页面识别 / 中部页面控制 / 右侧数据操作` 三段式结构。
+- 账本页标题、副标题、状态标签、刷新按钮和快照时间的位置与第一页保持一致。
+- 顶部工具栏中部不放日期范围大筛选器；账本页主要控制区留给 `自然时间 / 计费时间` 或账本内部重点切换。
+
+### 3.3 数据展示边界
+
+先看真实数据，再定页面字段。
+
+当前可稳定展示：
+
+- `5H / 周 / 可观测月` 三个额度窗口的 `来源状态`。
+- 当前 `5H` 与当前 `周` 窗口的：
+  - `已用百分比`
+  - `剩余百分比`
+  - `重置时间`
+  - `当前周期起止`
+  - `当前周期 Token`
+  - `API 等价成本`
+  - `会话数`
+  - `观测时间 / 观测次数 / 重置次数`
+- 真实模型聚合：
+  - 模型名
+  - Token
+  - API 等价成本
+  - 事件数
+  - 占比
+- 会话归因：
+  - 最近时间
+  - 会话 ID
+  - 项目 / 仓库 / 工作目录
+  - 主模型
+  - Token
+  - API 等价成本
+- `dev-ledger` 已验证的多周计费周期账本字段：
+  - 日期区间
+  - 累计已用百分比
+  - 周期 Token
+  - API 等价成本
+  - 满额周 API 等价折算价值
+  - 会话数
+  - 重置次数
+  - 观测次数
+
+当前不应展示：
+
+- `剩余 Token`，因为当前没有稳定原始字段。
+- 套餐余额、积分余额、官方套餐价格或任何看起来像官方账单的字段。
+- 用自然月伪装的计费月窗口。
+- 旧稿中的伪数据：`user_01`、`平均响应(s)`、`已完成` 等非真实来源字段。
+- `上上周 / 上上上周` 这类相对命名。
+
+仅适合次级展示或悬停展示：
+
+- 周期开始与结束的 `小时:分钟`。
+- 额度重置分段详情。
+- 模型构成的长尾尾项明细。
+- 工作目录全路径。
+
+### 3.4 内容结构
 
 第一行：额度窗口状态
 
 - 位置：页面顶部，占满宽度。
-- 高度：`156px`
+- 高度：`164px`
 - 三个横向窗口卡：
   - 5 小时额度
   - 周额度
   - 可观测月额度
-- 每个窗口卡包含：已用百分比、剩余百分比、恢复时间、来源状态。
+- 三张卡统一结构：
+  - 左侧圆环：只表达 `剩余百分比`
+  - 主标题：窗口名 + 来源状态
+  - 右侧紧凑指标：
+    - `累计已用`
+    - `周期 Token`
+    - `API 等价成本`
+    - `会话数`
+    - `重置时间`
+  - 卡片底部短说明：
+    - 有周期时显示 `周期 MM/DD - MM/DD`
+    - 月窗口未观测时显示 `当前本地 Codex 快照未暴露月额度字段`
+- 三张卡的特殊规则：
+  - `5H` 与 `周额度`：可展示当前周期累计 Token、成本、会话和周期范围。
+  - `可观测月额度`：默认作为同结构占位卡存在；当月窗口不可观测时，主值显示 `未观测`，其余字段不伪造。
+- 不展示 `剩余 Token`、`套餐余额`、`预计可用时长`。
 
-第二行：周期账本与模型构成
+第二行：周额度账本与模型构成
 
-- 左侧：周期账本表，占 `68%` 宽度，高度 `360px`
-- 右侧：模型构成面板，占 `32%` 宽度，高度 `360px`
+- 左侧：周额度账本表，占 `64%` 宽度，高度 `372px`
+- 右侧：模型构成面板，占 `36%` 宽度，高度 `372px`
 
-周期账本表字段：
+左侧周额度账本：
 
-- 周期
-- 起止时间
-- 会话数
-- 普通输入 Token
-- 缓存输入 Token
-- 输出 Token
-- 总 Token
-- API 等价成本
+- 表头不写 `上周 / 上上周 / 上上上周`，直接按日期区间展示。
+- 默认字段：
+  - `起止日期`
+  - `累计已用`
+  - `Token`
+  - `API 等价成本`
+  - `满额周折算`
+  - `会话`
+  - `观测 / 重置`
+- 行级规则：
+  - `起止日期` 首屏只显示 `MM/DD - MM/DD`。
+  - 鼠标悬停时再显示完整 `YYYY-MM-DD HH:mm - YYYY-MM-DD HH:mm`。
+  - 如果某周期存在重置，`观测 / 重置` 列显示 `重置 1 次` 等短 badge。
+  - 如果 `累计已用` 超过 `100%`，允许显示 `117%` 这类累计结果，不强行截断。
+  - `满额周折算` 文案必须明确是 `API 等价折算`，不是官方套餐定价。
 
-模型构成面板：
+右侧模型构成：
 
-- 顶部切换：Token / 成本 / 调用次数
+- 顶部切换：`Token` / `成本` / `事件数`
 - 使用水平堆叠条，不使用大面积饼图
-- 显示模型名、占比、Token、API 等价成本
+- 模型名使用真实可用标签：
+  - 优先使用 `GPT-5.5（超高）`、`GPT-5.4（低）` 这类带推理强度的真实标签
+  - 如果当前实现阶段只能稳定得到原始模型 ID，则退化为 `gpt-5.5`、`gpt-5.4`、`gpt-5.3-codex-spark`
+- 每行显示：
+  - 模型名
+  - 占比条
+  - 主指标值
+  - 次级值
+- 不使用 `codex-pro`、`codex-mini` 这类旧稿假名。
 
 第三行：会话归因表
 
 - 位置：底部，占满宽度。
-- 高度：自适应
+- 高度：`320px`
 - 字段：
   - 最近时间
   - 会话 ID 短码
-  - 工作目录
-  - 仓库
+  - 项目 / 仓库
   - 主模型
   - Token
   - API 等价成本
+- 展示规则：
+  - 项目已归因时优先显示项目 / 仓库名。
+  - 没有仓库归因时显示 `未归因`，工作目录只作为次级信息或悬停信息。
+  - 不展示用户、会话状态、平均响应时长、调用次数等当前没有稳定来源的字段。
+  - 明确不展开原始对话内容，只展示聚合字段。
 
-### 3.3 设计图生成提示词
+### 3.5 设计图生成提示词
 
 ```text
 Use case: ui-mockup
 Asset type: desktop app page design mockup
-Primary request: Create a polished desktop ledger page mockup for Codex Companion.
-Scene/backdrop: an engineering quota and token ledger for Codex local sessions.
-Style/medium: high-fidelity UI mockup, professional data-heavy desktop software.
-Composition/framing: 1440x960 desktop app screenshot, left navigation rail, top toolbar, upper quota window row, middle ledger table with model side panel, bottom session attribution table.
-Color palette: clean white and cool gray base, blue/cyan accents, green/amber/red status tokens, avoid dark theme and purple gradients.
-Text (verbatim): "Codex 账本", "5 小时额度", "周额度", "可观测月额度", "周期账本", "模型构成", "Token", "成本", "调用次数", "会话归因"
-Constraints: no OpenAI logo, no official branding, no decorative hero, compact readable tables, Chinese UI text, 8px card radius.
+Primary request: Create a refined desktop ledger page mockup for Codex Companion that reuses the exact shell language of the latest shipped overview screenshot rather than an older concept mockup.
+Scene/backdrop: a local-first Codex quota and token ledger with production-like density, not a marketing dashboard.
+Style/medium: high-fidelity desktop app mockup, restrained operational software, crisp typography, same visual family as the current overview implementation.
+Composition/framing: 1440x960 desktop app screenshot, same left navigation rail and top toolbar as the shipped overview page, first row with three quota cards, second row with a weekly billing ledger table on the left and a real-model composition panel on the right, third row with a session attribution table.
+Color palette: off-white workspace, graphite text, blue/cyan/green accents, subtle borders, same tone and spacing as the actual overview screenshot.
+Text (verbatim): "Codex 账本", "窗口口径、模型构成与会话归因", "5 小时额度", "周额度", "可观测月额度", "周额度账本", "模型构成", "会话归因", "累计已用", "API 等价成本", "满额周折算", "事件数"
+Constraints: reuse the overview shell, do not include fake data fields like remaining token count, user names, average response time, or completion status; display date ranges instead of labels like 上上周; use real model names such as GPT-5.5 and GPT-5.4 or gpt-5.5 / gpt-5.4 / gpt-5.3-codex-spark; if the monthly billing window is not observable, show it explicitly as 未观测; no OpenAI logo, no official branding, no decorative hero, Chinese UI text, 8px card radius.
 ```
 
 ## 4. 代码仓库页设计
@@ -296,60 +402,93 @@ Constraints: no OpenAI logo, no official branding, no decorative hero, compact r
 
 回答三个问题：
 
-- 哪些本地仓库最活跃？
-- Codex Token 投入对应到哪些仓库？
-- 单个仓库近期代码产出和文件构成如何？
+- 当前扫描目录下，哪些本地 Git 仓库近期最活跃？
+- 选中的 Git 仓库最近做了什么，当前工作区是否还有未提交改动？
+- Codex 本地会话最近主要落在哪些仓库，但不再把 `归因 Token` 作为首屏主数字？
 
 ### 4.2 内容结构
 
-第一行：仓库筛选与摘要
+第三页不再沿用旧稿“本地仓库 + 排行 + 远端大卡”的表达，而是改成下面这套更贴近现有实现的数据结构：
 
-- 左侧：搜索框和仓库根目录筛选。
-- 右侧：总仓库数、归因 Token、今日改动行数、本月改动行数。
-- 高度：`112px`
+- 页面主对象统一为 **本地 Git 仓库**，不是泛化的本地文件夹，也不是 GitHub 云端仓库。
+- 顶部“分类选择”保留，但语义改成 **扫描目录筛选**；它只用来限定当前查看范围，不承担仓库排行功能。
+- 首屏移除 `归因 Token` 和 `文件体量`，避免把不稳定或解释成本高的字段放成主指标。
+- 页面内不再单独放一张 `GitHub 远程仓库信息` 大卡；`origin` 地址只作为选中仓库的一条辅助信息出现。
+- 左侧中部卡从“仓库排行”改为 **可排序的仓库详情表**；右侧继续保留单仓库详情，与左侧选中态联动。
 
-第二行：仓库排行与单仓库详情
+第一行：扫描目录筛选
 
-- 左侧：仓库列表表格，占 `58%` 宽度，高度 `520px`
-- 右侧：选中仓库详情，占 `42%` 宽度，高度 `520px`
+- 左侧：页标题、副标题与搜索框。
+- 中部：扫描目录 chips，例如 `全部 / D:\\Projects / E:\\workspace`。
+- 右侧：沿用第一页已落地壳层的 `状态 / 刷新 / 快照`。
+- 说明：这里的目录 chips 对应当前配置的仓库扫描根目录，不是远端分组，也不是仓库标签系统。
 
-仓库列表字段：
+第二行：顶部四个摘要卡
 
-- 仓库名
-- 远端状态
+- `今日改动`
+- `近 7 日改动`
+- `本月改动`
+- `最近提交`
+
+约束：
+
+- 四卡直接复用第一页当前已落地的卡片比例、圆角、阴影、状态徽标和信息密度。
+- `最近提交` 卡显示最近一次提交时间与仓库名，不强求大型数值主视图。
+- 顶部不再出现 `归因 Token`、`API 等价成本`、`文件体量` 这类字段。
+
+第三行：仓库详情表 + 单仓库详情
+
+- 左侧：`Git 仓库详情`，占 `58%` 到 `60%` 宽度。
+- 右侧：`已选仓库`，占 `40%` 到 `42%` 宽度。
+- 高度：两栏统一控制在约 `520px` 到 `560px`，只允许内部容器滚动，不允许整页纵向滚动。
+
+左侧仓库详情表字段：
+
+- 仓库
 - 默认分支
-- 今日提交
-- 近 7 日改动行数
-- 本月改动行数
-- Codex Token
-- API 等价成本
+- 今日改动
+- 近 7 日改动
+- 本月改动
+- 最近提交
 
-单仓库详情：
+左侧表约束：
 
-- 仓库路径
-- 远端 URL
-- 今日 / 近 7 日 / 本月三个指标块
-- 文件体量概览
-- 最近 5 条提交
-- Codex 会话归因摘要
+- 去掉旧稿中的 `#` 排名列，不再做固定“排行”语义。
+- 用顶部排序 chips 表达当前排序方式，例如 `按最近提交 / 按今日改动 / 按 7 日改动 / 按本月改动`。
+- 仓库路径或所属扫描目录作为仓库名下方的辅助信息，不再单独占一列。
+- 不展示 `Codex Token`、`API 等价成本`、`风险等级`、`文件体量`。
 
-第三行：数据来源说明
+右侧单仓库详情：
 
-- 显示当前扫描的仓库根目录。
-- 明确 GitHub 远端元数据未接入。
+- 头部信息：仓库名、完整路径、默认分支、最近提交时间。
+- 指标块：`今日改动 / 近 7 日改动 / 本月改动 / 工作区改动`。
+- 最近提交：展示最近 `5` 条提交。
+- 仓库状态：`关联会话数`、`最近 Codex 活动`、`origin 地址（如存在）`。
+
+右侧详情约束：
+
+- 不再放语言分布环图或文件体量图。
+- 不把 `origin` 地址升级成独立功能区；它只是辅助识别信息。
+- 如果当前仓库没有远端，只显示 `未配置远端`，不出现空的大卡占位。
+
+第四行：紧凑数据来源说明
+
+- 只保留一条紧凑页脚说明，明确 `数据来源：Codex 本地 sessions、archived_sessions、本地 Git`。
+- 扫描目录列表和仓库数作为页脚 chips 或紧凑说明的一部分出现，不再单独做大块“数据源根目录”展示。
+- 必须明确：当前页面不读取 GitHub PR、Issue、Actions、Stars 等云端元数据。
 
 ### 4.3 设计图生成提示词
 
 ```text
 Use case: ui-mockup
 Asset type: desktop app page design mockup
-Primary request: Create a polished desktop repository analytics page mockup for Codex Companion.
-Scene/backdrop: local Git repository activity tied to Codex token attribution.
-Style/medium: high-fidelity UI mockup, practical engineering operations dashboard.
-Composition/framing: 1440x960 desktop app screenshot, left navigation rail, top toolbar, search and summary row, repository ranking table on the left, selected repository detail panel on the right.
-Color palette: off-white and light gray base, graphite text, restrained blue/cyan accents, green/amber/red for state and risk, avoid one-color blue monotony.
-Text (verbatim): "代码仓库", "筛选仓库", "本地仓库", "归因 Token", "今日改动", "近 7 日改动", "本月改动", "最近提交", "文件体量"
-Constraints: no OpenAI logo, no official branding, no marketing page, no oversized hero, compact readable table, Chinese UI text, 8px card radius.
+Primary request: Create a polished desktop Git repository activity page mockup for Codex Companion, reusing the same app shell and visual system as the latest shipped overview page.
+Scene/backdrop: local Git repository activity and Codex local session linkage, focused on engineering work rather than billing or cloud metadata.
+Style/medium: high-fidelity desktop app mockup, practical engineering operations dashboard, same blue-white shell and card rhythm as the latest overview screenshot.
+Composition/framing: 1440x960 desktop app screenshot, fixed left navigation rail, fixed top toolbar, scan-directory filter row, four compact summary cards, sortable repository detail table on the left, selected repository detail panel on the right, compact footer note.
+Color palette: soft white and pale blue base, graphite text, restrained blue/cyan accents, green only for positive status, avoid dark mode, avoid purple bias.
+Text (verbatim): "代码仓库", "Git 仓库活动与本地工程状态", "筛选 Git 仓库", "扫描目录", "今日改动", "近 7 日改动", "本月改动", "最近提交", "Git 仓库详情", "已选仓库", "工作区改动", "关联会话", "最近 Codex 活动"
+Constraints: no OpenAI logo, no official branding, no marketing page, no oversized hero, no token-focused KPI, no file-size chart, no separate GitHub remote card, no fixed ranking column, Chinese UI text, compact readable table, same rounded cards and toolbar language as the latest overview page.
 ```
 
 ## 5. 本轮确认标准
@@ -672,3 +811,33 @@ Constraints: no OpenAI logo, no official branding, no marketing page, no oversiz
 - 底部已从 `项目消耗排行` 调整为可滚动 `项目概览`，并根据页级视角切换二级周期：
   - 自然时间图：`日 / 周 / 月`
   - 计费时间图：`5H / 周额度`
+
+## 12. Codex 账本页 v0.3.5 状态图
+
+根据第一页最新实际截图壳层和第二页真实数据边界，生成以下账本页状态图：
+
+- 账本页状态图：[ledger-page.png](./assets/design/v0.3.5/ledger-page.png)
+
+当前观察：
+
+- 左侧导航、顶部工具栏、右上状态/刷新/快照与第一页实际截图统一，不再沿用旧稿中不一致的壳层。
+- 顶部保留 `5 小时额度 / 周额度 / 可观测月额度` 三张卡，但只展示真实可验证字段：百分比、周期 Token、API 等价成本、会话数、重置时间和来源状态。
+- `可观测月额度` 明确允许显示 `未观测`，不再用自然月或伪造字段填充第三张卡。
+- 中部左侧改为 `周额度账本`，按日期区间展示最近几周计费周期，不再出现 `上上上周` 这类相对命名。
+- `累计已用` 与 `满额周折算` 被提升为账本页核心字段，用来体现额度强度和 API 等价价值；但文案必须清楚说明其为折算值，不是官方套餐定价。
+- 模型构成使用真实模型名称和真实切换口径，避免 `codex-pro`、`codex-mini` 等旧稿假名。
+- 会话归因只保留当前真实可展示的聚合字段，不再出现用户、平均响应时长、完成状态等无来源字段。
+
+## 13. 代码仓库页 v0.3.6 状态图
+
+根据第一页最新实际截图壳层和第三页现有 Git 采集边界，生成以下代码仓库页状态图：
+
+- 代码仓库页状态图：[repositories-page.png](./assets/design/v0.3.6/repositories-page.png)
+
+当前观察：
+
+- 第三页壳层已经和第一页实际截图统一，不再沿用旧稿中独立漂移的左栏和顶部工具栏。
+- 顶部保留筛选与摘要节奏，但明确改成 `扫描目录 + 四张摘要卡`；其中只保留 `今日改动 / 近 7 日改动 / 本月改动 / 最近提交`。
+- 中部左侧从“仓库排行”改成 `Git 仓库详情`，不再出现固定排名列、Token 排序列和风险等级伪字段。
+- 中部右侧继续保留单仓库详情，但内容切换为 `工作区改动 / 最近提交 / 关联会话 / 最近 Codex 活动 / origin 地址` 这类当前真实可落地信息。
+- 底部不再单独放“数据源根目录”和“GitHub 远程仓库信息”两张大卡，而是压缩为紧凑页脚说明，明确页面只基于本地 Git 与 Codex 本地会话。
