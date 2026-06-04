@@ -1,5 +1,26 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.60 docs: 为代码仓库页补回仓库级投入信息
+
+- 开发原因：用户认可第三页整体结构，但希望再补一些“项目对应的 Token 消耗和对应成本”等信息，并明确要求参考 `dev-ledger` 的 Git 页展示方式。
+- 实现方式：先核对 `src/shared/contracts.ts`、`src/renderer/App.tsx` 和 `dev-ledger/src/main.js`，确认当前第三页数据层已有 `repo.tokens.total` 与 `repo.apiCostUsd`，但尚无稳定的仓库级 `30 天成本 / 30 天 Token` 合同；随后把 `docs/page-design-spec-v0.3.md` 升级到 `v0.3.8`，将第三页调整为“顶部四卡仍讲工程活跃，中部左表增加 `Codex 投入` 列，右侧详情补 `累计 Token / 累计 API 成本 / 关联会话 / 最近 Codex 活动`”，并同步更新 `docs/ui-contract/repositories-v0.1.md`；最后按新口径重出设计图并保存到 `docs/assets/design/v0.3.8/repositories-page.png`。
+- 当前结果：第三页现在既保留了 `扫描目录 + 活跃度 + 左表右详情` 的主结构，又补回了仓库级 Codex 投入信息；其中 Token / 成本只出现在中部工作台，不抬成首屏主卡，且文档明确当前仍只允许使用累计口径，不伪造 `30 天成本` 等合同外字段。
+- 验证方式：人工对照 `dev-ledger` Git 页与新设计图，确认 Token / 成本回到左表和右侧详情而非顶部主卡；执行 `npm run build`；执行 `git diff --check` 检查空白问题。
+
+## [2026-06-04] v0.2.2-dev.59 fix: 默认计费月与自然月对齐
+
+- 开发原因：用户从套餐信息确认当前月度计费从每月 `1` 日开始；此前应用因 Codex 原始 `rate_limits` 未暴露月额度窗口，计费时间下顶部 `本月 Token` 显示 `未观测`，但月 Token 时间窗口可以按用户确认的套餐起始日计算。
+- 实现方式：先更新数据契约、UI Contract、组件映射、额度审计、分区审计、比例测量和目标审计，明确计费月 Token 默认每月 `1` 日起算且不等同于月额度；随后为 `AppPreferences` 增加 `billingMonthStartDay`，默认值为 `1`，新增 `startOfBillingMonth` 工具，并让 `dashboardCollector` 生成 `billingMonth / previousBillingMonth` 周期；同步增强 `verify:overview` 对计费月起始日和聚合字段的静态检查。
+- 当前结果：计费时间下顶部 `本月 Token` 默认与自然月一致，不再显示 `未观测`；`可观测月额度` 仍保持未观测，避免把 Token 时间窗口伪装成真实月额度。后续设置页可直接接入 `billingMonthStartDay`。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev59` 自然/计费四张真实 Electron 截图；执行 `npm run verify:overview`；执行 `git diff --check`。
+
+## [2026-06-04] v0.2.2-dev.58 docs: 重构账本页首屏为强度与周期细账
+
+- 开发原因：用户明确指出 `5H / 周额度` 的限额表达已经在第一页稳定落地，第二页不应再用同样的三张大卡重复首屏；同时第二页应补入类似 `dev-ledger` Codex 页 `Token 构成与强度` 的核心模块，并把 `7 日均值`、`峰值时段`、`峰值日`、`单次峰值` 这类真实高价值信号纳入主结构。
+- 实现方式：重新核对 `src/main/collectors/codexCollector.ts`、`src/main/collectors/dashboardCollector.ts`、`src/shared/contracts.ts` 与 `dev-ledger` 数据契约，确认当前底层事件已具备 `timestamp + input / cachedInput / output / reasoningOutput / total`，可以合法支持 `日 / 周 / 月`、`横轴` 和 `纵轴` 切换；随后重写第二页规划文档、`docs/ui-contract/ledger-v0.1.md` 与 `docs/page-design-spec-v0.3.md` 第 3 节，把第二页首屏改成 `Token 构成与强度 + 强度摘要`，并把第一页壳层基线同步切到最新 `dev57` 实际截图。
+- 当前结果：第二页设计原则已从“额度三卡 + 账本 + 模型 + 会话”更新为“强度主图 + 峰值摘要 + 周额度账本 + 模型构成 + 会话归因”；页面明确支持 `总 Token / 输入 / 缓存输入 / 缓存输入占比 / 输出 / 推理 Token` 的纵轴口径，且不再重复展示固定月额度或 `剩余 Token` 这类无稳定来源字段。
+- 验证方式：执行 `npm run build`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.57 fix: 精修顶部四卡图标和状态标签
 
 - 开发原因：继续按用户对总览页顶部四张指标卡的视觉反馈修正；当前图标、文字和字体方向已正确，但图标与右侧三行文字关系还可更统一，且四卡重复显示正常态 `已观测` 与顶栏全局状态冗余。
