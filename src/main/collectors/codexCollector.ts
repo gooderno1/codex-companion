@@ -10,6 +10,7 @@ import { estimateApiCostUsd, estimateCodexCredits } from "./pricing";
 import { emptyTokens, roundTo, sumTokens } from "./metrics";
 
 const CODEX_HISTORY_LOOKBACK_DAYS = 60;
+const PRIMARY_CODEX_LIMIT_ID = "codex";
 
 export interface ObservedLimitWindow {
   usedPercent: number | null;
@@ -22,6 +23,8 @@ export interface LatestRateSnapshot {
   primary: ObservedLimitWindow | null;
   secondary: ObservedLimitWindow | null;
   planType: string | null;
+  limitId: string | null;
+  limitName: string | null;
 }
 
 export interface QuotaObservation {
@@ -156,6 +159,31 @@ function compareIso(left: string | null, right: string | null): number {
   return new Date(left).getTime() - new Date(right).getTime();
 }
 
+function quotaSnapshotPriority(snapshot: LatestRateSnapshot): number {
+  if (snapshot.limitId === PRIMARY_CODEX_LIMIT_ID) {
+    return 2;
+  }
+
+  if (!snapshot.limitId) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function compareRateSnapshotPriority(
+  left: LatestRateSnapshot,
+  right: LatestRateSnapshot
+): number {
+  const priorityDelta =
+    quotaSnapshotPriority(left) - quotaSnapshotPriority(right);
+  if (priorityDelta !== 0) {
+    return priorityDelta;
+  }
+
+  return compareIso(left.observedAt, right.observedAt);
+}
+
 function normalizeRateSnapshot(
   timestamp: string,
   rateLimits: Record<string, unknown> | undefined
@@ -185,6 +213,14 @@ function normalizeRateSnapshot(
     }
 
     return null;
+  };
+  const readString = (
+    payload: Record<string, unknown>,
+    snakeKey: string,
+    camelKey: string
+  ): string | null => {
+    const value = payload[snakeKey] ?? payload[camelKey];
+    return typeof value === "string" && value.trim() ? value : null;
   };
 
   if (!primary && !secondary) {
@@ -216,7 +252,9 @@ function normalizeRateSnapshot(
         }
       : null,
     planType:
-      typeof rateLimits.plan_type === "string" ? rateLimits.plan_type : null
+      typeof rateLimits.plan_type === "string" ? rateLimits.plan_type : null,
+    limitId: readString(rateLimits, "limit_id", "limitId"),
+    limitName: readString(rateLimits, "limit_name", "limitName")
   };
 }
 
@@ -291,7 +329,7 @@ async function parseSessionFile(filePath: string): Promise<SessionParseResult> {
       quotaObservations.push({ timestamp, sessionId, rateLimits: snapshot });
       if (
         !latestRateSnapshot ||
-        compareIso(snapshot.observedAt, latestRateSnapshot.observedAt) > 0
+        compareRateSnapshotPriority(snapshot, latestRateSnapshot) > 0
       ) {
         latestRateSnapshot = snapshot;
       }
@@ -443,9 +481,9 @@ export async function collectCodexData(
     if (
       result.latestRateSnapshot &&
       (!latestRateSnapshot ||
-        compareIso(
-          result.latestRateSnapshot.observedAt,
-          latestRateSnapshot.observedAt
+        compareRateSnapshotPriority(
+          result.latestRateSnapshot,
+          latestRateSnapshot
         ) > 0)
     ) {
       latestRateSnapshot = result.latestRateSnapshot;

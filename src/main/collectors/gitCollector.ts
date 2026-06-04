@@ -292,6 +292,8 @@ export async function collectGitData({
     0,
     0
   );
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
   const startOfSevenDays = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
   const startOfNaturalWeek = new Date(startOfToday);
   const weekday = startOfNaturalWeek.getDay();
@@ -329,7 +331,7 @@ export async function collectGitData({
       collectCodeActivityRange(repoPath, windowRange.start, windowRange.end)
     );
 
-    const [remoteUrl, defaultBranchOutput, currentBranch, today, sevenDays, naturalWeek, month, workingTree, recentCommits, fileFootprint, ...customActivities] =
+    const [remoteUrl, defaultBranchOutput, currentBranch, today, yesterday, sevenDays, naturalWeek, month, workingTree, recentCommits, fileFootprint, ...customActivities] =
       await Promise.all([
         runGit(["remote", "get-url", "origin"], repoPath),
         runGit(
@@ -338,6 +340,7 @@ export async function collectGitData({
         ),
         runGit(["branch", "--show-current"], repoPath),
         collectCodeActivitySince(repoPath, startOfToday),
+        collectCodeActivityRange(repoPath, startOfYesterday, startOfToday),
         collectCodeActivitySince(repoPath, startOfSevenDays),
         collectCodeActivitySince(repoPath, startOfNaturalWeek),
         collectCodeActivitySince(repoPath, startOfMonth),
@@ -367,6 +370,7 @@ export async function collectGitData({
         defaultBranchOutput?.split("/").pop() ?? currentBranch ?? null,
       activity: {
         today: today ?? emptyCodeActivity(),
+        yesterday: yesterday ?? emptyCodeActivity(),
         sevenDays: sevenDays ?? emptyCodeActivity(),
         naturalWeek: naturalWeek ?? emptyCodeActivity(),
         month: month ?? emptyCodeActivity(),

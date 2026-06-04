@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.53`
+- 当前适用版本：`v0.2.2-dev.54`
 - 当前覆盖页面：总览页
 
 ## 总览页
@@ -24,12 +24,14 @@
 ## 当前约束
 
 - `自然时间 / 计费时间` 只改变总览页统计口径，不改变壳层和顶部四卡字段。
+- 顶部 `今日代码改动` 的 `detail` 使用 `snapshot.overview.previous.yesterday.code.changedLines` 与 `snapshot.overview.today.code.changedLines` 计算，昨日 Git 有数据时必须显示百分比。
 - 左侧品牌图标使用 `src/renderer/icons.tsx` 中的 `BrandMark` SVG，必须保持非官方自定义资产，不使用 OpenAI / Codex 官方 logo。
 - 左侧导航图标使用 `src/renderer/icons.tsx` 中的 `Glyph` SVG：总览为首页图标，账本为文档账本图标，代码仓库为代码方块图标，设置为齿轮图标；图标本身不使用额外白色胶囊背景。
 - 左侧导航项遵循设计稿的单行结构，只显示图标和主标签；`总览 / Codex 账本 / 代码仓库 / 设置` 不在导航行内显示二级说明文案。
 - `5H / 周额度窗口` 统一复用 `QuotaWindowCard`，不额外派生其他布局。
 - `QuotaWindowCard` 标题只显示一次，不额外显示 `额度窗口` 辅助行。
 - `QuotaWindowCard` 圆环显示当前额度周期累计后的剩余量，右侧数据使用同一额度周期内真实 token 增量。
+- `QuotaWindowCard` 的 `5H / 周额度` 必须来自同一个主额度池 `limit_id=codex`；采集到其他模型池时只能作为降级候选，不能覆盖主额度。
 - `QuotaWindowCard` 圆环弧线和中心数字都使用剩余百分比，不允许弧线使用已用百分比。
 - `QuotaWindowCard` 圆环内部小字 `剩余量` 位于百分比上方，百分比处于圆心视觉位置。
 - `QuotaWindowCard` 圆环下方必须展示当前额度周期起止，使用 `period.startAt / period.endAt`，不额外读取原始日志；周期起止必须与重置时间合并为一行，不再单独占用一行；同日短周期显示时间范围，多日周期显示日期范围，避免周额度显示成 `09:02 - 09:02`。

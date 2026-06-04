@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.2.2-dev.53`
+- 对应开发版本：`v0.2.2-dev.54`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -42,6 +42,8 @@
 
 - `5 小时额度` 使用 `rate_limits.primary`
 - `周额度` 使用 `rate_limits.secondary`
+- 如果同一台机器同时观测到多个 Codex `rate_limits` 池，页面可见的 `5 小时额度 / 周额度` 必须优先选择主额度池 `rate_limits.limit_id = codex`；模型或实验池，例如 `codex_bengalfox`，不能因为观测时间更新而覆盖主额度显示。
+- 当前额度周期内的 `quotaObservations` 必须和被选中的额度池一致；不同 `limit_id / limit_name` 的观测样本不能混入同一个 `quotaEvidence`，否则会把模型池的低水位误当成主额度余量。
 - `可观测月额度` 仅在本地快照存在月级字段时展示；当前版本若无字段则明确标记 `未观测`
 - 额度圆环的剩余百分比优先使用当前额度周期的累计口径：
   - `usedPercent = PeriodMetric.quotaEvidence.usedPercent`
@@ -79,6 +81,7 @@
 - 通过会话 `cwd` 向上找到 Git 根目录
 - 若无法找到 Git 根目录，则该会话保留 `未归因`
 - 总览页项目概览保留所有已发现本地项目；当前周期无 Token、代码、提交和会话活动的项目显示 0 / `--`，不从表格中过滤。
+- 顶部 `今日代码改动` 使用自然日 Git `changedLines = additions + deletions`；次级说明 `较昨日` 使用昨日自然日同口径作为分母。昨日有 Git 数据时必须计算百分比，不能因为 token 昨日窗口为空而把昨日代码默认为 0。
 
 ## 3. 状态字段
 
@@ -110,7 +113,7 @@ npm run verify:quota
 
 该命令只校验聚合后的快照字段，不读取或输出原始会话正文。校验范围包括：
 
-- `5H` 与 `周额度` 窗口必须来自 `primary / secondary`。
+- `5H` 与 `周额度` 窗口必须来自主额度池 `limit_id=codex` 的 `primary / secondary`；没有 `limit_id=codex` 时才允许降级到可解析的最新额度池。
 - 窗口长度必须分别为 `300` 与 `10080` 分钟。
 - 圆环余量必须等于当前周期 `quotaEvidence.remainingPercent`；缺少周期证据时才允许降级为 `100 - 最近 usedPercent`。
 - 当前周期起止必须由 `resetsAt - windowMinutes` 推导。

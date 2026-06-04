@@ -20,6 +20,7 @@ const STATIC_REQUIRED_FILES = [
   "src/main/preload.ts",
   "src/main/collectors/codexCollector.ts",
   "src/main/collectors/dashboardCollector.ts",
+  "src/main/collectors/gitCollector.ts",
   "src/shared/contracts.ts",
   "src/renderer/App.tsx",
   "src/renderer/styles.css",
@@ -56,6 +57,8 @@ const STATIC_TEXT_ASSERTIONS = [
       "rate_limits.secondary",
       "quotaEvidence",
       "estimatedValueBasisUsedPercent",
+      "limit_id=codex",
+      "较昨日",
       "60"
     ]
   },
@@ -92,18 +95,35 @@ const STATIC_TEXT_ASSERTIONS = [
       "total_token_usage",
       "last_token_usage",
       "payload.rate_limits",
-      "window_minutes"
+      "window_minutes",
+      "PRIMARY_CODEX_LIMIT_ID",
+      "limitId",
+      "compareRateSnapshotPriority"
     ]
   },
   {
     file: "src/main/collectors/dashboardCollector.ts",
     includes: [
       "quotaEvidence",
+      "isSameQuotaPool",
+      'aggregateCodeFromRepos(git.items, "yesterday")',
       "buildDisplayedQuotaWindow",
       "estimatedValueBasisUsedPercent",
       "primaryPeriod.quotaEvidence?.usedPercent",
       "weeklyLimitPeriod.quotaEvidence?.usedPercent"
     ]
+  },
+  {
+    file: "src/main/collectors/gitCollector.ts",
+    includes: [
+      "startOfYesterday",
+      "collectCodeActivityRange(repoPath, startOfYesterday, startOfToday)",
+      "yesterday: yesterday ?? emptyCodeActivity()"
+    ]
+  },
+  {
+    file: "src/shared/contracts.ts",
+    includes: ["yesterday: CodeActivity"]
   },
   {
     file: "src/renderer/App.tsx",

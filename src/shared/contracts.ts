@@ -118,6 +118,7 @@ export interface RepoMetric {
   defaultBranch: string | null;
   activity: {
     today: CodeActivity;
+    yesterday: CodeActivity;
     sevenDays: CodeActivity;
     naturalWeek: CodeActivity;
     month: CodeActivity;

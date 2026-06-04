@@ -84,6 +84,25 @@ function getObservedWindow(
   return windowKey === "primary" ? snapshot?.primary ?? null : snapshot?.secondary ?? null;
 }
 
+function isSameQuotaPool(
+  left: LatestRateSnapshot,
+  right: LatestRateSnapshot | null
+): boolean {
+  if (!right) {
+    return true;
+  }
+
+  if (left.limitId || right.limitId) {
+    return left.limitId === right.limitId;
+  }
+
+  if (left.limitName || right.limitName) {
+    return left.limitName === right.limitName;
+  }
+
+  return true;
+}
+
 function isUsableQuotaWindow(
   windowInfo: ObservedLimitWindow | null,
   expectedWindowMinutes: number | null = null
@@ -366,6 +385,10 @@ function buildQuotaWindowUsage(args: {
   }
 
   for (const observation of args.quotaObservations) {
+    if (!isSameQuotaPool(observation.rateLimits, args.latestRateSnapshot)) {
+      continue;
+    }
+
     const windowInfo = getObservedWindow(observation.rateLimits, args.windowKey);
     if (!isUsableQuotaWindow(windowInfo, args.expectedWindowMinutes ?? null)) {
       continue;
@@ -756,6 +779,7 @@ function aggregateCodeFromRepos(
   repoItems: Awaited<ReturnType<typeof collectGitData>>["items"],
   field:
     | "today"
+    | "yesterday"
     | "sevenDays"
     | "naturalWeek"
     | "month"
@@ -1139,7 +1163,8 @@ async function collectDashboardSnapshot(
     "昨日",
     yesterdayStart,
     todayStart,
-    codex.events
+    codex.events,
+    aggregateCodeFromRepos(git.items, "yesterday")
   );
   const previousNaturalWeekStart = addMinutes(naturalWeekStart, -7 * 24 * 60);
   const previousNaturalWeekPeriod = buildPeriodMetric(

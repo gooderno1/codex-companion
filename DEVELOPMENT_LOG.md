@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.54 fix: 修正主额度池与昨日代码对比口径
+
+- 开发原因：继续按用户对总览页数据的反馈修正两个问题；当前 5H 额度会被更新时间更新的模型额度池 `codex_bengalfox` 覆盖，导致主额度余量显示错误；顶部 `今日代码改动` 的 `较昨日` 没有读取昨日自然日 Git 行数，导致昨日有数据时仍可能显示 `新增`。
+- 实现方式：先更新数据契约、UI Contract、组件映射、额度审计、分区审计、比例测量和目标审计，明确可见 `5H / 周额度` 优先主额度池 `limit_id=codex`，且 `quotaEvidence` 只混合同一额度池样本；随后让 `codexCollector` 保留 `limitId / limitName` 并按主池优先选择快照，让 `dashboardCollector` 过滤异池观测点并把昨日 Git 聚合传入 `previous.yesterday`，让 `gitCollector` 与共享契约补充 `activity.yesterday`；同步增强 `verify:overview` 回归检查。
+- 当前结果：当前 live 快照显示 5H 额度周期余量 `78%`、周额度周期余量 `88%`，均来自主额度池；顶部 `今日代码改动` 使用今日 `7383` 行与昨日 `5219` 行计算，截图中显示 `较昨日 +41.5%`。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev54` 自然/计费四张真实 Electron 截图；人工查看 `local_dev_work/overview-1360x900-dev54.png`；执行 `npm run verify:quota`；执行 `npm run verify:overview`；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-06-04] v0.2.2-dev.53 fix: 修正额度剩余量和截图验收口径
 
 - 开发原因：继续按用户对 `dev52` 的反馈修正总览页；周额度圆环仍使用最近原始 `rate_limits` 余量，可能显示 `100%`，但同一周额度周期的累计 `quotaEvidence.usedPercent` 已经消耗到 `6%+`；顶部四卡图标仍偏小，额度圆环内部文案层级也需要按设计调整。
