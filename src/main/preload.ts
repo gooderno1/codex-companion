@@ -21,6 +21,19 @@ const api: CodexCompanionApi = {
       ipcRenderer.removeListener("preferences:updated", subscription);
     };
   },
+  onDashboardUpdated: (listener) => {
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      snapshot: Parameters<typeof listener>[0]
+    ) => {
+      listener(snapshot);
+    };
+
+    ipcRenderer.on("dashboard:updated", subscription);
+    return () => {
+      ipcRenderer.removeListener("dashboard:updated", subscription);
+    };
+  },
   openPage: (page) => ipcRenderer.invoke("app:open-page", page),
   showWidget: () => ipcRenderer.invoke("widget:show"),
   hideWidget: () => ipcRenderer.invoke("widget:hide")

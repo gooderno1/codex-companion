@@ -313,9 +313,10 @@ svg {
 }
 
 .topbar {
-  justify-content: flex-start;
-  flex-wrap: nowrap;
-  gap: 34px;
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) auto minmax(300px, 1fr);
+  align-items: center;
+  gap: 22px;
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line-soft);
@@ -325,7 +326,8 @@ svg {
   display: flex;
   align-items: baseline;
   gap: 14px;
-  flex: 0 1 390px;
+  justify-self: start;
+  max-width: 390px;
   min-width: 0;
   overflow: hidden;
 }
@@ -341,10 +343,10 @@ svg {
 
 .topbar-center {
   display: flex;
-  flex: 0 0 clamp(220px, 24vw, 340px);
   align-items: center;
-  justify-content: flex-start;
-  min-width: 220px;
+  justify-content: center;
+  justify-self: center;
+  min-width: 0;
 }
 
 .topbar-mode-switch {
@@ -371,9 +373,8 @@ svg {
 
 .topbar-actions {
   gap: 9px;
-  flex: 0 0 auto;
+  justify-self: end;
   flex-wrap: nowrap;
-  margin-left: auto;
 }
 
 .action-button,
@@ -491,11 +492,12 @@ svg {
 }
 
 .metric-card {
+  position: relative;
   align-content: stretch;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 12px;
+  grid-template-rows: minmax(0, 1fr);
   min-height: 144px;
-  padding: 18px 16px 16px;
+  padding: 18px 16px;
+  overflow: hidden;
   border-radius: var(--radius-card);
   background: linear-gradient(180deg, var(--surface-strong) 0%, rgba(250, 252, 255, 0.46) 100%);
   box-shadow: inset 0 0 0 1px var(--line-soft), var(--shadow-soft);
@@ -503,8 +505,12 @@ svg {
 
 .metric-card-main {
   display: flex;
-  align-items: flex-start;
-  gap: 17px;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 1.2vw, 18px);
+  height: 100%;
+  padding-top: 10px;
+  text-align: center;
 }
 
 .metric-icon,
@@ -523,21 +529,23 @@ svg {
 
 .metric-icon {
   flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  border-radius: 13px;
+  width: clamp(44px, 3.5vw, 56px);
+  height: clamp(44px, 3.5vw, 56px);
+  border-radius: clamp(13px, 1vw, 16px);
   color: #ffffff;
 }
 
 .metric-icon svg {
-  width: 25px;
-  height: 25px;
+  width: 58%;
+  height: 58%;
 }
 
 .metric-card-copy {
   display: grid;
   gap: 8px;
+  justify-items: center;
   min-width: 0;
+  text-align: center;
 }
 
 .metric-card-title {
@@ -547,14 +555,16 @@ svg {
 }
 
 .metric-status {
+  position: absolute;
+  top: 13px;
+  right: 13px;
   display: inline-flex;
   align-items: center;
-  justify-self: center;
-  align-self: end;
-  padding: 5px 10px;
+  padding: 4px 9px;
   border-radius: var(--radius-pill);
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.2;
 }
 
 .metric-card-value {
@@ -1314,6 +1324,7 @@ svg {
   .topbar,
   .quota-card-body,
   .section-toolbar {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
   }

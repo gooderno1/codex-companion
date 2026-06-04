@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.51`
+- 当前适用版本：`v0.2.2-dev.52`
 - 当前覆盖页面：总览页
 
 ## 总览页
@@ -19,6 +19,7 @@
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
 | 页脚数据来源 | `FooterNote` / `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
+| 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
 
 ## 当前约束
 
@@ -36,15 +37,16 @@
 - `QuotaWindowCard` 右侧明细行必须带小图标。
 - 顶部 `时间视角` 与 `自然时间 / 计费时间` 使用同一个 `topbar-mode-switch` 文本切换。
 - 顶部时间视角切换内部不允许换行；较窄窗口优先压缩标题、副标题或右侧操作间距，不能把时间视角整体拆到第二行。
-- 顶部时间视角属于中部页面控制区，不能被 `space-between` 推到右侧操作区旁边；右侧状态、刷新和快照由 `topbar-actions` 自动贴右。
+- 顶部时间视角属于中部页面控制区，不能被 `space-between` 推到右侧操作区旁边，也不能因 `flex-start` 偏到标题组旁边；顶栏桌面态使用左 / 中 / 右三列布局，中部视角控件几何居中，右侧状态、刷新和快照贴右。
 - 页面级截图支持通过 hash 查询参数设置初始 `overviewMode`，用于生成自然时间和计费时间两种真实 Electron 截图；普通用户默认仍进入自然时间。
+- 主进程每 `60s` 强制采集一次 `DashboardSnapshot` 并通过 `dashboard:updated` 广播；启动缓存后的后台刷新和手动刷新完成后也必须广播，渲染端通过 `window.codexCompanion.onDashboardUpdated` 静默更新页面。
 - 顶部工具栏状态胶囊只显示状态文字，不额外显示状态图标；额度卡和指标卡内状态标签也保持文字-only。
 - 顶部工具栏不显示 `桌面总控台` 等额外眉标，页面标题与副标题横向组成同一信息组。
 - 左侧品牌区必须保持产品图标和 `Codex Companion` 标题顶线对齐，说明文字放在标题下方，图标与标题间距接近设计稿；文字组允许少量基线补偿，避免标题高于图标造成错位。
-- 顶部四卡必须显示自定义指标图标，图标在左、内容在右、状态在底部，不使用官方 OpenAI / Codex 视觉资产。
+- 顶部四卡必须显示自定义指标图标，图标在左、内容在右、整体居中，状态标签固定在右上角，不使用官方 OpenAI / Codex 视觉资产。
 - 顶部四卡状态必须由单张卡片的数据可观测性决定；计费月未观测时，`本月 Token` 卡片必须显示 `未观测` 状态，不能沿用全局 `已观测`。
-- 顶部四卡高度应接近设计稿比例，`MetricCard` 使用内容区和底部状态区两行布局，不得压缩到状态标签和主数字过近。
-- 顶部四卡内部微调只允许改变图标尺寸、标题权重和主数字视觉权重，不改变四卡字段、单位和统计口径。
+- 顶部四卡高度应接近设计稿比例，`MetricCard` 使用右上角状态覆盖层和居中内容区，不得让状态标签单独占一整行。
+- 顶部四卡内部微调只允许改变图标自适应尺寸、内容居中、标题权重和主数字视觉权重，不改变四卡字段、单位和统计口径。
 - 右侧主工作区外层保持轻描边与浅底，不使用强浮层阴影；卡片渐变和阴影必须弱于当前分区卡片内容层。
 - 颜色使用组件级 token：主标题和主数字为 `#111827` 级深墨色，普通正文为 `#334155` 级蓝灰色，副标题 / 表头 / 页脚为 `#64748b` 级辅助蓝灰色，证据和定价来源为 `#94a3b8` 级弱辅助色；不能把所有文字统一压成主标题色。
 - 设计 token 的唯一运行入口为 `src/renderer/design-tokens.ts`，正式说明见 `docs/design-tokens-v0.1.md`；提交前执行 `npm run verify:design`，防止 CSS 引用未定义 token 或关键色阶漂移。

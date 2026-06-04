@@ -1,7 +1,7 @@
 # Codex Companion 设计 Token（v0.1）
 
 - 创建时间：2026-06-04
-- 对应开发版本：`v0.2.2-dev.51`
+- 对应开发版本：`v0.2.2-dev.52`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
 - 代码来源：`src/renderer/design-tokens.ts`
 - 应用入口：`src/renderer/main.tsx` 调用 `applyDesignTokens()`
@@ -97,6 +97,15 @@ npm run verify:design
 - 主蓝改为 `#0f6fff`，与设计稿中导航激活、页级切换和指标图标的蓝色更接近。
 - 成功、警告、风险色改为更常规的工作台色值，避免状态文字看起来过暗或偏灰。
 - 左侧激活导航底色降低蓝色透明度，保持当前页明确但不形成厚重蓝块。
+
+## 3.3 `v0.2.2-dev.52` 顶部组件位置修正
+
+本轮不调整全局颜色 token，重点把已有 token 用到更正确的组件位置上：
+
+- 顶部四卡状态标签继续沿用 `status-*` 色阶，但位置固定到右上角，避免用独立底行增加视觉负担。
+- 顶部四卡内容区使用现有文字 token 居中展示，主数字仍使用 `--text-primary`，变化说明按正负沿用状态色。
+- 指标图标仍使用 `--accent-blue / --accent-teal / --accent-green` 渐变，但尺寸改为自适应，防止不同窗口下图标与数字比例失衡。
+- 顶栏时间视角仍使用无边框文本切换，不新增颜色 token；位置由三列布局保证居中。
 
 ## 4. 后续页面规则
 

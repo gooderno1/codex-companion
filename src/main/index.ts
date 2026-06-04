@@ -30,6 +30,9 @@ let currentPreferences: AppPreferences | null = null;
 let latestSnapshot: DashboardSnapshot | null = null;
 let persistBoundsTimer: NodeJS.Timeout | null = null;
 const WIDGET_DISABLED = true;
+const DASHBOARD_REFRESH_INTERVAL_MS = 60_000;
+let dashboardRefreshTimer: NodeJS.Timeout | null = null;
+let dashboardRefreshTask: Promise<DashboardSnapshot> | null = null;
 
 const preloadPath = path.join(__dirname, "preload.js");
 
@@ -237,10 +240,82 @@ async function applyWidgetPreferences(preferences: AppPreferences) {
   await broadcastPreferences(preferences);
 }
 
+function sendDashboardUpdate(
+  targetWindow: BrowserWindow | null,
+  snapshot: DashboardSnapshot
+) {
+  if (!targetWindow || targetWindow.webContents.isDestroyed()) {
+    return;
+  }
+
+  targetWindow.webContents.send("dashboard:updated", snapshot);
+}
+
+function broadcastDashboardSnapshot(snapshot: DashboardSnapshot) {
+  latestSnapshot = snapshot;
+  sendDashboardUpdate(mainWindow, snapshot);
+  if (!WIDGET_DISABLED) {
+    sendDashboardUpdate(widgetWindow, snapshot);
+  }
+  refreshTrayMenu();
+}
+
+function refreshDashboardAndBroadcast(): Promise<DashboardSnapshot> {
+  if (dashboardRefreshTask) {
+    return dashboardRefreshTask;
+  }
+
+  dashboardRefreshTask = dashboardService
+    .getSnapshot(true)
+    .then((snapshot) => {
+      broadcastDashboardSnapshot(snapshot);
+      return snapshot;
+    })
+    .finally(() => {
+      dashboardRefreshTask = null;
+    });
+
+  return dashboardRefreshTask;
+}
+
+function startDashboardAutoRefresh() {
+  if (dashboardRefreshTimer) {
+    clearInterval(dashboardRefreshTimer);
+  }
+
+  dashboardRefreshTimer = setInterval(() => {
+    void refreshDashboardAndBroadcast().catch((error) => {
+      console.error(
+        `自动刷新失败：${error instanceof Error ? error.message : String(error)}`
+      );
+    });
+  }, DASHBOARD_REFRESH_INTERVAL_MS);
+}
+
+function stopDashboardAutoRefresh() {
+  if (!dashboardRefreshTimer) {
+    return;
+  }
+
+  clearInterval(dashboardRefreshTimer);
+  dashboardRefreshTimer = null;
+}
+
 async function loadSnapshot(force = false) {
   latestSnapshot = await dashboardService.getSnapshot(force);
   if (!force) {
-    dashboardService.refreshSnapshotInBackground();
+    const backgroundRefresh = dashboardService.refreshSnapshotInBackground();
+    if (backgroundRefresh) {
+      void backgroundRefresh
+        .then((snapshot) => {
+          broadcastDashboardSnapshot(snapshot);
+        })
+        .catch((error) => {
+          console.error(
+            `后台刷新失败：${error instanceof Error ? error.message : String(error)}`
+          );
+        });
+    }
   }
   refreshTrayMenu();
   return latestSnapshot;
@@ -332,7 +407,7 @@ function refreshTrayMenu() {
     {
       label: "刷新数据",
       click: async () => {
-        await loadSnapshot(true);
+        await refreshDashboardAndBroadcast();
       }
     },
     {
@@ -450,9 +525,9 @@ function createWidgetWindow(preferences: AppPreferences) {
 
 function registerIpcHandlers() {
   ipcMain.handle("dashboard:get", async (_event, force?: boolean) =>
-    loadSnapshot(Boolean(force))
+    force ? refreshDashboardAndBroadcast() : loadSnapshot(false)
   );
-  ipcMain.handle("dashboard:refresh", async () => loadSnapshot(true));
+  ipcMain.handle("dashboard:refresh", async () => refreshDashboardAndBroadcast());
   ipcMain.handle("preferences:get", async () => dashboardService.getPreferences());
   ipcMain.handle(
     "widget:update-preferences",
@@ -502,6 +577,7 @@ async function bootstrap() {
   registerIpcHandlers();
   await applyWidgetPreferences(currentPreferences);
   void loadSnapshot(false);
+  startDashboardAutoRefresh();
 
   if (isDevelopment()) {
     mainWindow?.webContents.openDevTools({ mode: "detach" });
@@ -514,6 +590,7 @@ app.whenReady().then(() => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  stopDashboardAutoRefresh();
 });
 
 app.on("activate", () => {

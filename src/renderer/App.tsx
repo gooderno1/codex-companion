@@ -1039,6 +1039,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = window.codexCompanion.onDashboardUpdated((nextSnapshot) => {
+      startTransition(() => setSnapshot(nextSnapshot));
+      setError(null);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, [startTransition]);
+
+  useEffect(() => {
     void (async () => {
       try {
         setLoading(true);

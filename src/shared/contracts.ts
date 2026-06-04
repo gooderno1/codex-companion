@@ -261,6 +261,9 @@ export interface CodexCompanionApi {
   onPreferencesUpdated(
     listener: (preferences: AppPreferences) => void
   ): () => void;
+  onDashboardUpdated(
+    listener: (snapshot: DashboardSnapshot) => void
+  ): () => void;
   openPage(page: AppPage): Promise<void>;
   showWidget(): Promise<void>;
   hideWidget(): Promise<void>;

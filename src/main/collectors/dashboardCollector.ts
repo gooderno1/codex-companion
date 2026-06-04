@@ -1471,7 +1471,9 @@ export class DashboardService {
       const pending = buildPendingDashboardSnapshot(preferences);
       this.cachedSnapshot = pending;
       this.cachedAt = Date.now();
-      this.refreshSnapshotInBackground();
+      void this.refreshSnapshotInBackground()?.catch(() => {
+        // Foreground calls surface collection failures through getSnapshot(true).
+      });
       return pending;
     }
 
@@ -1496,14 +1498,12 @@ export class DashboardService {
     return this.cachedSnapshot;
   }
 
-  public refreshSnapshotInBackground(): void {
+  public refreshSnapshotInBackground(): Promise<DashboardSnapshot> | null {
     if (this.collectingSnapshot) {
-      return;
+      return this.collectingSnapshot;
     }
 
-    void this.collectSnapshot().catch(() => {
-      // Foreground calls surface collection failures through getSnapshot().
-    });
+    return this.collectSnapshot();
   }
 
   private async collectSnapshot(): Promise<DashboardSnapshot> {

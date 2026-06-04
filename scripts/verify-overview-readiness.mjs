@@ -17,9 +17,12 @@ const STATIC_REQUIRED_FILES = [
   "docs/data-audit/overview-token-quota-audit-v0.1.md",
   "docs/goal-audit/overview-goal-completion-audit-v0.1.md",
   "src/main/index.ts",
+  "src/main/preload.ts",
   "src/main/collectors/codexCollector.ts",
   "src/main/collectors/dashboardCollector.ts",
+  "src/shared/contracts.ts",
   "src/renderer/App.tsx",
+  "src/renderer/styles.css",
   "src/renderer/icons.tsx",
   "src/renderer/design-tokens.ts"
 ];
@@ -61,7 +64,23 @@ const STATIC_TEXT_ASSERTIONS = [
   },
   {
     file: "src/main/index.ts",
-    includes: ["const WIDGET_DISABLED = true", "CODEX_COMPANION_CAPTURE_PATH", "CODEX_COMPANION_OVERVIEW_MODE"]
+    includes: [
+      "const WIDGET_DISABLED = true",
+      "CODEX_COMPANION_CAPTURE_PATH",
+      "CODEX_COMPANION_OVERVIEW_MODE",
+      "DASHBOARD_REFRESH_INTERVAL_MS",
+      '"dashboard:updated"',
+      "broadcastDashboardSnapshot",
+      "startDashboardAutoRefresh"
+    ]
+  },
+  {
+    file: "src/main/preload.ts",
+    includes: ["onDashboardUpdated", '"dashboard:updated"']
+  },
+  {
+    file: "src/shared/contracts.ts",
+    includes: ["onDashboardUpdated", "DashboardSnapshot"]
   },
   {
     file: "src/main/collectors/codexCollector.ts",
@@ -93,8 +112,18 @@ const STATIC_TEXT_ASSERTIONS = [
       "formatQuotaPeriodRange",
       "tok",
       "resolveOverviewModeFromHash",
+      "onDashboardUpdated",
       "card.sourceStatus",
       'sourceStatus: billingMonth ? globalSourceStatus : "unobserved"'
+    ]
+  },
+  {
+    file: "src/renderer/styles.css",
+    includes: [
+      "grid-template-columns: minmax(300px, 1fr) auto minmax(300px, 1fr)",
+      "position: absolute",
+      "clamp(44px, 3.5vw, 56px)",
+      "justify-self: center"
     ]
   },
   {
