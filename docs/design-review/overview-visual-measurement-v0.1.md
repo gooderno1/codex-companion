@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.44`
+- 适用版本：`v0.2.2-dev.45`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图绑定），`local_dev_work/overview-1360x900-dev42.png`、`local_dev_work/overview-1080x720-dev42.png`（顶部四卡新增语义验证），`local_dev_work/overview-1360x900-dev43.png`、`local_dev_work/overview-1080x720-dev43.png`（额度 Token 明细单位验证），`local_dev_work/overview-1360x900-dev44.png`、`local_dev_work/overview-1080x720-dev44.png`（额度周期范围验证）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图绑定），`local_dev_work/overview-1360x900-dev42.png`、`local_dev_work/overview-1080x720-dev42.png`（顶部四卡新增语义验证），`local_dev_work/overview-1360x900-dev43.png`、`local_dev_work/overview-1080x720-dev43.png`（额度 Token 明细单位验证），`local_dev_work/overview-1360x900-dev44.png`、`local_dev_work/overview-1080x720-dev44.png`（额度周期范围验证），`local_dev_work/overview-1360x900-dev45.png`、`local_dev_work/overview-1080x720-dev45.png`（目标审计运行态刷新）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -247,6 +247,20 @@
 
 - 当前版本截图中，周额度窗口的周期范围不能再只显示两个相同时间点。
 - `1080 x 720` 小窗口下，重置与周期文案不能换行，也不能挤压模型占比或底部证据。
+
+## 4.12 目标审计运行态刷新
+
+`v0.2.2-dev.45` 不修改 UI 和数据采集逻辑，聚焦目标审计证据的新鲜度：
+
+- 目标完成度审计中的运行态摘要必须来自当前 `snapshot.json` 聚合字段。
+- 5H / 周额度的 Token、API 等价成本、观测次数、重置次数、圆环余量和价值折算口径必须与 `npm run verify:quota` 输出一致。
+- `session / archived / 仓库` 数量必须与当前 `sourceHealth` 一致。
+
+验收边界：
+
+- 当前版本截图只用于证明 `v0.2.2-dev.45` 可正常打开并完整显示总览页。
+- 本轮不改变页面布局、颜色、额度算法、项目聚合或图标资产。
+- 如果运行态快照继续变化，后续只应刷新审计摘要，不应为了文档一致性改动真实数据。
 
 ## 5. 后续页面复用规则
 

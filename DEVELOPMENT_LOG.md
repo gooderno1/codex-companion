@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.45 docs: 刷新总览页目标审计运行态证据
+
+- 开发原因：继续推进“额度数据接入真实数据”和“认真对照并争取全部改完”的目标；目标完成度审计中的 5H / 周额度运行态摘要仍停留在旧快照，与当前 `snapshot.json` 和 `npm run verify:quota` 输出不一致。
+- 实现方式：只读取当前运行态聚合字段，刷新目标审计中的额度周期、Token、API 等价成本、代码行数、会话数、观测证据、圆环余量、价值折算和 sourceHealth 摘要；同步更新分区审计、比例测量和版本号。
+- 当前结果：目标审计证据与当前运行态快照保持一致；本轮不改变 UI、额度计算、Token 增量、Git 聚合或图标资产。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev45` 当前版本截图；执行 `npm run verify:overview`；执行 `npm run verify:design`；执行 `npm run verify:quota`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.44 fix: 优化额度周期范围文案
 
 - 开发原因：继续按区块对照总览页设计稿；当前周额度窗口的周期文案会显示成 `周期 09:02 - 09:02`，真实周期边界正确，但前端文案容易被误解为零长度周期。
