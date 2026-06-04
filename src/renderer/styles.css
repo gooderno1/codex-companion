@@ -951,6 +951,47 @@ svg {
   text-transform: none;
 }
 
+.project-table thead th.sort-active {
+  background: rgba(235, 244, 255, 0.98);
+  color: var(--accent-blue);
+}
+
+.project-sort-heading {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.project-sort-heading:hover,
+.project-sort-heading.active {
+  color: var(--accent-blue);
+}
+
+.sort-indicator {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: rgba(100, 116, 139, 0.08);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.project-sort-heading.active .sort-indicator {
+  color: var(--accent-blue);
+  background: rgba(15, 111, 255, 0.11);
+}
+
 .project-table tbody tr:last-child td {
   border-bottom: 0;
 }

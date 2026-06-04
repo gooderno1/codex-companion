@@ -31,7 +31,15 @@ const STATIC_REQUIRED_FILES = [
 const STATIC_TEXT_ASSERTIONS = [
   {
     file: "docs/ui-contract/overview-v0.1.md",
-    includes: ["左侧导航", "顶部工具栏", "顶部四卡", "中部两张额度卡", "项目概览", "页脚数据来源"]
+    includes: [
+      "左侧导航",
+      "顶部工具栏",
+      "顶部四卡",
+      "中部两张额度卡",
+      "项目概览",
+      "页脚数据来源",
+      "点击表头排序"
+    ]
   },
   {
     file: "docs/component-map.md",
@@ -136,6 +144,10 @@ const STATIC_TEXT_ASSERTIONS = [
       'from "./icons"',
       "function QuotaWindowCard",
       "function OverviewPage",
+      "function ProjectSortHeader",
+      'key: "recent"',
+      'direction: "desc"',
+      "aria-sort",
       "project-row-icon",
       "quota-models-head",
       "formatQuotaPeriodRange",
@@ -165,7 +177,9 @@ const STATIC_TEXT_ASSERTIONS = [
       "grid-template-columns: minmax(300px, 1fr) auto minmax(300px, 1fr)",
       "position: absolute",
       "clamp(64px, 4.9vw, 72px)",
-      "justify-self: center"
+      "justify-self: center",
+      "project-sort-heading",
+      "sort-active"
     ]
   },
   {

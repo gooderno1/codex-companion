@@ -53,9 +53,15 @@ const PAGE_META: Record<
 type OverviewMode = "natural" | "billing";
 type NaturalProjectPeriod = "day" | "week" | "month";
 type BillingProjectPeriod = "fiveHour" | "weekLimit";
-type ProjectSort = "token" | "cost" | "code" | "recent";
+type ProjectSort = "name" | "token" | "cost" | "code" | "commits" | "sessions" | "recent";
+type SortDirection = "asc" | "desc";
 type ProjectIconTone = "blue" | "teal" | "green" | "amber" | "rose";
 type QuotaTone = "blue" | "green";
+
+interface ProjectSortState {
+  key: ProjectSort;
+  direction: SortDirection;
+}
 
 interface OverviewMetricCardData {
   key: string;
@@ -557,22 +563,69 @@ function buildOverviewCards(
   ];
 }
 
-function sortProjectRows(rows: OverviewProjectItem[], sort: ProjectSort) {
+function sortProjectRows(rows: OverviewProjectItem[], sort: ProjectSortState) {
   return [...rows].sort((left, right) => {
-    if (sort === "cost") {
-      return right.apiCostUsd - left.apiCostUsd;
+    let comparison: number;
+
+    if (sort.key === "name") {
+      comparison = left.name.localeCompare(right.name, "zh-CN");
+    } else if (sort.key === "cost") {
+      comparison = left.apiCostUsd - right.apiCostUsd;
+    } else if (sort.key === "code") {
+      comparison = left.codeChangedLines - right.codeChangedLines;
+    } else if (sort.key === "commits") {
+      comparison = left.commits - right.commits;
+    } else if (sort.key === "sessions") {
+      comparison = left.sessions - right.sessions;
+    } else if (sort.key === "recent") {
+      comparison = (left.recentActivityAt ?? "").localeCompare(right.recentActivityAt ?? "");
+    } else {
+      comparison = left.tokenTotal - right.tokenTotal;
     }
 
-    if (sort === "code") {
-      return right.codeChangedLines - left.codeChangedLines;
+    if (comparison !== 0) {
+      return sort.direction === "asc" ? comparison : -comparison;
     }
 
-    if (sort === "recent") {
-      return (right.recentActivityAt ?? "").localeCompare(left.recentActivityAt ?? "");
-    }
-
-    return right.tokenTotal - left.tokenTotal;
+    return left.name.localeCompare(right.name, "zh-CN");
   });
+}
+
+function ProjectSortHeader({
+  label,
+  sortKey,
+  sort,
+  onSort
+}: {
+  label: string;
+  sortKey: ProjectSort;
+  sort: ProjectSortState;
+  onSort: (key: ProjectSort) => void;
+}) {
+  const isActive = sort.key === sortKey;
+  const ariaSort = isActive
+    ? sort.direction === "asc"
+      ? "ascending"
+      : "descending"
+    : "none";
+  const indicator = isActive ? (sort.direction === "asc" ? "↑" : "↓") : "↕";
+  const nextDirection = isActive && sort.direction === "asc" ? "倒序" : "正序";
+
+  return (
+    <th className={isActive ? "sort-active" : ""} aria-sort={ariaSort}>
+      <button
+        type="button"
+        className={`project-sort-heading${isActive ? " active" : ""}`}
+        onClick={() => onSort(sortKey)}
+        aria-label={`按${label}${nextDirection}排序`}
+      >
+        <span>{label}</span>
+        <span className="sort-indicator" aria-hidden="true">
+          {indicator}
+        </span>
+      </button>
+    </th>
+  );
 }
 
 function FooterNote({ snapshot }: { snapshot: DashboardSnapshot }) {
@@ -600,7 +653,10 @@ function OverviewPage({
   mode: OverviewMode;
   footer: React.ReactNode;
 }) {
-  const [sort, setSort] = useState<ProjectSort>("token");
+  const [sort, setSort] = useState<ProjectSortState>({
+    key: "recent",
+    direction: "desc"
+  });
   const [naturalPeriod, setNaturalPeriod] = useState<NaturalProjectPeriod>("week");
   const [billingPeriod, setBillingPeriod] = useState<BillingProjectPeriod>("weekLimit");
 
@@ -613,6 +669,13 @@ function OverviewPage({
         : snapshot.overview.projectOverview.billing[billingPeriod];
     return sortProjectRows(sourceRows, sort);
   }, [billingPeriod, mode, naturalPeriod, snapshot, sort]);
+
+  const handleProjectSort = (key: ProjectSort) => {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  };
 
   return (
     <div className="overview-layout">
@@ -664,32 +727,19 @@ function OverviewPage({
               }
             />
           </div>
-          <div className="project-toolbar">
-            <TextTabs
-              items={[
-                { value: "token", label: "按 Token" },
-                { value: "cost", label: "按成本" },
-                { value: "code", label: "按代码行" },
-                { value: "recent", label: "按最近活动" }
-              ]}
-              value={sort}
-              onChange={setSort}
-              variant="chip"
-            />
-          </div>
         </div>
 
         <div className="project-table-wrap">
           <table className="project-table">
             <thead>
               <tr>
-                <th>项目</th>
-                <th>Token</th>
-                <th>API 等价成本</th>
-                <th>代码行数</th>
-                <th>提交</th>
-                <th>会话</th>
-                <th>最近活动</th>
+                <ProjectSortHeader label="项目" sortKey="name" sort={sort} onSort={handleProjectSort} />
+                <ProjectSortHeader label="Token" sortKey="token" sort={sort} onSort={handleProjectSort} />
+                <ProjectSortHeader label="API 等价成本" sortKey="cost" sort={sort} onSort={handleProjectSort} />
+                <ProjectSortHeader label="代码行数" sortKey="code" sort={sort} onSort={handleProjectSort} />
+                <ProjectSortHeader label="提交" sortKey="commits" sort={sort} onSort={handleProjectSort} />
+                <ProjectSortHeader label="会话" sortKey="sessions" sort={sort} onSort={handleProjectSort} />
+                <ProjectSortHeader label="最近活动" sortKey="recent" sort={sort} onSort={handleProjectSort} />
               </tr>
             </thead>
             <tbody>

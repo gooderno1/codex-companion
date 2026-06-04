@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.61`
+- 当前适用版本：`v0.2.2-dev.68`
 - 当前覆盖页面：总览页
 
 ## 总览页
@@ -14,8 +14,8 @@
 | 顶部四卡 | `MetricCard` | 可复用 | `label`、`value`、`detail`、`icon`、`tone`、逐卡 `sourceStatus` | `snapshot.overview`、`snapshot.overview.previous`、`snapshot.sourceHealth` |
 | 5H 额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`windowPeriods.fiveHour.quotaEvidence.remainingPercent` 优先，降级到 `limitWindows[0]`；右侧：`windowPeriods.fiveHour`、`modelWindows.fiveHour` |
 | 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`windowPeriods.weekLimit.quotaEvidence.remainingPercent` 优先，降级到 `limitWindows[1]`；右侧：`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
-| 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、排序 | `snapshot.overview.projectOverview` |
-| 项目排序标签 | `TextTabs` `variant=chip` | 可复用 | `token / cost / code / recent` | 本地页面状态 |
+| 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、表头排序 | `snapshot.overview.projectOverview` |
+| 项目表头排序 | `ProjectSortHeader` | 页面级 | `name / token / cost / code / commits / sessions / recent`、`asc / desc` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
 | 页脚数据来源 | `FooterNote` / `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
@@ -57,8 +57,9 @@
 - 设计 token 的唯一运行入口为 `src/renderer/design-tokens.ts`，正式说明见 `docs/design-tokens-v0.1.md`；提交前执行 `npm run verify:design`，防止 CSS 引用未定义 token 或关键色阶漂移。
 - 项目表表头不强制全大写，保持与设计稿一致的正常标题大小写。
 - 项目概览主标题直接使用 `项目概览`，不再使用“项目消耗”作为主标题。
-- 项目概览二级周期切换必须放在 `项目概览` 标题右侧；排序切换独立靠右，不能和周期切换堆叠在同一右侧工具区。
+- 项目概览二级周期切换必须放在 `项目概览` 标题右侧；排序不再使用右侧 chip 按钮，改为点击表头字段排序。
 - 项目概览自然时间默认选中 `周`，计费时间默认选中 `周额度`；用户在当前页面会话内切换周期后，保持用户选择。
+- 项目概览默认按 `最近活动` 倒序，即最新项目活动优先；点击任一表头字段后第一次按该字段正序，第二次按该字段倒序。
 - 项目概览必须保留所有已发现本地项目，当前周期无活动项目显示 0 / `--`，不能因为无活动而从表格中消失。
 - 项目表 `项目` 列必须显示项目小图标和项目名，小图标由项目名稳定映射颜色，只作为扫读锚点，不表示官方身份。
 - 项目概览表格需要保留轻量横向和纵向网格线；纵向线只用于增强列扫读，不应变成强边框。
