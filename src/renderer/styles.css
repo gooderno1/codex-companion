@@ -310,9 +310,9 @@ svg {
 }
 
 .topbar {
-  justify-content: space-between;
+  justify-content: flex-start;
   flex-wrap: nowrap;
-  gap: var(--space-4);
+  gap: 34px;
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line-soft);
@@ -322,7 +322,7 @@ svg {
   display: flex;
   align-items: baseline;
   gap: 14px;
-  flex: 1 1 340px;
+  flex: 0 1 390px;
   min-width: 0;
   overflow: hidden;
 }
@@ -362,6 +362,7 @@ svg {
   gap: 9px;
   flex: 0 0 auto;
   flex-wrap: nowrap;
+  margin-left: auto;
 }
 
 .action-button,

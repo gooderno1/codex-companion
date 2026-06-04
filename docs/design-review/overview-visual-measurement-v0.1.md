@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.47`
+- 适用版本：`v0.2.2-dev.48`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图绑定），`local_dev_work/overview-1360x900-dev42.png`、`local_dev_work/overview-1080x720-dev42.png`（顶部四卡新增语义验证），`local_dev_work/overview-1360x900-dev43.png`、`local_dev_work/overview-1080x720-dev43.png`（额度 Token 明细单位验证），`local_dev_work/overview-1360x900-dev44.png`、`local_dev_work/overview-1080x720-dev44.png`（额度周期范围验证），`local_dev_work/overview-1360x900-dev45.png`、`local_dev_work/overview-1080x720-dev45.png`（目标审计运行态刷新），`local_dev_work/overview-1360x900-dev46.png`、`local_dev_work/overview-1080x720-dev46.png`（目标关键不变量验收增强），`local_dev_work/overview-1360x900-dev47.png`、`local_dev_work/overview-1080x720-dev47.png`（品牌基线、额度说明、单行视角和色阶收敛）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图绑定），`local_dev_work/overview-1360x900-dev42.png`、`local_dev_work/overview-1080x720-dev42.png`（顶部四卡新增语义验证），`local_dev_work/overview-1360x900-dev43.png`、`local_dev_work/overview-1080x720-dev43.png`（额度 Token 明细单位验证），`local_dev_work/overview-1360x900-dev44.png`、`local_dev_work/overview-1080x720-dev44.png`（额度周期范围验证），`local_dev_work/overview-1360x900-dev45.png`、`local_dev_work/overview-1080x720-dev45.png`（目标审计运行态刷新），`local_dev_work/overview-1360x900-dev46.png`、`local_dev_work/overview-1080x720-dev46.png`（目标关键不变量验收增强），`local_dev_work/overview-1360x900-dev47.png`、`local_dev_work/overview-1080x720-dev47.png`（品牌基线、额度说明、单行视角和色阶收敛），`local_dev_work/overview-1360x900-dev48.png`、`local_dev_work/overview-1080x720-dev48.png`（顶栏时间视角位置验证）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -290,6 +290,20 @@
 - 本轮不通过全局放大或增加间距来贴近设计稿，避免重新造成小窗口溢出。
 - `1360 x 900` 与 `1080 x 720` 截图必须确认左侧品牌、顶栏时间视角、额度底部说明和整体色阶均已生效。
 - 不改变 Token、额度、成本、代码行数、会话数、项目排序和任何采集口径。
+
+## 4.15 顶栏时间视角位置验证
+
+`v0.2.2-dev.48` 聚焦顶部工具栏中部控件位置，不改变任何数据展示：
+
+- 设计稿中时间视角是顶栏中部控制区，不是右侧操作区的一部分。
+- 当前实现需要避免 `space-between` 把时间视角推到状态、刷新和快照旁边。
+- 顶栏应保持一行：左侧标题组、中部时间视角、右侧状态 / 刷新 / 快照。
+
+验收边界：
+
+- `1360 x 900` 截图中，时间视角应明显从右侧操作区左移，靠近顶部工具栏中段。
+- `1080 x 720` 截图中，时间视角仍不得换行，右侧快照仍只出现一次。
+- 不改变顶部四卡、额度卡、项目概览和页脚区块比例。
 
 ## 5. 后续页面复用规则
 
