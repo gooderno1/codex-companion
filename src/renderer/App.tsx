@@ -12,12 +12,15 @@ import type {
   AppPage,
   AppPreferences,
   DashboardSnapshot,
+  LedgerAnalysisPeriod,
+  LedgerTimeBucket,
   LimitWindow,
   ModelMetric,
   OverviewProjectItem,
   PeriodMetric,
   RepoMetric,
   SourceStatus,
+  TokenBreakdown,
   WidgetMetric
 } from "../shared/contracts";
 import { BrandMark, Glyph, type IconName } from "./icons";
@@ -42,11 +45,11 @@ const PAGE_META: Record<
   },
   ledger: {
     title: "Codex 账本",
-    subtitle: "窗口口径、模型构成与会话归因"
+    subtitle: "构成强度、周期细账与会话归因"
   },
   repositories: {
     title: "代码仓库",
-    subtitle: "本地仓库的 Token 归因与工程活跃"
+    subtitle: "同步 Git 仓库活动与 Codex 投入"
   }
 };
 
@@ -54,12 +57,34 @@ type OverviewMode = "natural" | "billing";
 type NaturalProjectPeriod = "day" | "week" | "month";
 type BillingProjectPeriod = "fiveHour" | "weekLimit";
 type ProjectSort = "name" | "token" | "cost" | "code" | "commits" | "sessions" | "recent";
+type RepoSort = "name" | "today" | "sevenDays" | "month" | "codex" | "recentCommit";
 type SortDirection = "asc" | "desc";
 type ProjectIconTone = "blue" | "teal" | "green" | "amber" | "rose";
 type QuotaTone = "blue" | "green";
+type LedgerTrendPeriod = "day" | "week" | "month";
+type LedgerXAxis = "date" | "week";
+type LedgerYAxis =
+  | "total"
+  | "input"
+  | "cachedInput"
+  | "cachedInputRatio"
+  | "output"
+  | "reasoningOutput";
+type LedgerAnalysisKey = "sevenDays" | "thirtyDays" | "cumulative";
+type ModelContributionSort = "model" | "share" | "token" | "cost" | "events";
 
 interface ProjectSortState {
   key: ProjectSort;
+  direction: SortDirection;
+}
+
+interface RepoSortState {
+  key: RepoSort;
+  direction: SortDirection;
+}
+
+interface ModelContributionSortState {
+  key: ModelContributionSort;
   direction: SortDirection;
 }
 
@@ -231,6 +256,43 @@ function formatShortDate(iso: string | null) {
   });
 }
 
+function formatRelativeTime(iso: string | null, baseIso?: string | null) {
+  if (!iso) {
+    return "--";
+  }
+
+  const value = new Date(iso);
+  const base = baseIso ? new Date(baseIso) : new Date();
+  const diffMs = base.getTime() - value.getTime();
+
+  if (!Number.isFinite(diffMs)) {
+    return formatShortDate(iso);
+  }
+
+  const absMinutes = Math.round(Math.abs(diffMs) / (60 * 1000));
+  const absHours = Math.round(Math.abs(diffMs) / (60 * 60 * 1000));
+  const absDays = Math.round(Math.abs(diffMs) / (24 * 60 * 60 * 1000));
+  const suffix = diffMs >= 0 ? "前" : "后";
+
+  if (absMinutes < 1) {
+    return "刚刚";
+  }
+
+  if (absMinutes < 60) {
+    return `${absMinutes} 分钟${suffix}`;
+  }
+
+  if (absHours < 24) {
+    return `${absHours} 小时${suffix}`;
+  }
+
+  if (absDays < 7) {
+    return `${absDays} 天${suffix}`;
+  }
+
+  return formatShortDate(iso);
+}
+
 function sourceStatusLabel(status: SourceStatus) {
   const mapping: Record<SourceStatus, string> = {
     observed: "已观测",
@@ -311,6 +373,58 @@ function projectIconTone(projectName: string): ProjectIconTone {
   );
 
   return tones[hash % tones.length];
+}
+
+function repoDisplayName(repo: RepoMetric) {
+  return repo.fullName ?? "未配置远端";
+}
+
+function latestRepoCommitAt(repo: RepoMetric) {
+  return repo.recentCommits[0]?.authoredAt ?? repo.lastCodexAt ?? repo.lastSyncedAt;
+}
+
+function buildRepositoryCards(snapshot: DashboardSnapshot): OverviewMetricCardData[] {
+  const { summary } = snapshot.repositories;
+  const sourceStatus = snapshot.sourceHealth.sourceStatus;
+
+  return [
+    {
+      key: "repoToday",
+      label: "今日改动",
+      value: `${formatNumber(summary.todayChangedLines)} 行`,
+      detail: "已同步仓库中的今日累计",
+      icon: "code",
+      tone: "blue",
+      sourceStatus
+    },
+    {
+      key: "repoSevenDays",
+      label: "近 7 日改动",
+      value: `${formatNumber(summary.sevenDayChangedLines)} 行`,
+      detail: "滚动 7 日累计改动",
+      icon: "calendar",
+      tone: "teal",
+      sourceStatus
+    },
+    {
+      key: "repoMonth",
+      label: "本月改动",
+      value: `${formatNumber(summary.monthChangedLines)} 行`,
+      detail: "自然月累计改动",
+      icon: "month",
+      tone: "amber",
+      sourceStatus
+    },
+    {
+      key: "repoSynced",
+      label: "同步仓库",
+      value: formatNumber(summary.totalTracked),
+      detail: `${formatNumber(summary.attributedRepoCount)} 个有 Codex 归因`,
+      icon: "repo",
+      tone: "neutral",
+      sourceStatus
+    }
+  ];
 }
 
 function MetricCard({
@@ -628,6 +742,69 @@ function ProjectSortHeader({
   );
 }
 
+function sortRepoRows(rows: RepoMetric[], sort: RepoSortState) {
+  return [...rows].sort((left, right) => {
+    let comparison: number;
+
+    if (sort.key === "name") {
+      comparison = left.name.localeCompare(right.name, "zh-CN");
+    } else if (sort.key === "today") {
+      comparison = left.activity.today.changedLines - right.activity.today.changedLines;
+    } else if (sort.key === "sevenDays") {
+      comparison = left.activity.sevenDays.changedLines - right.activity.sevenDays.changedLines;
+    } else if (sort.key === "month") {
+      comparison = left.activity.month.changedLines - right.activity.month.changedLines;
+    } else if (sort.key === "codex") {
+      comparison = left.tokens.total - right.tokens.total;
+    } else {
+      comparison = (latestRepoCommitAt(left) ?? "").localeCompare(latestRepoCommitAt(right) ?? "");
+    }
+
+    if (comparison !== 0) {
+      return sort.direction === "asc" ? comparison : -comparison;
+    }
+
+    return left.name.localeCompare(right.name, "zh-CN");
+  });
+}
+
+function RepoSortHeader({
+  label,
+  sortKey,
+  sort,
+  onSort
+}: {
+  label: string;
+  sortKey: RepoSort;
+  sort: RepoSortState;
+  onSort: (key: RepoSort) => void;
+}) {
+  const isActive = sort.key === sortKey;
+  const ariaSort = isActive
+    ? sort.direction === "asc"
+      ? "ascending"
+      : "descending"
+    : "none";
+  const indicator = isActive ? (sort.direction === "asc" ? "↑" : "↓") : "↕";
+  const nextDirection = isActive && sort.direction === "asc" ? "倒序" : "正序";
+
+  return (
+    <th className={isActive ? "sort-active" : ""} aria-sort={ariaSort}>
+      <button
+        type="button"
+        className={`project-sort-heading${isActive ? " active" : ""}`}
+        onClick={() => onSort(sortKey)}
+        aria-label={`按${label}${nextDirection}排序`}
+      >
+        <span>{label}</span>
+        <span className="sort-indicator" aria-hidden="true">
+          {indicator}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 function FooterNote({ snapshot }: { snapshot: DashboardSnapshot }) {
   return (
     <footer className="footer-note">
@@ -640,6 +817,19 @@ function FooterNote({ snapshot }: { snapshot: DashboardSnapshot }) {
       <span className="footer-pricing">
         定价来源：{snapshot.pricingMeta.apiRateSource}；{snapshot.pricingMeta.codexRateSource}
       </span>
+    </footer>
+  );
+}
+
+function RepositoriesFooter({ snapshot }: { snapshot: DashboardSnapshot }) {
+  return (
+    <footer className="footer-note repositories-footer">
+      <span className="footer-source">
+        数据来源：Codex 本地 sessions、archived_sessions、定时同步 Git 快照；不读取 GitHub 云端元数据。
+      </span>
+      <span className="footer-chip">最近同步 {formatTime(snapshot.generatedAt)}</span>
+      <span className="footer-chip">仓库 {snapshot.repositories.summary.totalTracked}</span>
+      <span className="footer-chip">归因 {snapshot.repositories.summary.attributedRepoCount}</span>
     </footer>
   );
 }
@@ -779,113 +969,711 @@ function OverviewPage({
   );
 }
 
-function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
+const LEDGER_TREND_TABS: Array<{ value: LedgerTrendPeriod; label: string }> = [
+  { value: "day", label: "日" },
+  { value: "week", label: "周" },
+  { value: "month", label: "月" }
+];
+
+const LEDGER_ANALYSIS_TABS: Array<{ value: LedgerAnalysisKey; label: string }> = [
+  { value: "sevenDays", label: "近7天" },
+  { value: "thirtyDays", label: "近30天" },
+  { value: "cumulative", label: "累计" }
+];
+
+const LEDGER_Y_AXIS_OPTIONS: Array<{ value: LedgerYAxis; label: string }> = [
+  { value: "total", label: "总 Token" },
+  { value: "input", label: "输入总量" },
+  { value: "cachedInput", label: "缓存输入" },
+  { value: "cachedInputRatio", label: "缓存输入占比" },
+  { value: "output", label: "输出" },
+  { value: "reasoningOutput", label: "推理 Token" }
+];
+
+function rawInputTokens(tokens: TokenBreakdown) {
+  return Math.max(0, tokens.input - tokens.cachedInput);
+}
+
+function cachedInputRatio(tokens: TokenBreakdown) {
+  return tokens.input > 0 ? (tokens.cachedInput / tokens.input) * 100 : 0;
+}
+
+function formatPercent(value: number | null, digits = 1) {
+  return value === null ? "未观测" : `${value.toFixed(digits)}%`;
+}
+
+function formatDateRange(startIso: string | null, endIso: string | null) {
+  if (!startIso || !endIso) {
+    return "--";
+  }
+  return `${formatMonthDay(startIso)} - ${formatMonthDay(endIso)}`;
+}
+
+function formatFullDateRange(startIso: string | null, endIso: string | null) {
+  if (!startIso || !endIso) {
+    return "--";
+  }
+  return `${formatDateTime(startIso)} - ${formatDateTime(endIso)}`;
+}
+
+function formatSessionCode(sessionId: string) {
+  return sessionId.length > 8 ? sessionId.slice(0, 8) : sessionId;
+}
+
+function periodToBucket(period: PeriodMetric): LedgerTimeBucket {
+  return {
+    key: period.key,
+    label: period.label,
+    startAt: period.startAt,
+    endAt: period.endAt,
+    tokens: period.tokens,
+    sessions: period.sessions,
+    apiCostUsd: period.apiCostUsd,
+    creditsEstimate: period.creditsEstimate
+  };
+}
+
+function fallbackAnalysis(
+  key: LedgerAnalysisKey,
+  period: PeriodMetric,
+  sessions: DashboardSnapshot["ledger"]["sessions"],
+  models: ModelMetric[]
+): LedgerAnalysisPeriod {
+  const peakSession =
+    sessions
+      .filter((session) => {
+        if (!session.lastEventAt) {
+          return false;
+        }
+        const lastEventAt = new Date(session.lastEventAt);
+        return lastEventAt >= new Date(period.startAt) && lastEventAt <= new Date(period.endAt);
+      })
+      .sort((left, right) => right.tokens.total - left.tokens.total)[0] ?? null;
+
+  return {
+    key,
+    label: key === "sevenDays" ? "近7天" : key === "thirtyDays" ? "近30天" : "累计",
+    period,
+    buckets: [periodToBucket(period)],
+    models,
+    peakSession
+  };
+}
+
+function resolveLedgerAnalysis(
+  snapshot: DashboardSnapshot,
+  key: LedgerAnalysisKey
+): LedgerAnalysisPeriod {
+  const existing = snapshot.ledger.analysis?.[key];
+  if (existing) {
+    return existing;
+  }
+
+  const fallbackPeriod =
+    key === "sevenDays"
+      ? snapshot.overview.sevenDays
+      : key === "thirtyDays"
+        ? snapshot.overview.month
+        : snapshot.ledger.periods[2] ?? snapshot.overview.month;
+
+  return fallbackAnalysis(key, fallbackPeriod, snapshot.ledger.sessions, snapshot.ledger.models);
+}
+
+function metricValue(tokens: TokenBreakdown, axis: LedgerYAxis) {
+  if (axis === "input") {
+    return tokens.input;
+  }
+  if (axis === "cachedInput") {
+    return tokens.cachedInput;
+  }
+  if (axis === "cachedInputRatio") {
+    return cachedInputRatio(tokens);
+  }
+  if (axis === "output") {
+    return tokens.output;
+  }
+  if (axis === "reasoningOutput") {
+    return tokens.reasoningOutput;
+  }
+  return tokens.total;
+}
+
+function metricLabel(axis: LedgerYAxis) {
+  return LEDGER_Y_AXIS_OPTIONS.find((item) => item.value === axis)?.label ?? "总 Token";
+}
+
+function trendBuckets(
+  snapshot: DashboardSnapshot,
+  period: LedgerTrendPeriod,
+  xAxis: LedgerXAxis
+) {
+  const trend = snapshot.ledger.trend;
+  if (period === "day") {
+    return trend?.day ?? [periodToBucket(snapshot.overview.today)];
+  }
+  if (period === "month") {
+    return xAxis === "week"
+      ? trend?.monthByWeek ?? [periodToBucket(snapshot.overview.month)]
+      : trend?.monthByDate ?? [periodToBucket(snapshot.overview.month)];
+  }
+  return trend?.week ?? [periodToBucket(snapshot.overview.sevenDays)];
+}
+
+function bucketTooltip(bucket: LedgerTimeBucket, axis: LedgerYAxis) {
+  const tokens = bucket.tokens;
+  return [
+    `${formatFullDateRange(bucket.startAt, bucket.endAt)}`,
+    `${metricLabel(axis)}：${
+      axis === "cachedInputRatio"
+        ? formatPercent(cachedInputRatio(tokens))
+        : formatCompactToken(metricValue(tokens, axis))
+    }`,
+    `总 Token：${formatCompactToken(tokens.total)}`,
+    `输入总量：${formatCompactToken(tokens.input)}`,
+    `原始输入：${formatCompactToken(rawInputTokens(tokens))}`,
+    `缓存输入：${formatCompactToken(tokens.cachedInput)}`,
+    `缓存输入占比：${formatPercent(cachedInputRatio(tokens))}`,
+    `输出：${formatCompactToken(tokens.output)}`,
+    `推理 Token：${formatCompactToken(tokens.reasoningOutput)}`,
+    `会话数：${bucket.sessions}`,
+    `API 等价成本：${formatUsd(bucket.apiCostUsd)}`
+  ].join("\n");
+}
+
+function ModelSortHeader({
+  label,
+  sortKey,
+  sort,
+  onSort
+}: {
+  label: string;
+  sortKey: ModelContributionSort;
+  sort: ModelContributionSortState;
+  onSort: (key: ModelContributionSort) => void;
+}) {
+  const isActive = sort.key === sortKey;
+  const indicator = isActive ? (sort.direction === "asc" ? "↑" : "↓") : "↕";
+
   return (
-    <div className="page-stack">
-      <SectionCard>
-        <div className="section-toolbar">
-          <div>
-            <div className="eyebrow">周期账本</div>
-            <h3>自然时间与额度窗口的核心口径</h3>
-          </div>
-        </div>
-        <div className="ledger-period-grid">
-          {snapshot.ledger.periods.map((period) => (
-            <article key={period.key} className="ledger-period-card">
-              <div className="ledger-period-label">{period.label}</div>
-              <strong>{formatCompactToken(period.tokens.total)}</strong>
-              <div className="ledger-period-meta">
-                <span>会话 {period.sessions}</span>
-                <span>代码 {formatNumber(period.code.changedLines)} 行</span>
-                <span>{formatUsd(period.apiCostUsd)}</span>
-              </div>
-            </article>
-          ))}
-        </div>
-      </SectionCard>
+    <th className={isActive ? "sort-active" : ""}>
+      <button
+        type="button"
+        className={`project-sort-heading${isActive ? " active" : ""}`}
+        onClick={() => onSort(sortKey)}
+        aria-label={`按${label}排序`}
+      >
+        <span>{label}</span>
+        <span className="sort-indicator" aria-hidden="true">
+          {indicator}
+        </span>
+      </button>
+    </th>
+  );
+}
 
-      <section className="quota-grid">
-        <QuotaWindowCard
-          title="5H 额度窗口"
-          windowData={snapshot.ledger.limitWindows[0]}
-          period={snapshot.overview.windowPeriods.fiveHour}
-          models={snapshot.overview.modelWindows.fiveHour}
-          tone="blue"
-        />
-        <QuotaWindowCard
-          title="周额度窗口"
-          windowData={snapshot.ledger.limitWindows[1]}
-          period={snapshot.overview.windowPeriods.weekLimit}
-          models={snapshot.overview.modelWindows.weekLimit}
-          tone="green"
-        />
-      </section>
+function sortModels(models: ModelMetric[], sort: ModelContributionSortState) {
+  return [...models].sort((left, right) => {
+    let comparison: number;
 
-      <SectionCard>
-        <div className="section-toolbar">
-          <div>
-            <div className="eyebrow">模型构成</div>
-            <h3>按自然月累计的模型用量</h3>
-          </div>
-        </div>
-        <div className="model-stack">
-          {snapshot.ledger.models.map((model) => (
-            <div key={model.model} className="model-row">
-              <div className="model-label">
-                <strong>{model.model}</strong>
-                <span>{model.sessions} 个会话</span>
-              </div>
-              <div className="model-bar">
-                <span style={{ width: `${Math.min(model.sharePercent, 100)}%` }} />
-              </div>
-              <div className="model-value">
-                <strong>{formatCompactToken(model.tokens.total)}</strong>
-                <span>{formatUsd(model.apiCostUsd)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
+    if (sort.key === "model") {
+      comparison = left.model.localeCompare(right.model, "zh-CN");
+    } else if (sort.key === "share") {
+      comparison = left.sharePercent - right.sharePercent;
+    } else if (sort.key === "cost") {
+      comparison = left.apiCostUsd - right.apiCostUsd;
+    } else if (sort.key === "events") {
+      comparison = left.events - right.events;
+    } else {
+      comparison = left.tokens.total - right.tokens.total;
+    }
 
-      <SectionCard>
-        <div className="section-toolbar">
-          <div>
-            <div className="eyebrow">会话归因</div>
-            <h3>最近 10 个 Codex 会话</h3>
-          </div>
+    if (comparison !== 0) {
+      return sort.direction === "asc" ? comparison : -comparison;
+    }
+
+    return left.model.localeCompare(right.model, "zh-CN");
+  });
+}
+
+function TokenTrendCard({
+  snapshot,
+  period,
+  onPeriodChange,
+  xAxis,
+  onXAxisChange,
+  yAxis,
+  onYAxisChange
+}: {
+  snapshot: DashboardSnapshot;
+  period: LedgerTrendPeriod;
+  onPeriodChange: (value: LedgerTrendPeriod) => void;
+  xAxis: LedgerXAxis;
+  onXAxisChange: (value: LedgerXAxis) => void;
+  yAxis: LedgerYAxis;
+  onYAxisChange: (value: LedgerYAxis) => void;
+}) {
+  const effectiveXAxis = period === "month" ? xAxis : "date";
+  const buckets = trendBuckets(snapshot, period, effectiveXAxis);
+  const maxValue =
+    yAxis === "cachedInputRatio"
+      ? 100
+      : Math.max(1, ...buckets.map((bucket) => metricValue(bucket.tokens, yAxis)));
+  const midValue = yAxis === "cachedInputRatio" ? "50%" : formatCompactToken(maxValue / 2);
+  const topValue = yAxis === "cachedInputRatio" ? "100%" : formatCompactToken(maxValue);
+
+  return (
+    <SectionCard className="ledger-trend-card">
+      <div className="ledger-card-head">
+        <div className="ledger-title-row">
+          <h3>Token 走势拆解</h3>
+          <TextTabs items={LEDGER_TREND_TABS} value={period} onChange={onPeriodChange} />
         </div>
-        <div className="table-shell">
-          <table className="project-table session-table">
-            <thead>
-              <tr>
-                <th>时间</th>
-                <th>模型</th>
-                <th>工作目录 / 仓库</th>
-                <th>Token</th>
-                <th>API 等价成本</th>
-              </tr>
-            </thead>
-            <tbody>
-              {snapshot.ledger.sessions.slice(0, 10).map((session) => (
-                <tr key={session.sessionId}>
-                  <td>{formatShortDate(session.lastEventAt)}</td>
-                  <td>{session.dominantModel}</td>
-                  <td>{session.repoId ?? session.cwd ?? "未归因"}</td>
-                  <td>{formatCompactToken(session.tokens.total)}</td>
-                  <td>{formatUsd(session.apiCostUsd)}</td>
-                </tr>
+        <div className="ledger-controls">
+          <label className="ledger-select-label">
+            横轴
+            <select
+              className="ledger-select"
+              value={effectiveXAxis}
+              onChange={(event) => onXAxisChange(event.target.value as LedgerXAxis)}
+              disabled={period !== "month"}
+            >
+              <option value="date">{period === "day" ? "小时" : "日期"}</option>
+              {period === "month" ? <option value="week">周段</option> : null}
+            </select>
+          </label>
+          <label className="ledger-select-label">
+            纵轴
+            <select
+              className="ledger-select"
+              value={yAxis}
+              onChange={(event) => onYAxisChange(event.target.value as LedgerYAxis)}
+            >
+              {LEDGER_Y_AXIS_OPTIONS.map((item) => (
+                <option value={item.value} key={item.value}>
+                  {item.label}
+                </option>
               ))}
-            </tbody>
-          </table>
+            </select>
+          </label>
         </div>
-      </SectionCard>
+      </div>
+
+      <div className="ledger-chart-legend">
+        <span className="legend-raw">原始输入</span>
+        <span className="legend-cached">缓存输入</span>
+        <span className="legend-output">输出</span>
+        <span className="legend-reasoning">推理 Token</span>
+      </div>
+
+      <div className="ledger-chart">
+        <div className="ledger-y-axis">
+          <span>{topValue}</span>
+          <span>{midValue}</span>
+          <span>0</span>
+        </div>
+        <div className="ledger-bar-area">
+          {buckets.map((bucket) => {
+            const tokens = bucket.tokens;
+            const rawInput = rawInputTokens(tokens);
+            const value = metricValue(tokens, yAxis);
+            const singleHeight = `${Math.max(0, Math.min(100, (value / maxValue) * 100))}%`;
+            const outputHeight = `${Math.max(0, Math.min(100, (tokens.output / maxValue) * 100))}%`;
+            const reasoningHeight =
+              tokens.output > 0
+                ? `${Math.max(0, Math.min(100, (tokens.reasoningOutput / tokens.output) * 100))}%`
+                : "0%";
+
+            return (
+              <div className="ledger-bar-column" key={bucket.key} title={bucketTooltip(bucket, yAxis)}>
+                <div className="ledger-bar-value">
+                  {value > 0
+                    ? yAxis === "cachedInputRatio"
+                      ? formatPercent(value, 0)
+                      : formatCompactToken(value)
+                    : ""}
+                </div>
+                <div className="ledger-bar-stack" aria-label={`${bucket.label} ${metricLabel(yAxis)}`}>
+                  {yAxis === "total" ? (
+                    <>
+                      <span
+                        className="ledger-segment segment-raw"
+                        style={{ height: `${(rawInput / maxValue) * 100}%` }}
+                      />
+                      <span
+                        className="ledger-segment segment-cached"
+                        style={{ height: `${(tokens.cachedInput / maxValue) * 100}%` }}
+                      />
+                      <span className="ledger-segment segment-output" style={{ height: outputHeight }}>
+                        <span className="reasoning-marker" style={{ height: reasoningHeight }} />
+                      </span>
+                    </>
+                  ) : yAxis === "input" ? (
+                    <>
+                      <span
+                        className="ledger-segment segment-raw"
+                        style={{ height: `${(rawInput / maxValue) * 100}%` }}
+                      />
+                      <span
+                        className="ledger-segment segment-cached"
+                        style={{ height: `${(tokens.cachedInput / maxValue) * 100}%` }}
+                      />
+                    </>
+                  ) : (
+                    <span
+                      className={`ledger-segment segment-single segment-${yAxis}`}
+                      style={{ height: singleHeight }}
+                    />
+                  )}
+                </div>
+                <div className="ledger-bar-label">{bucket.label}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+function PeriodInsightCard({
+  analysisKey,
+  onAnalysisKeyChange,
+  analysis
+}: {
+  analysisKey: LedgerAnalysisKey;
+  onAnalysisKeyChange: (value: LedgerAnalysisKey) => void;
+  analysis: LedgerAnalysisPeriod;
+}) {
+  const period = analysis.period;
+  const peakBucket =
+    analysis.buckets
+      .filter((bucket) => bucket.tokens.total > 0)
+      .sort((left, right) => right.tokens.total - left.tokens.total)[0] ?? null;
+  const durationDays = Math.max(
+    1,
+    Math.ceil((new Date(period.endAt).getTime() - new Date(period.startAt).getTime()) / 86_400_000)
+  );
+  const averageTokens = period.tokens.total / durationDays;
+  const cards = [
+    {
+      icon: "token" as const,
+      label: "窗口累计",
+      value: formatCompactToken(period.tokens.total),
+      detail: "窗口内总 Token"
+    },
+    {
+      icon: "clock" as const,
+      label: "窗口均值",
+      value: formatCompactToken(averageTokens),
+      detail:
+        analysisKey === "sevenDays"
+          ? "7 日日均 Token"
+          : analysisKey === "thirtyDays"
+            ? "30 日日均 Token"
+            : "观测期日均 Token"
+    },
+    {
+      icon: "calendar" as const,
+      label: "峰值位置",
+      value: peakBucket ? peakBucket.label : "--",
+      detail: "峰值出现的日期"
+    },
+    {
+      icon: "cost" as const,
+      label: "峰值用量",
+      value: peakBucket ? formatCompactToken(peakBucket.tokens.total) : "--",
+      detail: "峰值当天总 Token"
+    },
+    {
+      icon: "session" as const,
+      label: "单次峰值",
+      value: analysis.peakSession ? formatCompactToken(analysis.peakSession.tokens.total) : "--",
+      detail: analysis.peakSession ? `会话 ${formatSessionCode(analysis.peakSession.sessionId)}` : "暂无会话样本"
+    },
+    {
+      icon: "month" as const,
+      label: "缓存输入占比",
+      value: formatPercent(cachedInputRatio(period.tokens)),
+      detail: "缓存输入 / 输入总量"
+    }
+  ];
+
+  return (
+    <SectionCard className="ledger-insight-card">
+      <div className="ledger-card-head">
+        <h3>周期洞察</h3>
+        <TextTabs
+          items={LEDGER_ANALYSIS_TABS}
+          value={analysisKey}
+          onChange={onAnalysisKeyChange}
+          variant="chip"
+        />
+      </div>
+      <div className="insight-grid">
+        {cards.map((card) => (
+          <article className="insight-tile" key={card.label}>
+            <span className="insight-icon">
+              <Glyph name={card.icon} />
+            </span>
+            <span>{card.label}</span>
+            <strong>{card.value}</strong>
+            <small>{card.detail}</small>
+          </article>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+function WeeklyLedgerCard({ periods }: { periods: PeriodMetric[] }) {
+  const rows = periods.length > 0 ? periods : [];
+
+  return (
+    <SectionCard className="ledger-week-card">
+      <div className="ledger-card-head">
+        <h3>周额度账本</h3>
+      </div>
+      <div className="table-shell">
+        <table className="project-table ledger-week-table">
+          <thead>
+            <tr>
+              <th>起止日期</th>
+              <th>累计已用</th>
+              <th>Token</th>
+              <th>API 等价成本</th>
+              <th>满额周折算</th>
+              <th>会话</th>
+              <th>观测 / 重置</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((period) => {
+              const evidence = period.quotaEvidence;
+              const usedPercent = evidence?.usedPercent ?? null;
+              const fullValue =
+                usedPercent !== null && usedPercent > 0
+                  ? period.apiCostUsd / (usedPercent / 100)
+                  : null;
+
+              return (
+                <tr key={period.key}>
+                  <td title={formatFullDateRange(period.startAt, period.endAt)}>
+                    {formatDateRange(period.startAt, period.endAt)}
+                  </td>
+                  <td className={usedPercent !== null && usedPercent >= 100 ? "is-danger" : ""}>
+                    {formatPercent(usedPercent, 0)}
+                  </td>
+                  <td>{formatCompactToken(period.tokens.total)}</td>
+                  <td>{formatUsd(period.apiCostUsd)}</td>
+                  <td>{fullValue === null ? "待观测" : formatUsd(fullValue)}</td>
+                  <td>{period.sessions}</td>
+                  <td>
+                    <span className={`ledger-badge ${evidence?.resetCount ? "is-danger" : "is-ok"}`}>
+                      {evidence ? (evidence.resetCount > 0 ? `重置 ${evidence.resetCount} 次` : "正常") : "待观测"}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 ? (
+              <tr>
+                <td className="table-empty" colSpan={7}>
+                  暂无周额度周期样本
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+      <p className="ledger-table-note">
+        说明：累计已用超过 100% 表示周期内发生重置，Token 跨多个分段累加。满额周折算为 API 等价估计。
+      </p>
+    </SectionCard>
+  );
+}
+
+function ModelContributionCard({
+  analysisKey,
+  onAnalysisKeyChange,
+  analysis,
+  sort,
+  onSort
+}: {
+  analysisKey: LedgerAnalysisKey;
+  onAnalysisKeyChange: (value: LedgerAnalysisKey) => void;
+  analysis: LedgerAnalysisPeriod;
+  sort: ModelContributionSortState;
+  onSort: (key: ModelContributionSort) => void;
+}) {
+  const models = sortModels(analysis.models, sort);
+
+  return (
+    <SectionCard className="ledger-model-card">
+      <div className="ledger-card-head">
+        <h3>模型贡献</h3>
+        <TextTabs
+          items={LEDGER_ANALYSIS_TABS}
+          value={analysisKey}
+          onChange={onAnalysisKeyChange}
+          variant="chip"
+        />
+      </div>
+      <div className="table-shell">
+        <table className="project-table ledger-model-table">
+          <thead>
+            <tr>
+              <ModelSortHeader label="模型" sortKey="model" sort={sort} onSort={onSort} />
+              <ModelSortHeader label="占比" sortKey="share" sort={sort} onSort={onSort} />
+              <ModelSortHeader label="Token" sortKey="token" sort={sort} onSort={onSort} />
+              <ModelSortHeader label="API 等价成本" sortKey="cost" sort={sort} onSort={onSort} />
+              <ModelSortHeader label="事件数" sortKey="events" sort={sort} onSort={onSort} />
+            </tr>
+          </thead>
+          <tbody>
+            {models.map((model) => (
+              <tr key={model.model}>
+                <td>{model.model}</td>
+                <td>
+                  <span className="model-share-cell">
+                    <span className="model-bar">
+                      <span style={{ width: `${Math.min(model.sharePercent, 100)}%` }} />
+                    </span>
+                    {model.sharePercent.toFixed(1)}%
+                  </span>
+                </td>
+                <td>{formatCompactToken(model.tokens.total)}</td>
+                <td>{formatUsd(model.apiCostUsd)}</td>
+                <td>{model.events}</td>
+              </tr>
+            ))}
+            {models.length === 0 ? (
+              <tr>
+                <td className="table-empty" colSpan={5}>
+                  当前周期暂无模型样本
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+      <p className="ledger-table-note">基于当前可观测事件聚合，模型标签可能因阶段或采集来源不同而略有差异。</p>
+    </SectionCard>
+  );
+}
+
+function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["ledger"]["sessions"] }) {
+  return (
+    <SectionCard className="ledger-session-card">
+      <div className="ledger-card-head">
+        <h3>会话归因</h3>
+      </div>
+      <div className="table-shell">
+        <table className="project-table session-table">
+          <thead>
+            <tr>
+              <th>最近时间</th>
+              <th>会话 ID</th>
+              <th>项目 / 仓库</th>
+              <th>主模型</th>
+              <th>Token</th>
+              <th>API 等价成本</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sessions.slice(0, 8).map((session) => (
+              <tr key={session.sessionId}>
+                <td>{formatShortDate(session.lastEventAt)}</td>
+                <td title={session.sessionId}>{formatSessionCode(session.sessionId)}</td>
+                <td title={session.cwd ?? undefined}>{session.repoId ?? session.cwd ?? "未归因"}</td>
+                <td>{session.dominantModel}</td>
+                <td>{formatCompactToken(session.tokens.total)}</td>
+                <td>{formatUsd(session.apiCostUsd)}</td>
+              </tr>
+            ))}
+            {sessions.length === 0 ? (
+              <tr>
+                <td className="table-empty" colSpan={6}>
+                  暂无可归因会话
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </SectionCard>
+  );
+}
+
+function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
+  const [trendPeriod, setTrendPeriod] = useState<LedgerTrendPeriod>("week");
+  const [xAxis, setXAxis] = useState<LedgerXAxis>("date");
+  const [yAxis, setYAxis] = useState<LedgerYAxis>("total");
+  const [insightPeriod, setInsightPeriod] = useState<LedgerAnalysisKey>("sevenDays");
+  const [modelPeriod, setModelPeriod] = useState<LedgerAnalysisKey>("sevenDays");
+  const [modelSort, setModelSort] = useState<ModelContributionSortState>({
+    key: "token",
+    direction: "desc"
+  });
+
+  const insightAnalysis = resolveLedgerAnalysis(snapshot, insightPeriod);
+  const modelAnalysis = resolveLedgerAnalysis(snapshot, modelPeriod);
+  const weeklyPeriods = snapshot.ledger.weeklyPeriods?.length
+    ? snapshot.ledger.weeklyPeriods
+    : [snapshot.overview.windowPeriods.weekLimit];
+
+  const handleModelSort = (key: ModelContributionSort) => {
+    setModelSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  };
+
+  return (
+    <div className="ledger-layout">
+      <div className="ledger-top-grid">
+        <TokenTrendCard
+          snapshot={snapshot}
+          period={trendPeriod}
+          onPeriodChange={setTrendPeriod}
+          xAxis={xAxis}
+          onXAxisChange={setXAxis}
+          yAxis={yAxis}
+          onYAxisChange={setYAxis}
+        />
+        <PeriodInsightCard
+          analysisKey={insightPeriod}
+          onAnalysisKeyChange={setInsightPeriod}
+          analysis={insightAnalysis}
+        />
+      </div>
+
+      <div className="ledger-middle-grid">
+        <WeeklyLedgerCard periods={weeklyPeriods} />
+        <ModelContributionCard
+          analysisKey={modelPeriod}
+          onAnalysisKeyChange={setModelPeriod}
+          analysis={modelAnalysis}
+          sort={modelSort}
+          onSort={handleModelSort}
+        />
+      </div>
+
+      <SessionAttributionCard sessions={snapshot.ledger.sessions} />
     </div>
   );
 }
 
 function RepositoriesPage({ snapshot }: { snapshot: DashboardSnapshot }) {
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<RepoSortState>({
+    key: "recentCommit",
+    direction: "desc"
+  });
+  const [selectedRepoId, setSelectedRepoId] = useState<string | null>(
+    snapshot.repositories.items[0]?.id ?? null
+  );
   const deferredQuery = useDeferredValue(query);
+  const cards = useMemo(() => buildRepositoryCards(snapshot), [snapshot]);
 
   const filteredRepos = useMemo(() => {
     const keyword = deferredQuery.trim().toLowerCase();
@@ -894,99 +1682,227 @@ function RepositoriesPage({ snapshot }: { snapshot: DashboardSnapshot }) {
     }
 
     return snapshot.repositories.items.filter((repo) => {
-      const haystack = `${repo.name} ${repo.path} ${repo.remoteUrl ?? ""}`.toLowerCase();
+      const haystack = `${repo.name} ${repo.fullName ?? ""} ${repo.remoteUrl ?? ""} ${repo.path}`.toLowerCase();
       return haystack.includes(keyword);
     });
   }, [deferredQuery, snapshot.repositories.items]);
 
-  return (
-    <div className="page-stack">
-      <SectionCard>
-        <div className="section-toolbar">
-          <div>
-            <div className="eyebrow">仓库根目录</div>
-            <h3>按本地 Git 仓库查看 Codex 归因</h3>
-          </div>
-          <label className="search-box">
-            <span>筛选仓库</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="输入仓库名、路径或远端地址"
-            />
-          </label>
-        </div>
-        <div className="root-strip">
-          {snapshot.repositories.roots.length > 0 ? (
-            snapshot.repositories.roots.map((root) => (
-              <span className="root-chip" key={root}>
-                {root}
-              </span>
-            ))
-          ) : (
-            <span className="root-chip">当前没有配置仓库根目录</span>
-          )}
-        </div>
-      </SectionCard>
+  const sortedRepos = useMemo(
+    () => sortRepoRows(filteredRepos, sort),
+    [filteredRepos, sort]
+  );
+  const selectedRepo =
+    sortedRepos.find((repo) => repo.id === selectedRepoId) ?? sortedRepos[0] ?? null;
 
-      <div className="repo-grid">
-        {filteredRepos.map((repo) => (
-          <RepoCard key={repo.id} repo={repo} />
+  const handleRepoSort = (key: RepoSort) => {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  };
+
+  return (
+    <div className="repositories-layout">
+      <div className="repo-page-toolbar">
+        <label className="search-box repo-search-box">
+          <span>搜索仓库</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="按仓库名或远端标识搜索"
+          />
+        </label>
+        <div className="repo-sort-hint">默认按最近提交排序 · 点击表头切换</div>
+      </div>
+
+      <section className="metric-grid">
+        {cards.map((card) => (
+          <MetricCard key={card.key} card={card} />
         ))}
+      </section>
+
+      <div className="repositories-workbench">
+        <SectionCard className="repo-list-card">
+          <div className="section-toolbar repo-list-toolbar">
+            <div>
+              <h3>Git 仓库详情</h3>
+            </div>
+            <span className="repo-list-meta">共 {formatNumber(sortedRepos.length)} 个仓库</span>
+          </div>
+
+          <div className="project-table-wrap repo-table-wrap">
+            <table className="project-table repo-table">
+              <thead>
+                <tr>
+                  <RepoSortHeader label="仓库" sortKey="name" sort={sort} onSort={handleRepoSort} />
+                  <RepoSortHeader label="今日改动" sortKey="today" sort={sort} onSort={handleRepoSort} />
+                  <RepoSortHeader
+                    label="近 7 日改动"
+                    sortKey="sevenDays"
+                    sort={sort}
+                    onSort={handleRepoSort}
+                  />
+                  <RepoSortHeader label="本月改动" sortKey="month" sort={sort} onSort={handleRepoSort} />
+                  <RepoSortHeader label="Codex 投入" sortKey="codex" sort={sort} onSort={handleRepoSort} />
+                  <RepoSortHeader
+                    label="最近提交"
+                    sortKey="recentCommit"
+                    sort={sort}
+                    onSort={handleRepoSort}
+                  />
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRepos.length > 0 ? (
+                  sortedRepos.map((repo) => {
+                    const isSelected = selectedRepo?.id === repo.id;
+                    return (
+                      <tr
+                        key={repo.id}
+                        className={isSelected ? "repo-row-selected" : undefined}
+                        onClick={() => setSelectedRepoId(repo.id)}
+                      >
+                        <td className="repo-name-cell">
+                          <div className="repo-name-stack">
+                            <span className={`project-row-icon project-icon-${projectIconTone(repo.name)}`}>
+                              <Glyph name="repo" />
+                            </span>
+                            <div className="repo-name-copy">
+                              <div className="repo-name-line">
+                                <strong>{repo.name}</strong>
+                                {repo.defaultBranch ? (
+                                  <span className="repo-inline-badge">{repo.defaultBranch}</span>
+                                ) : null}
+                              </div>
+                              <div className="repo-subline">{repoDisplayName(repo)}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{formatNumber(repo.activity.today.changedLines)}</td>
+                        <td>{formatNumber(repo.activity.sevenDays.changedLines)}</td>
+                        <td>{formatNumber(repo.activity.month.changedLines)}</td>
+                        <td className="repo-codex-cell">
+                          <strong>{formatCompactToken(repo.tokens.total)}</strong>
+                          <small>{formatUsd(repo.apiCostUsd)}</small>
+                        </td>
+                        <td>{formatRelativeTime(latestRepoCommitAt(repo), snapshot.generatedAt)}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="table-empty">
+                      当前搜索条件下没有匹配的仓库
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
+
+        <SectionCard className="repo-detail-card">
+          <div className="section-toolbar repo-detail-toolbar">
+            <div>
+              <h3>已选仓库</h3>
+            </div>
+          </div>
+
+          {selectedRepo ? (
+            <>
+              <div className="repo-detail-head">
+                <div className="repo-detail-title">
+                  <span className={`repo-detail-icon project-icon-${projectIconTone(selectedRepo.name)}`}>
+                    <Glyph name="repo" />
+                  </span>
+                  <div className="repo-detail-copy">
+                    <h4>{selectedRepo.name}</h4>
+                    <p>{repoDisplayName(selectedRepo)}</p>
+                  </div>
+                </div>
+                <div className="repo-detail-meta">
+                  {selectedRepo.defaultBranch ? (
+                    <span className="repo-inline-badge">{selectedRepo.defaultBranch}</span>
+                  ) : null}
+                  <span>最近提交：{formatRelativeTime(latestRepoCommitAt(selectedRepo), snapshot.generatedAt)}</span>
+                </div>
+              </div>
+
+              <div className="repo-detail-stats">
+                {[
+                  ["今日改动", `${formatNumber(selectedRepo.activity.today.changedLines)} 行`],
+                  ["近 7 日改动", `${formatNumber(selectedRepo.activity.sevenDays.changedLines)} 行`],
+                  ["本月改动", `${formatNumber(selectedRepo.activity.month.changedLines)} 行`]
+                ].map(([label, value]) => (
+                  <article key={label} className="repo-detail-stat">
+                    <span>{label}</span>
+                    <strong>{value}</strong>
+                  </article>
+                ))}
+              </div>
+
+              <div className="repo-detail-panel">
+                <div className="repo-detail-panel-head">
+                  <h4>Codex 投入概览</h4>
+                </div>
+                <div className="repo-codex-overview">
+                  <article className="repo-overview-item">
+                    <span>累计 Token</span>
+                    <strong>{formatCompactToken(selectedRepo.tokens.total)}</strong>
+                  </article>
+                  <article className="repo-overview-item">
+                    <span>累计 API 等价成本</span>
+                    <strong>{formatUsd(selectedRepo.apiCostUsd)}</strong>
+                  </article>
+                  <article className="repo-overview-item">
+                    <span>关联会话</span>
+                    <strong>{formatNumber(selectedRepo.sessionCount)}</strong>
+                  </article>
+                  <article className="repo-overview-item">
+                    <span>最近 Codex 活动</span>
+                    <strong>{formatRelativeTime(selectedRepo.lastCodexAt, snapshot.generatedAt)}</strong>
+                  </article>
+                </div>
+              </div>
+
+              <div className="repo-detail-panel">
+                <div className="repo-detail-panel-head">
+                  <h4>最近提交</h4>
+                </div>
+                <div className="repo-commit-list">
+                  {selectedRepo.recentCommits.length > 0 ? (
+                    selectedRepo.recentCommits.slice(0, 1).map((commit) => (
+                      <article key={commit.hash} className="repo-commit-item">
+                        <div className="repo-commit-copy">
+                          <strong>{commit.summary}</strong>
+                          <span>{repoDisplayName(selectedRepo)}</span>
+                        </div>
+                        <div className="repo-commit-meta">
+                          <span className="repo-commit-hash">{commit.hash.slice(0, 7)}</span>
+                          <span>{formatRelativeTime(commit.authoredAt, snapshot.generatedAt)}</span>
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="empty-inline">当前仓库暂无最近提交记录</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="repo-status-row">
+                <span>远端地址：{selectedRepo.remoteUrl ?? "未配置远端"}</span>
+                <span>最近同步：{formatShortDate(selectedRepo.lastSyncedAt ?? snapshot.generatedAt)}</span>
+              </div>
+            </>
+          ) : (
+            <div className="repo-detail-empty">
+              <h4>请选择仓库</h4>
+              <p>左侧列表没有命中时，这里只保留空状态，不展示伪造示例数据。</p>
+            </div>
+          )}
+        </SectionCard>
       </div>
     </div>
-  );
-}
-
-function RepoCard({ repo }: { repo: RepoMetric }) {
-  return (
-    <SectionCard className="repo-card">
-      <div className="repo-card-head">
-        <div>
-          <div className="eyebrow">代码仓库</div>
-          <h3>{repo.name}</h3>
-        </div>
-        <span className="repo-branch">{repo.defaultBranch ?? "未识别默认分支"}</span>
-      </div>
-      <div className="repo-path">{repo.path}</div>
-      <div className="repo-stat-grid">
-        <div className="repo-stat">
-          <span>今日代码改动</span>
-          <strong>{formatNumber(repo.activity.today.changedLines)} 行</strong>
-          <small>{repo.activity.today.commits} 次提交</small>
-        </div>
-        <div className="repo-stat">
-          <span>自然周代码改动</span>
-          <strong>{formatNumber(repo.activity.naturalWeek.changedLines)} 行</strong>
-          <small>{repo.activity.naturalWeek.commits} 次提交</small>
-        </div>
-        <div className="repo-stat">
-          <span>累计 Token</span>
-          <strong>{formatCompactToken(repo.tokens.total)}</strong>
-          <small>{repo.sessionCount} 个归因会话</small>
-        </div>
-        <div className="repo-stat">
-          <span>API 等价成本</span>
-          <strong>{formatUsd(repo.apiCostUsd)}</strong>
-          <small>最近活动 {formatShortDate(repo.lastCodexAt)}</small>
-        </div>
-      </div>
-      <div className="repo-footprints">
-        {repo.fileFootprint.map((footprint) => (
-          <span key={footprint.language} className="footprint-chip">
-            {footprint.language} · {footprint.fileCount} 文件
-          </span>
-        ))}
-      </div>
-      <div className="repo-commit-stack">
-        {repo.recentCommits.slice(0, 3).map((commit) => (
-          <div key={commit.hash} className="repo-commit">
-            <strong>{commit.summary}</strong>
-            <span>{formatShortDate(commit.authoredAt)}</span>
-          </div>
-        ))}
-      </div>
-    </SectionCard>
   );
 }
 
@@ -1108,18 +2024,6 @@ export default function App() {
         const nextSnapshot = await window.codexCompanion.getDashboard();
         startTransition(() => setSnapshot(nextSnapshot));
         setError(null);
-        if (nextSnapshot.generatedFrom !== "live") {
-          void window.codexCompanion
-            .refreshDashboard()
-            .then((refreshedSnapshot) => {
-              startTransition(() => setSnapshot(refreshedSnapshot));
-            })
-            .catch((reason) => {
-              setError(
-                reason instanceof Error ? reason.message : "后台刷新失败"
-              );
-            });
-        }
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : "读取仪表板失败");
       } finally {
@@ -1224,7 +2128,7 @@ export default function App() {
               </div>
             </div>
           ) : (
-            <div className="topbar-center topbar-placeholder">当前页保留默认数据视角</div>
+            <div className="topbar-center topbar-placeholder" aria-hidden="true" />
           )}
 
           <div className="topbar-actions">
@@ -1257,7 +2161,8 @@ export default function App() {
             {currentPage === "ledger" ? <LedgerPage snapshot={snapshot} /> : null}
             {currentPage === "repositories" ? <RepositoriesPage snapshot={snapshot} /> : null}
 
-            {currentPage === "overview" ? null : <FooterNote snapshot={snapshot} />}
+            {currentPage === "ledger" ? <FooterNote snapshot={snapshot} /> : null}
+            {currentPage === "repositories" ? <RepositoriesFooter snapshot={snapshot} /> : null}
             </>
           ) : null}
         </div>

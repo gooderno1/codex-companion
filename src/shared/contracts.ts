@@ -97,6 +97,26 @@ export interface SessionAttribution {
   dominantModel: string;
 }
 
+export interface LedgerTimeBucket {
+  key: string;
+  label: string;
+  startAt: string;
+  endAt: string;
+  tokens: TokenBreakdown;
+  sessions: number;
+  apiCostUsd: number;
+  creditsEstimate: number;
+}
+
+export interface LedgerAnalysisPeriod {
+  key: "sevenDays" | "thirtyDays" | "cumulative";
+  label: string;
+  period: PeriodMetric;
+  buckets: LedgerTimeBucket[];
+  models: ModelMetric[];
+  peakSession: SessionAttribution | null;
+}
+
 export interface CommitMetric {
   hash: string;
   authoredAt: string;
@@ -114,8 +134,10 @@ export interface RepoMetric {
   id: string;
   name: string;
   path: string;
+  fullName: string | null;
   remoteUrl: string | null;
   defaultBranch: string | null;
+  lastSyncedAt: string | null;
   activity: {
     today: CodeActivity;
     yesterday: CodeActivity;
@@ -205,6 +227,18 @@ export interface DashboardSnapshot {
   };
   ledger: {
     periods: PeriodMetric[];
+    weeklyPeriods: PeriodMetric[];
+    trend: {
+      day: LedgerTimeBucket[];
+      week: LedgerTimeBucket[];
+      monthByDate: LedgerTimeBucket[];
+      monthByWeek: LedgerTimeBucket[];
+    };
+    analysis: {
+      sevenDays: LedgerAnalysisPeriod;
+      thirtyDays: LedgerAnalysisPeriod;
+      cumulative: LedgerAnalysisPeriod;
+    };
     models: ModelMetric[];
     sessions: SessionAttribution[];
     limitWindows: LimitWindow[];
@@ -214,9 +248,10 @@ export interface DashboardSnapshot {
     items: RepoMetric[];
     summary: {
       totalTracked: number;
+      attributedRepoCount: number;
       attributedTokens: number;
       todayChangedLines: number;
-      weekChangedLines: number;
+      sevenDayChangedLines: number;
       monthChangedLines: number;
     };
   };

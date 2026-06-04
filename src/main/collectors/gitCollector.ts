@@ -1,4 +1,4 @@
-import { readdir, stat } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import path from "node:path";
 
 import type { RepoMetric } from "../../shared/contracts";
@@ -39,27 +39,24 @@ function repoIdFor(repoPath: string): string {
   return path.resolve(repoPath).toLowerCase();
 }
 
-function mapExtensionToLabel(extension: string): string {
-  const normalized = extension.toLowerCase();
-  const mapping: Record<string, string> = {
-    ".ts": "TypeScript",
-    ".tsx": "TSX",
-    ".js": "JavaScript",
-    ".jsx": "JSX",
-    ".json": "JSON",
-    ".md": "Markdown",
-    ".py": "Python",
-    ".rs": "Rust",
-    ".go": "Go",
-    ".css": "CSS",
-    ".scss": "SCSS",
-    ".html": "HTML",
-    ".yml": "YAML",
-    ".yaml": "YAML",
-    ".sh": "Shell"
-  };
+function deriveRemoteFullName(remoteUrl: string | null) {
+  if (!remoteUrl) {
+    return null;
+  }
 
-  return mapping[normalized] ?? (normalized ? normalized.slice(1).toUpperCase() : "无扩展名");
+  const normalized = remoteUrl.trim().replace(/\.git$/i, "");
+  const sshMatch = normalized.match(/^[^@]+@[^:]+:(.+)$/);
+
+  if (sshMatch?.[1]) {
+    return sshMatch[1].replace(/^\/+/, "");
+  }
+
+  try {
+    const parsed = new URL(normalized);
+    return parsed.pathname.replace(/^\/+/, "");
+  } catch {
+    return null;
+  }
 }
 
 function parseNumstat(output: string | null) {
@@ -164,37 +161,8 @@ async function collectRecentCommits(repoPath: string) {
     });
 }
 
-async function collectFileFootprint(repoPath: string) {
-  const output = await runGit(["ls-files"], repoPath);
-  if (!output) {
-    return [];
-  }
-
-  const buckets = new Map<string, { language: string; fileCount: number; bytes: number }>();
-  const files = output.split(/\r?\n/).filter(Boolean);
-
-  for (const relativePath of files) {
-    const absolutePath = path.join(repoPath, relativePath);
-    try {
-      const fileStats = await stat(absolutePath);
-      const extension = path.extname(relativePath);
-      const language = mapExtensionToLabel(extension);
-      const bucket = buckets.get(language) ?? {
-        language,
-        fileCount: 0,
-        bytes: 0
-      };
-      bucket.fileCount += 1;
-      bucket.bytes += fileStats.size;
-      buckets.set(language, bucket);
-    } catch {
-      continue;
-    }
-  }
-
-  return [...buckets.values()]
-    .sort((left, right) => right.bytes - left.bytes)
-    .slice(0, 6);
+function collectFileFootprint() {
+  return [];
 }
 
 async function discoverReposUnderRoot(
@@ -346,7 +314,7 @@ export async function collectGitData({
         collectCodeActivitySince(repoPath, startOfMonth),
         collectWorkingTreeActivity(repoPath),
         collectRecentCommits(repoPath),
-        collectFileFootprint(repoPath),
+        collectFileFootprint(),
         ...customActivityPromises
       ]);
 
@@ -365,9 +333,11 @@ export async function collectGitData({
       id: repoId,
       name: path.basename(repoPath),
       path: repoPath,
+      fullName: deriveRemoteFullName(remoteUrl),
       remoteUrl,
       defaultBranch:
         defaultBranchOutput?.split("/").pop() ?? currentBranch ?? null,
+      lastSyncedAt: now.toISOString(),
       activity: {
         today: today ?? emptyCodeActivity(),
         yesterday: yesterday ?? emptyCodeActivity(),

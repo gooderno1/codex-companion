@@ -1,6 +1,8 @@
 import type {
   AppPreferences,
   DashboardSnapshot,
+  LedgerAnalysisPeriod,
+  LedgerTimeBucket,
   LimitWindow,
   OverviewProjectItem,
   PeriodMetric,
@@ -52,6 +54,7 @@ const WEEKLY_RATE_LIMIT_WINDOW_MINUTES = 7 * 24 * 60;
 const QUOTA_RESET_DROP_THRESHOLD_PERCENT = 5;
 const QUOTA_RESET_MIN_SEGMENT_PERCENT = 50;
 const QUOTA_RESET_DEDUPE_WINDOW_MS = 12 * 60 * 60 * 1000;
+const DAY_MINUTES = 24 * 60;
 
 interface QuotaCycleObservation {
   observedAt: string;
@@ -781,6 +784,128 @@ function buildModelMetrics(events: CodexTokenEvent[], period: PeriodMetric) {
     .sort((left, right) => right.tokens.total - left.tokens.total);
 }
 
+function buildTimeBuckets(args: {
+  events: CodexTokenEvent[];
+  startAt: Date;
+  endAt: Date;
+  unit: "hour" | "day" | "week";
+}): LedgerTimeBucket[] {
+  const buckets: LedgerTimeBucket[] = [];
+  let cursor = new Date(args.startAt);
+  let index = 0;
+
+  while (cursor < args.endAt && index < 400) {
+    const bucketStart = new Date(cursor);
+    const bucketEnd =
+      args.unit === "hour"
+        ? addMinutes(bucketStart, 60)
+        : args.unit === "day"
+          ? addMinutes(bucketStart, DAY_MINUTES)
+          : addMinutes(bucketStart, 7 * DAY_MINUTES);
+    const cappedEnd = bucketEnd > args.endAt ? args.endAt : bucketEnd;
+    const aggregate = aggregateEvents(args.events, bucketStart, cappedEnd);
+    const label =
+      args.unit === "hour"
+        ? bucketStart.toLocaleTimeString("zh-CN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+          })
+        : args.unit === "day"
+          ? bucketStart.toLocaleDateString("zh-CN", {
+              month: "2-digit",
+              day: "2-digit"
+            })
+          : `${bucketStart.toLocaleDateString("zh-CN", {
+              month: "2-digit",
+              day: "2-digit"
+            })} - ${addMinutes(cappedEnd, -1).toLocaleDateString("zh-CN", {
+              month: "2-digit",
+              day: "2-digit"
+            })}`;
+
+    buckets.push({
+      key: `${args.unit}-${bucketStart.toISOString()}`,
+      label,
+      startAt: bucketStart.toISOString(),
+      endAt: cappedEnd.toISOString(),
+      tokens: aggregate.tokens,
+      sessions: aggregate.sessions,
+      apiCostUsd: aggregate.apiCostUsd,
+      creditsEstimate: aggregate.creditsEstimate
+    });
+
+    cursor = bucketEnd;
+    index += 1;
+  }
+
+  if (buckets.length === 0) {
+    const aggregate = aggregateEvents(args.events, args.startAt, args.endAt);
+    buckets.push({
+      key: `${args.unit}-${args.startAt.toISOString()}`,
+      label: args.startAt.toLocaleDateString("zh-CN", {
+        month: "2-digit",
+        day: "2-digit"
+      }),
+      startAt: args.startAt.toISOString(),
+      endAt: args.endAt.toISOString(),
+      tokens: aggregate.tokens,
+      sessions: aggregate.sessions,
+      apiCostUsd: aggregate.apiCostUsd,
+      creditsEstimate: aggregate.creditsEstimate
+    });
+  }
+
+  return buckets;
+}
+
+function buildPeakSession(
+  sessions: SessionAttribution[],
+  startAt: Date,
+  endAt: Date
+): SessionAttribution | null {
+  return sessions
+    .filter((session) => {
+      if (!session.lastEventAt) {
+        return false;
+      }
+      const lastEventAt = new Date(session.lastEventAt);
+      return lastEventAt >= startAt && lastEventAt <= endAt;
+    })
+    .sort((left, right) => right.tokens.total - left.tokens.total)[0] ?? null;
+}
+
+function buildLedgerAnalysisPeriod(args: {
+  key: LedgerAnalysisPeriod["key"];
+  label: string;
+  startAt: Date;
+  endAt: Date;
+  events: CodexTokenEvent[];
+  sessions: SessionAttribution[];
+}): LedgerAnalysisPeriod {
+  const period = buildPeriodMetric(
+    args.key,
+    args.label,
+    args.startAt,
+    args.endAt,
+    args.events
+  );
+
+  return {
+    key: args.key,
+    label: args.label,
+    period,
+    buckets: buildTimeBuckets({
+      events: args.events,
+      startAt: args.startAt,
+      endAt: args.endAt,
+      unit: "day"
+    }),
+    models: buildModelMetrics(args.events, period),
+    peakSession: buildPeakSession(args.sessions, args.startAt, args.endAt)
+  };
+}
+
 function aggregateCodeFromRepos(
   repoItems: Awaited<ReturnType<typeof collectGitData>>["items"],
   field:
@@ -904,6 +1029,8 @@ function buildPendingDashboardSnapshot(
   const todayStart = startOfDay(now);
   const naturalWeekStart = startOfWeek(now);
   const monthStart = startOfMonth(now);
+  const sevenNaturalDayStart = startOfDay(addMinutes(now, -6 * DAY_MINUTES));
+  const thirtyDayStart = startOfDay(addMinutes(now, -29 * DAY_MINUTES));
   const emptyPeriod = (
     key: string,
     label: string,
@@ -919,6 +1046,19 @@ function buildPendingDashboardSnapshot(
     code: emptyCodeActivity(),
     startAt: startAt.toISOString(),
     endAt: endAt.toISOString()
+  });
+  const emptyAnalysis = (
+    key: LedgerAnalysisPeriod["key"],
+    label: string,
+    startAt: Date,
+    endAt: Date
+  ): LedgerAnalysisPeriod => ({
+    key,
+    label,
+    period: emptyPeriod(key, label, startAt, endAt),
+    buckets: buildTimeBuckets({ events: [], startAt, endAt, unit: "day" }),
+    models: [],
+    peakSession: null
   });
   const today = emptyPeriod("today", "自然今日", todayStart, now);
   const naturalWeek = emptyPeriod(
@@ -1028,6 +1168,18 @@ function buildPendingDashboardSnapshot(
     },
     ledger: {
       periods: [today, naturalWeek, month, fiveHour, weekLimit],
+      weeklyPeriods: [weekLimit],
+      trend: {
+        day: buildTimeBuckets({ events: [], startAt: todayStart, endAt: now, unit: "hour" }),
+        week: buildTimeBuckets({ events: [], startAt: sevenNaturalDayStart, endAt: now, unit: "day" }),
+        monthByDate: buildTimeBuckets({ events: [], startAt: thirtyDayStart, endAt: now, unit: "day" }),
+        monthByWeek: buildTimeBuckets({ events: [], startAt: thirtyDayStart, endAt: now, unit: "week" })
+      },
+      analysis: {
+        sevenDays: emptyAnalysis("sevenDays", "近7天", sevenNaturalDayStart, now),
+        thirtyDays: emptyAnalysis("thirtyDays", "近30天", thirtyDayStart, now),
+        cumulative: emptyAnalysis("cumulative", "累计", monthStart, now)
+      },
       models: [],
       sessions: [],
       limitWindows
@@ -1037,9 +1189,10 @@ function buildPendingDashboardSnapshot(
       items: [],
       summary: {
         totalTracked: 0,
+        attributedRepoCount: 0,
         attributedTokens: 0,
         todayChangedLines: 0,
-        weekChangedLines: 0,
+        sevenDayChangedLines: 0,
         monthChangedLines: 0
       }
     },
@@ -1130,6 +1283,17 @@ async function collectDashboardSnapshot(
   const sevenDayStart = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
   const naturalWeekStart = startOfWeek(now);
   const monthStart = startOfMonth(now);
+  const sevenNaturalDayStart = startOfDay(addMinutes(now, -6 * DAY_MINUTES));
+  const thirtyDayStart = startOfDay(addMinutes(now, -29 * DAY_MINUTES));
+  const firstEventAt =
+    codex.events.reduce<Date | null>((earliest, event) => {
+      const timestamp = new Date(event.timestamp);
+      if (Number.isNaN(timestamp.getTime())) {
+        return earliest;
+      }
+      return earliest === null || timestamp < earliest ? timestamp : earliest;
+    }, null) ?? todayStart;
+  const cumulativeStart = startOfDay(firstEventAt);
   const billingMonthStart = startOfBillingMonth(
     now,
     preferences.billingMonthStartDay
@@ -1369,6 +1533,68 @@ async function collectDashboardSnapshot(
   const modelMetrics = buildModelMetrics(codex.events, monthPeriod);
   const fiveHourModels = buildModelMetrics(codex.events, primaryPeriod).slice(0, 3);
   const weekLimitModels = buildModelMetrics(codex.events, weeklyLimitPeriod).slice(0, 3);
+  const ledgerTrend = {
+    day: buildTimeBuckets({ events: codex.events, startAt: todayStart, endAt: now, unit: "hour" }),
+    week: buildTimeBuckets({
+      events: codex.events,
+      startAt: sevenNaturalDayStart,
+      endAt: now,
+      unit: "day"
+    }),
+    monthByDate: buildTimeBuckets({
+      events: codex.events,
+      startAt: thirtyDayStart,
+      endAt: now,
+      unit: "day"
+    }),
+    monthByWeek: buildTimeBuckets({
+      events: codex.events,
+      startAt: thirtyDayStart,
+      endAt: now,
+      unit: "week"
+    })
+  };
+  const ledgerAnalysis = {
+    sevenDays: buildLedgerAnalysisPeriod({
+      key: "sevenDays",
+      label: "近7天",
+      startAt: sevenNaturalDayStart,
+      endAt: now,
+      events: codex.events,
+      sessions
+    }),
+    thirtyDays: buildLedgerAnalysisPeriod({
+      key: "thirtyDays",
+      label: "近30天",
+      startAt: thirtyDayStart,
+      endAt: now,
+      events: codex.events,
+      sessions
+    }),
+    cumulative: buildLedgerAnalysisPeriod({
+      key: "cumulative",
+      label: "累计",
+      startAt: cumulativeStart,
+      endAt: now,
+      events: codex.events,
+      sessions
+    })
+  };
+  const weeklyLedgerPeriods =
+    weeklyQuotaUsage.cycles.length > 0
+      ? weeklyQuotaUsage.cycles
+          .slice(-6)
+          .reverse()
+          .map((cycle) =>
+            buildQuotaCyclePeriodMetric(
+              `weekLimit-${cycle.cycleKey}`,
+              "周额度周期",
+              cycle,
+              new Date(cycle.startAt),
+              new Date(cycle.endAt)
+            )
+          )
+      : [weeklyLimitPeriod];
   const naturalProjectDay = buildProjectOverviewPeriod({
     repoItems: git.items,
     events: codex.events,
@@ -1475,6 +1701,9 @@ async function collectDashboardSnapshot(
         primaryPeriod,
         weeklyLimitPeriod
       ],
+      weeklyPeriods: weeklyLedgerPeriods,
+      trend: ledgerTrend,
+      analysis: ledgerAnalysis,
       models: modelMetrics,
       sessions,
       limitWindows: [primaryWindow, weeklyWindow, observableMonthWindow]
@@ -1484,6 +1713,10 @@ async function collectDashboardSnapshot(
       items: git.items.sort((left, right) => right.tokens.total - left.tokens.total),
       summary: {
         totalTracked: git.items.length,
+        attributedRepoCount: git.items.reduce(
+          (sum, repo) => sum + (repo.sessionCount > 0 || repo.tokens.total > 0 ? 1 : 0),
+          0
+        ),
         attributedTokens: git.items.reduce(
           (sum, repo) => sum + repo.tokens.total,
           0
@@ -1492,8 +1725,8 @@ async function collectDashboardSnapshot(
           (sum, repo) => sum + repo.activity.today.changedLines,
           0
         ),
-        weekChangedLines: git.items.reduce(
-          (sum, repo) => sum + repo.activity.naturalWeek.changedLines,
+        sevenDayChangedLines: git.items.reduce(
+          (sum, repo) => sum + repo.activity.sevenDays.changedLines,
           0
         ),
         monthChangedLines: git.items.reduce(

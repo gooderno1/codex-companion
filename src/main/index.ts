@@ -30,9 +30,11 @@ let currentPreferences: AppPreferences | null = null;
 let latestSnapshot: DashboardSnapshot | null = null;
 let persistBoundsTimer: NodeJS.Timeout | null = null;
 const WIDGET_DISABLED = true;
-const DASHBOARD_REFRESH_INTERVAL_MS = 60_000;
+const DASHBOARD_REFRESH_INTERVAL_MS = 5 * 60_000;
+const STARTUP_BACKGROUND_REFRESH_DELAY_MS = 15_000;
 let dashboardRefreshTimer: NodeJS.Timeout | null = null;
 let dashboardRefreshTask: Promise<DashboardSnapshot> | null = null;
+let startupRefreshTimer: NodeJS.Timeout | null = null;
 
 const preloadPath = path.join(__dirname, "preload.js");
 
@@ -66,6 +68,20 @@ function resolveRendererUrl(page: AppPage): string {
 
   const indexPath = path.join(app.getAppPath(), "dist", "index.html");
   return `${pathToFileURL(indexPath).toString()}${route}`;
+}
+
+function resolveInitialPage(): AppPage {
+  const capturePage = process.env.CODEX_COMPANION_CAPTURE_PAGE;
+  if (
+    capturePage === "overview" ||
+    capturePage === "ledger" ||
+    capturePage === "repositories" ||
+    capturePage === "widget"
+  ) {
+    return capturePage;
+  }
+
+  return "overview";
 }
 
 function scheduleMainWindowCapture() {
@@ -307,9 +323,24 @@ function stopDashboardAutoRefresh() {
   dashboardRefreshTimer = null;
 }
 
+function scheduleStartupBackgroundRefresh() {
+  if (startupRefreshTimer) {
+    clearTimeout(startupRefreshTimer);
+  }
+
+  startupRefreshTimer = setTimeout(() => {
+    startupRefreshTimer = null;
+    void refreshDashboardAndBroadcast().catch((error) => {
+      console.error(
+        `启动后台刷新失败：${error instanceof Error ? error.message : String(error)}`
+      );
+    });
+  }, STARTUP_BACKGROUND_REFRESH_DELAY_MS);
+}
+
 async function loadSnapshot(force = false) {
   latestSnapshot = await dashboardService.getSnapshot(force);
-  if (!force) {
+  if (!force && latestSnapshot.generatedFrom === "pending") {
     const backgroundRefresh = dashboardService.refreshSnapshotInBackground();
     if (backgroundRefresh) {
       void backgroundRefresh
@@ -462,7 +493,7 @@ function createMainWindow() {
   });
 
   scheduleMainWindowCapture();
-  void mainWindow.loadURL(resolveRendererUrl("overview"));
+  void mainWindow.loadURL(resolveRendererUrl(resolveInitialPage()));
 
   mainWindow.on("close", (event) => {
     if (isQuitting) {
@@ -583,6 +614,7 @@ async function bootstrap() {
   registerIpcHandlers();
   await applyWidgetPreferences(currentPreferences);
   void loadSnapshot(false);
+  scheduleStartupBackgroundRefresh();
   startDashboardAutoRefresh();
 
   if (isDevelopment()) {

@@ -1,8 +1,8 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.68`
-- 当前覆盖页面：总览页
+- 当前适用版本：`v0.2.2-dev.75`
+- 当前覆盖页面：总览页、Codex 账本页、代码仓库页
 
 ## 总览页
 
@@ -21,9 +21,28 @@
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
 
+## Codex 账本页
+
+| 设计区块 | 代码组件 / 位置 | 复用性 | 关键 props / 状态 | 数据来源 |
+| --- | --- | --- | --- | --- |
+| Token 走势拆解 | `TokenTrendCard` | 账本页模块 | `trendPeriod`、`xAxis`、`yAxis` | `snapshot.ledger.trend`、`TokenBreakdown` |
+| 趋势柱图 | `TokenTrendCard` 内部柱图结构 | 账本页模块 | `LedgerTimeBucket[]`、`LedgerYAxis` | `snapshot.ledger.trend.day / week / monthByDate / monthByWeek` |
+| 周期洞察 | `PeriodInsightCard` | 账本页模块 | `insightPeriod` | `snapshot.ledger.analysis.sevenDays / thirtyDays / cumulative` |
+| 周额度账本 | `WeeklyLedgerCard` | 账本页模块 | `weeklyPeriods` | `snapshot.ledger.weeklyPeriods`、`period.quotaEvidence` |
+| 模型贡献 | `ModelContributionCard` | 账本页模块 | `modelPeriod`、`modelSort` | `snapshot.ledger.analysis.*.models` |
+| 模型表头排序 | `ModelSortHeader` | 账本页模块 | `model / share / token / cost / events`、`asc / desc` | 本地页面状态 |
+| 会话归因 | `SessionAttributionCard` | 账本页模块 | 最近 8 条会话 | `snapshot.ledger.sessions` |
+| 账本页一致性校验 | `scripts/verify-ledger-page.mjs` | 工程校验 | `npm run verify:ledger` | 设计图、UI Contract、数据合同、采集器和渲染层 |
+
 ## 当前约束
 
 - `自然时间 / 计费时间` 只改变总览页统计口径，不改变壳层和顶部四卡字段。
+- `Codex 账本` 顶栏中部保持空白节奏，不再放整页 `日 / 周 / 月`；该切换只属于 `Token 走势拆解`。
+- `Codex 账本` 不再重复总览页的 `5H / 周 / 月额度` 三卡主叙事；第二页首屏必须围绕走势、周期洞察、周额度细账、模型贡献和会话归因。
+- `Token 走势拆解` 的 `总 Token` 柱图只能堆叠 `原始输入 / 缓存输入 / 输出`；`推理 Token` 是输出子集标记，不作为第四段独立总量。
+- `周期洞察` 与 `模型贡献` 使用各自的 `近7天 / 近30天 / 累计`，不使用 `全部`，也不跟随左侧趋势图的 `日 / 周 / 月`。
+- `模型贡献` 不设置额外排序按钮；默认 `Token` 倒序，点击表头字段后第一次正序、第二次倒序。
+- 应用启动优先读取缓存快照；实时采集延迟到启动后后台执行，自动刷新间隔为 `5` 分钟，避免打开应用时立刻触发完整 Codex + Git 扫描造成卡顿。
 - 顶部 `今日代码改动` 的 `detail` 使用 `snapshot.overview.previous.yesterday.code.changedLines` 与 `snapshot.overview.today.code.changedLines` 计算，昨日 Git 有数据时必须显示百分比。
 - 顶部计费时间 `本月 Token` 使用 `snapshot.overview.windowPeriods.billingMonth`；默认 `billingMonthStartDay=1`，因此当前默认与自然月一致，后续设置页可调整起始日。
 - 左侧品牌图标使用 `src/renderer/icons.tsx` 中的 `BrandMark` SVG，必须保持非官方自定义资产，不使用 OpenAI / Codex 官方 logo。
@@ -44,7 +63,7 @@
 - 顶部时间视角切换内部不允许换行；较窄窗口优先压缩标题、副标题或右侧操作间距，不能把时间视角整体拆到第二行。
 - 顶部时间视角属于中部页面控制区，不能被 `space-between` 推到右侧操作区旁边，也不能因 `flex-start` 偏到标题组旁边；顶栏桌面态使用左 / 中 / 右三列布局，中部视角控件几何居中，右侧状态、刷新和快照贴右。
 - 页面级截图支持通过 hash 查询参数设置初始 `overviewMode`，用于生成自然时间和计费时间两种真实 Electron 截图；普通用户默认仍进入自然时间。
-- 主进程每 `60s` 强制采集一次 `DashboardSnapshot` 并通过 `dashboard:updated` 广播；启动缓存后的后台刷新和手动刷新完成后也必须广播，渲染端通过 `window.codexCompanion.onDashboardUpdated` 静默更新页面。
+- 主进程默认每 `5` 分钟后台采集一次 `DashboardSnapshot` 并通过 `dashboard:updated` 广播；启动时优先显示缓存快照，延迟后台刷新，手动刷新完成后也必须广播，渲染端通过 `window.codexCompanion.onDashboardUpdated` 静默更新页面。
 - 顶部工具栏状态胶囊只显示状态文字，不额外显示状态图标；额度卡和指标卡内状态标签也保持文字-only。
 - 顶部工具栏不显示 `桌面总控台` 等额外眉标，页面标题与副标题横向组成同一信息组。
 - 左侧品牌区必须保持产品图标和 `Codex Companion` 标题顶线对齐，说明文字放在标题下方，图标与标题间距接近设计稿；文字组允许少量基线补偿，避免标题高于图标造成错位。
