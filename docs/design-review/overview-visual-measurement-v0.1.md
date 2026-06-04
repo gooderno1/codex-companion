@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.42`
+- 适用版本：`v0.2.2-dev.43`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图绑定），`local_dev_work/overview-1360x900-dev42.png`、`local_dev_work/overview-1080x720-dev42.png`（顶部四卡新增语义验证）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图绑定），`local_dev_work/overview-1360x900-dev42.png`、`local_dev_work/overview-1080x720-dev42.png`（顶部四卡新增语义验证），`local_dev_work/overview-1360x900-dev43.png`、`local_dev_work/overview-1080x720-dev43.png`（额度 Token 明细单位验证）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -221,6 +221,19 @@
 - 本轮不改变顶部四卡高度、图标尺寸、主数字字号和状态标签位置。
 - 本轮不改变额度卡、项目概览、Git 统计和 Codex Token 统计。
 - 当前版本截图必须确认顶部四卡不再把有数据的新增场景误报为 `数据待补齐`。
+
+## 4.10 额度 Token 明细单位复测
+
+`v0.2.2-dev.43` 聚焦中部额度卡右侧明细，不调整布局比例：
+
+- `Token 用量` 值追加 `tok` 后缀，贴近设计稿中的明细行表达。
+- 顶部四卡、项目概览 Token 列和模型占比行继续保持原有紧凑单位，不额外增加后缀。
+- 本轮只改变额度卡右侧一处显示文案，不改变 token 计算、成本折算、额度周期和 Git 代码行数。
+
+验收边界：
+
+- `1360 x 900` 与 `1080 x 720` 当前版本截图中，两张额度卡右侧 `Token 用量` 均应出现 `tok` 后缀。
+- 小窗口下 `tok` 后缀不得导致右侧明细行换行或挤压模型占比区。
 
 ## 5. 后续页面复用规则
 

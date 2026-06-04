@@ -33,6 +33,10 @@ const WIDGET_DISABLED = true;
 
 const preloadPath = path.join(__dirname, "preload.js");
 
+if (process.env.CODEX_COMPANION_CAPTURE_PATH) {
+  app.disableHardwareAcceleration();
+}
+
 function isDevelopment() {
   return Boolean(process.env.VITE_DEV_SERVER_URL);
 }
@@ -62,20 +66,22 @@ function scheduleMainWindowCapture() {
   mainWindow.webContents.once("did-finish-load", () => {
     setTimeout(() => {
       void (async () => {
+        let captureFailed = false;
         try {
           if (!mainWindow) {
-            return;
+            throw new Error("主窗口不存在");
           }
 
           const image = await mainWindow.capturePage();
           await writeFile(capturePath, image.toPNG());
         } catch (error) {
+          captureFailed = true;
           console.error(
             `截图失败：${error instanceof Error ? error.message : String(error)}`
           );
         } finally {
           isQuitting = true;
-          app.quit();
+          app.exit(captureFailed ? 1 : 0);
         }
       })();
     }, delayMs);

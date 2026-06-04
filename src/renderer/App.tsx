@@ -502,7 +502,7 @@ function QuotaWindowCard({
 
         <div className="quota-metrics">
           {[
-            { icon: "token" as const, label: "Token 用量", value: formatCompactToken(period.tokens.total) },
+            { icon: "token" as const, label: "Token 用量", value: `${formatCompactToken(period.tokens.total)} tok` },
             { icon: "cost" as const, label: "API 等价成本", value: formatUsd(period.apiCostUsd) },
             { icon: "code" as const, label: "代码行数", value: `${formatNumber(period.code.changedLines)} 行` },
             { icon: "session" as const, label: "会话数", value: String(period.sessions) }

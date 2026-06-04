@@ -212,7 +212,7 @@
 - `npm run capture:overview`
 - `npm run verify:overview`
 
-`capture:overview` 用于按当前开发版本自动生成 `1360 x 900` 与 `1080 x 720` 两张真实 Electron 截图。`verify:overview` 用于检查总览页交付物是否齐套，包括确认设计图、`ui-contract`、组件映射、分区审计、比例测量、设计 token、额度数据审计、目标审计、关键实现组件和两张最新真实 Electron 截图均存在，并串联执行 `npm run verify:design` 与 `npm run verify:quota`。
+`capture:overview` 用于按当前开发版本自动生成 `1360 x 900` 与 `1080 x 720` 两张真实 Electron 截图。脚本必须删除旧截图后重新生成，并检查新文件存在且非空；如果 Electron 捕获失败，不能沿用旧截图作为当前版本证据。`verify:overview` 用于检查总览页交付物是否齐套，包括确认设计图、`ui-contract`、组件映射、分区审计、比例测量、设计 token、额度数据审计、目标审计、关键实现组件和两张最新真实 Electron 截图均存在，并串联执行 `npm run verify:design` 与 `npm run verify:quota`。
 
 截图检查必须绑定当前开发版本：脚本会从 `package.json` 读取 `vX.Y.Z-dev.N`，并要求存在 `local_dev_work/overview-1360x900-devN.png` 与 `local_dev_work/overview-1080x720-devN.png`。版本号提升后必须重新生成当前版本截图，不能继续沿用旧版本截图作为新版本证据。
 
