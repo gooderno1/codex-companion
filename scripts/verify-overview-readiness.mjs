@@ -134,6 +134,7 @@ const STATIC_TEXT_ASSERTIONS = [
       "project-row-icon",
       "quota-models-head",
       "formatQuotaPeriodRange",
+      'card.sourceStatus !== "observed"',
       "剩余量",
       "tok",
       "resolveOverviewModeFromHash",
@@ -147,7 +148,7 @@ const STATIC_TEXT_ASSERTIONS = [
     includes: [
       "grid-template-columns: minmax(300px, 1fr) auto minmax(300px, 1fr)",
       "position: absolute",
-      "clamp(52px, 4.2vw, 64px)",
+      "clamp(64px, 4.9vw, 72px)",
       "justify-self: center"
     ]
   },

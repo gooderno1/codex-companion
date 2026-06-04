@@ -507,10 +507,14 @@ svg {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(16px, 1.5vw, 24px);
+  gap: clamp(14px, 1.25vw, 18px);
   height: 100%;
-  padding-top: 10px;
+  padding-top: 0;
   text-align: center;
+}
+
+.metric-card.has-status .metric-card-main {
+  padding-top: 8px;
 }
 
 .metric-icon,
@@ -529,15 +533,15 @@ svg {
 
 .metric-icon {
   flex: 0 0 auto;
-  width: clamp(52px, 4.2vw, 64px);
-  height: clamp(52px, 4.2vw, 64px);
-  border-radius: clamp(15px, 1.1vw, 18px);
+  width: clamp(64px, 4.9vw, 72px);
+  height: clamp(64px, 4.9vw, 72px);
+  border-radius: clamp(18px, 1.3vw, 22px);
   color: #ffffff;
 }
 
 .metric-icon svg {
-  width: 60%;
-  height: 60%;
+  width: 58%;
+  height: 58%;
 }
 
 .metric-card-copy {

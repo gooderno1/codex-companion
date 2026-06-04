@@ -312,8 +312,10 @@ function MetricCard({
 }: {
   card: OverviewMetricCardData;
 }) {
+  const shouldShowStatus = card.sourceStatus !== "observed";
+
   return (
-    <article className={`metric-card metric-${card.tone}`}>
+    <article className={`metric-card metric-${card.tone}${shouldShowStatus ? " has-status" : ""}`}>
       <div className="metric-card-main">
         <span className="metric-icon">
           <Glyph name={card.icon} />
@@ -324,9 +326,11 @@ function MetricCard({
           <div className={`metric-card-detail ${deltaToneClass(card.detail)}`}>{card.detail}</div>
         </div>
       </div>
-      <span className={`metric-status ${sourceStatusClass(card.sourceStatus)}`}>
-        {sourceStatusLabel(card.sourceStatus)}
-      </span>
+      {shouldShowStatus ? (
+        <span className={`metric-status ${sourceStatusClass(card.sourceStatus)}`}>
+          {sourceStatusLabel(card.sourceStatus)}
+        </span>
+      ) : null}
     </article>
   );
 }
