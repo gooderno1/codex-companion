@@ -1,7 +1,7 @@
 # Codex Companion 设计 Token（v0.1）
 
 - 创建时间：2026-06-04
-- 对应开发版本：`v0.2.2-dev.52`
+- 对应开发版本：`v0.2.2-dev.53`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
 - 代码来源：`src/renderer/design-tokens.ts`
 - 应用入口：`src/renderer/main.tsx` 调用 `applyDesignTokens()`
@@ -106,6 +106,14 @@ npm run verify:design
 - 顶部四卡内容区使用现有文字 token 居中展示，主数字仍使用 `--text-primary`，变化说明按正负沿用状态色。
 - 指标图标仍使用 `--accent-blue / --accent-teal / --accent-green` 渐变，但尺寸改为自适应，防止不同窗口下图标与数字比例失衡。
 - 顶栏时间视角仍使用无边框文本切换，不新增颜色 token；位置由三列布局保证居中。
+
+## 3.4 `v0.2.2-dev.53` 指标图标和额度圆环微调
+
+本轮不调整全局颜色 token，只修正局部尺寸和信息层级：
+
+- 顶部四卡指标图标最小尺寸提升到 `52px`，最大尺寸提升到 `64px`，避免在标准窗口中相对主数字偏小。
+- 指标图标 SVG 占比提升到 `60%`，让图标和文字形成更稳定的视觉关系。
+- 额度圆环内部 `剩余量` 使用辅助文字色，固定在百分比上方；百分比继续使用主文字色并保持在圆心视觉位置。
 
 ## 4. 后续页面规则
 

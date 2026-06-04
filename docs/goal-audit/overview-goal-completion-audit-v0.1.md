@@ -1,10 +1,10 @@
 # 总览页目标完成度审计（v0.1）
 
 - 创建时间：2026-06-04
-- 审计版本：`v0.2.2-dev.52`
+- 审计版本：`v0.2.2-dev.53`
 - 审计对象：总览页设计对照、图标资产、额度真实数据和交付验证
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev52.png`、`local_dev_work/overview-1080x720-dev52.png`、`local_dev_work/overview-billing-1360x900-dev52.png`、`local_dev_work/overview-billing-1080x720-dev52.png`
+- 实现截图：`local_dev_work/overview-1360x900-dev53.png`、`local_dev_work/overview-1080x720-dev53.png`、`local_dev_work/overview-billing-1360x900-dev53.png`、`local_dev_work/overview-billing-1080x720-dev53.png`
 - 比例测量：`docs/design-review/overview-visual-measurement-v0.1.md`
 - 设计 token：`docs/design-tokens-v0.1.md`、`src/renderer/design-tokens.ts`、`npm run verify:design`
 - 运行快照：`C:\Users\85406\AppData\Roaming\codex-companion\snapshot.json`
@@ -31,6 +31,7 @@
 - 页面级截图已按 `v0.2.2-dev.50` 扩展为自然时间和计费时间各两张，计费时间状态不再只依赖静态检查。
 - 页面级实现已按 `v0.2.2-dev.51` 继续修正左侧品牌基线、额度说明占高、时间视角单行容器和文字色阶；图标资产已集中到 `src/renderer/icons.tsx`。
 - 页面级实现已按 `v0.2.2-dev.52` 补齐主进程实时刷新广播，修正顶部四卡右上角状态、内容居中和图标自适应，并把时间视角放回顶栏几何中部。
+- 页面级实现已按 `v0.2.2-dev.53` 修正额度圆环为周期累计余量，扩大 Codex session 采集窗口以重建前几周计费周历史，提升顶部四卡图标尺寸，并要求截图前必须拿到 `live` 快照，避免旧缓存误导图审。
 - 顶部四卡已区分“数据缺失”和“上一周期为 0 的新增场景”，不再把有数据的新增误显示为 `数据待补齐`。
 - 最新 `1360 x 900` 与 `1080 x 720` 截图均能完整显示总览页主要区块。
 - `npm run capture:overview` 已按当前开发版本生成真实 Electron 截图；`npm run verify:overview` 已绑定当前开发版本截图，并把挂件隐藏、真实 `rate_limits` 采集、连续 token 增量、额度周期证据、设计 token 和额度快照校验收敛为总览页级本地验收入口。
@@ -51,9 +52,9 @@
 | 将设计差异量化为后续验收依据 | 已完成 | `docs/design-review/overview-visual-measurement-v0.1.md`、`docs/design-tokens-v0.1.md`、`npm run verify:design` | 已记录设计稿和实现截图尺寸、主要区块比例、当前达标项和后续可精修项；设计 token 已有可执行校验。 |
 | 按既定流程先补文档再改实现 | 已完成 | `docs/ui-contract/overview-v0.1.md`、`docs/component-map.md`、`DEVELOPMENT_LOG.md` | 每轮涉及页面结构、数据口径或视觉约束的改动均同步更新正式文档和开发记录。 |
 | 需要时补充图标等资产 | 已完成 | `src/renderer/icons.tsx` 中 `BrandMark`、`Glyph`；`docs/component-map.md` 当前约束 | 当前使用本项目自定义 SVG 图标模块，不使用 OpenAI / Codex 官方 logo 或第三方品牌资产。 |
-| 额度数据接入真实数据 | 已完成 | `src/main/collectors/codexCollector.ts`、`src/main/collectors/dashboardCollector.ts`、`docs/data-contract-v0.2.md`、`docs/data-audit/overview-token-quota-audit-v0.1.md`、`npm run verify:quota` | 额度余量来自最近 `rate_limits`，周期边界来自 `resets_at + window_minutes`，右侧 token / 成本 / 会话 / 模型占比来自当前额度周期内的真实 token 增量；`verify:quota` 用运行态快照自动断言这些关键不变量。 |
+| 额度数据接入真实数据 | 已完成 | `src/main/collectors/codexCollector.ts`、`src/main/collectors/dashboardCollector.ts`、`docs/data-contract-v0.2.md`、`docs/data-audit/overview-token-quota-audit-v0.1.md`、`npm run verify:quota` | 额度圆环优先使用当前额度周期 `quotaEvidence.remainingPercent`，周期边界来自 `resets_at + window_minutes`，右侧 token / 成本 / 会话 / 模型占比来自当前额度周期内的真实 token 增量；`verify:quota` 用运行态快照自动断言这些关键不变量。 |
 | 参考 `dev-ledger` 项目 | 已完成 | `docs/data-audit/overview-token-quota-audit-v0.1.md`；`dev-ledger/docs/data-contract.md` 中额度周期口径 | 当前实现采用与 `dev-ledger` 一致的连续快照增量、自然时间 / 计费时间分离、5H / 周额度窗口口径。 |
-| 认真对照并争取全部改完 | 当前可交付，待用户图审 | `local_dev_work/overview-1360x900-dev52.png`、`local_dev_work/overview-1080x720-dev52.png`、`local_dev_work/overview-billing-1360x900-dev52.png`、`local_dev_work/overview-billing-1080x720-dev52.png`、`npm run build`、`npm run verify:overview` | 已处理多轮高置信差异；`verify:overview` 统一检查交付物齐套、关键文档口径、当前版本自然/计费截图、设计 token、额度真实数据、实时刷新广播和目标关键不变量；视觉是否继续精修应以用户对最新截图的确认或新标注为准。 |
+| 认真对照并争取全部改完 | 当前可交付，待用户图审 | `local_dev_work/overview-1360x900-dev53.png`、`local_dev_work/overview-1080x720-dev53.png`、`local_dev_work/overview-billing-1360x900-dev53.png`、`local_dev_work/overview-billing-1080x720-dev53.png`、`npm run build`、`npm run verify:overview` | 已处理多轮高置信差异；`verify:overview` 统一检查交付物齐套、关键文档口径、当前版本自然/计费截图、设计 token、额度真实数据、截图前 live 快照、实时刷新广播和目标关键不变量；视觉是否继续精修应以用户对最新截图的确认或新标注为准。 |
 
 ## 3. 区块完成度
 
@@ -88,7 +89,7 @@
 - 自然时间和计费时间只改变统计口径，不改变四卡结构。
 - 卡片包含图标、标题、主数字、变化说明和状态标签。
 - 状态标签固定在卡片右上角，不再单独占用底部一行。
-- 卡片内容区整体居中，标题、主数字和变化说明在内容组内居中对齐；指标图标使用自适应尺寸。
+- 卡片内容区整体居中，标题、主数字和变化说明在内容组内居中对齐；指标图标使用自适应尺寸，当前最小尺寸不低于 `52px`。
 - Token 自动切换 `万 / 亿` 单位。
 
 状态：已完成当前设计目标。
@@ -97,38 +98,38 @@
 
 最近一次验收样本：
 
-说明：运行态快照会随本机 Codex 使用持续变化，下面数值是本次 `v0.2.2-dev.52` 验收时的聚合样本；提交前的权威校验以 `npm run verify:overview` / `npm run verify:quota` 输出为准。
+说明：运行态快照会随本机 Codex 使用持续变化，下面数值是本次 `v0.2.2-dev.53` 验收时的聚合样本；提交前的权威校验以 `npm run verify:overview` / `npm run verify:quota` 输出为准。
 
-- 5H 周期：`2026-06-04T08:18:00.000Z` 到 `2026-06-04T13:18:00.000Z`
-- 5H Token：`124997`
-- 5H API 等价成本：约 `$0.69`
+- 5H 周期：`2026-06-04T08:46:21.000Z` 到 `2026-06-04T13:46:21.000Z`
+- 5H Token：`103225`
+- 5H API 等价成本：约 `$0.57`
 - 5H 代码行数 / 会话数：`0` 行 / `1`
 - 5H 观测证据：`observations=2`、`resetCount=0`
-- 5H 圆环：最近原始余量 `100%`
+- 5H 圆环：周期累计余量 `100%`
 - 5H 价值折算：周期累计 `usedPercent=0%`，当前无法估算满额价值
-- 周额度周期：`2026-06-04T01:02:50.000Z` 到 `2026-06-11T01:02:50.000Z`
-- 周额度 Token：`76748688`
-- 周额度 API 等价成本：约 `$420.92`
-- 周额度代码行数 / 会话数：`2343` 行 / `3`
-- 周额度观测证据：`observations=522`、`resetCount=0`
-- 周额度圆环：最近原始余量 `100%`
-- 周额度价值折算：周期累计 `usedPercent=6%`，满额估值约 `$7015.37`
+- 周额度周期：`2026-06-04T01:02:51.000Z` 到 `2026-06-11T01:02:51.000Z`
+- 周额度 Token：`88675900`
+- 周额度 API 等价成本：约 `$487.39`
+- 周额度代码行数 / 会话数：`2709` 行 / `4`
+- 周额度观测证据：`observations=604`、`resetCount=0`
+- 周额度圆环：周期累计余量 `91%`
+- 周额度价值折算：周期累计 `usedPercent=9%`，满额估值约 `$5415.50`，估算剩余额度价值约 `$4928.10`
 
 状态：已完成当前设计目标。
 
 说明：
 
-- 圆环表达最近一次额度余量。
+- 圆环表达当前额度周期累计余量。
 - 右侧明细表达当前额度周期累计。
 - 底部证据表达当前周期内的 `rate_limits` 观测次数和识别到的重置次数。
-- `usedPercent` 的周期累计证据和最近原始余量可能不同，这是数据来源口径差异，不是显示错误。
+- 最近原始 `rate_limits` 只作为缺少周期证据时的降级来源；当前验收中周额度圆环已与 `quotaEvidence.remainingPercent=91%` 对齐。
 
 ### 3.5 项目概览
 
 当前运行态摘要：
 
-- 自然日 / 周 / 月项目行数均为 `5`。
-- 计费 5H / 周额度项目行数均为 `5`。
+- 自然日 / 周 / 月项目行数均为 `11`。
+- 计费 5H / 周额度项目行数均为 `11`。
 - 当前周期无活动项目保留在表格中，展示 `0 / --`。
 - 项目列包含项目图标和项目名。
 
@@ -138,9 +139,9 @@
 
 当前运行态摘要：
 
-- session 文件数：`39`
-- archived 文件数：`0`
-- 仓库数：`5`
+- session 文件数：`318`
+- archived 文件数：`21`
+- 仓库数：`11`
 - 页面展示本地数据来源和定价来源。
 
 状态：已完成当前设计目标。
@@ -150,15 +151,15 @@
 最新已执行验证：
 
 - `npm run build`：通过
-- `npm run capture:overview`：通过，生成当前版本 `1360 x 900` 与 `1080 x 720` 真实 Electron 截图
+- `npm run capture:overview`：通过，生成当前版本自然/计费各 `1360 x 900` 与 `1080 x 720` 真实 Electron 截图；截图前已强制生成 `live` 快照
 - `npm run verify:overview`：通过，校验总览页设计图、规格文档、组件映射、分区审计、比例测量、设计 token、额度审计、目标审计、关键实现组件和当前版本真实 Electron 截图证据，并串联执行 `verify:design` 与 `verify:quota`
 - `npm run verify:design`：通过，校验 `styles.css` 的 token 引用和核心设计变量
 - `npm run verify:quota`：通过，校验 5H / 周额度窗口、周期边界、观测证据和价值折算分母
 - `git diff --check`：通过，仅有 Windows 换行提示
-- 真实 Electron 截图：`local_dev_work/overview-1360x900-dev52.png`
-- 真实 Electron 截图：`local_dev_work/overview-1080x720-dev52.png`
-- 真实 Electron 截图：`local_dev_work/overview-billing-1360x900-dev52.png`
-- 真实 Electron 截图：`local_dev_work/overview-billing-1080x720-dev52.png`
+- 真实 Electron 截图：`local_dev_work/overview-1360x900-dev53.png`
+- 真实 Electron 截图：`local_dev_work/overview-1080x720-dev53.png`
+- 真实 Electron 截图：`local_dev_work/overview-billing-1360x900-dev53.png`
+- 真实 Electron 截图：`local_dev_work/overview-billing-1080x720-dev53.png`
 - 运行态快照摘要读取：通过，只输出聚合字段，不输出原始会话内容
 
 ## 5. 后续判定规则

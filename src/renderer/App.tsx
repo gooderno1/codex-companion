@@ -367,12 +367,12 @@ function QuotaWindowCard({
         <div className="quota-ring-block">
           <div className="quota-ring" style={ringStyle}>
             <div className="quota-ring-inner">
+              <span>剩余量</span>
               <strong>
                 {windowData.remainingPercent === null
                   ? "--"
                   : `${windowData.remainingPercent.toFixed(0)}%`}
               </strong>
-              <span>剩余量</span>
             </div>
           </div>
           <div className="quota-reset-label">

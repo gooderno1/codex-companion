@@ -56,6 +56,14 @@ function closeTo(left, right, tolerance = 0.01) {
   return Math.abs(left - right) <= tolerance;
 }
 
+function clampPercent(value) {
+  if (!isNumber(value)) {
+    return null;
+  }
+
+  return Math.min(100, Math.max(0, value));
+}
+
 function formatPercent(value) {
   return isNumber(value) ? `${value.toFixed(2).replace(/\.00$/, "")}%` : "--";
 }
@@ -107,7 +115,7 @@ function verifyWindow({
   if (isNumber(window.usedPercent) && isNumber(window.remainingPercent)) {
     report.assert(
       closeTo(window.remainingPercent, 100 - window.usedPercent),
-      `${label}: 圆环余量必须等于 100 - 最近 usedPercent。`
+      `${label}: 圆环余量必须等于 100 - 页面显示 usedPercent。`
     );
   }
 
@@ -147,6 +155,23 @@ function verifyWindow({
     report.assert(parseIsoMs(evidence.lastObservedAt) !== null, `${label}: lastObservedAt 必须是有效 ISO 时间。`);
 
     if (isNumber(evidence.usedPercent)) {
+      const expectedDisplayedUsedPercent = clampPercent(evidence.usedPercent);
+      const expectedDisplayedRemainingPercent =
+        evidence.remainingPercent === null
+          ? Math.max(0, 100 - evidence.usedPercent)
+          : evidence.remainingPercent;
+
+      report.assert(
+        isNumber(window.usedPercent) &&
+          expectedDisplayedUsedPercent !== null &&
+          closeTo(window.usedPercent, expectedDisplayedUsedPercent),
+        `${label}: limitWindow.usedPercent 必须使用当前周期 quotaEvidence.usedPercent 的显示口径。`
+      );
+      report.assert(
+        isNumber(window.remainingPercent) &&
+          closeTo(window.remainingPercent, expectedDisplayedRemainingPercent),
+        `${label}: 圆环余量必须使用当前周期 quotaEvidence.remainingPercent。`
+      );
       report.assert(
         isNumber(window.estimatedValueBasisUsedPercent) &&
           closeTo(window.estimatedValueBasisUsedPercent, evidence.usedPercent),
@@ -172,15 +197,10 @@ function verifyWindow({
     );
   }
 
-  report.warn(
-    window.usedPercent !== period.quotaEvidence?.usedPercent,
-    `${label}: 最近 usedPercent 与周期累计 usedPercent 相同；如果周期内没有回落，这是正常结果。`
-  );
-
   return {
     label,
     remainingPercent: window.remainingPercent,
-    recentUsedPercent: window.usedPercent,
+    displayedUsedPercent: window.usedPercent,
     cycleUsedPercent: period.quotaEvidence?.usedPercent ?? null,
     observations: period.quotaEvidence?.observations ?? null,
     resetCount: period.quotaEvidence?.resetCount ?? null,
@@ -231,8 +251,8 @@ async function main() {
     console.log(
       [
         `${summary.label}`,
-        `最近余量 ${formatPercent(summary.remainingPercent)}`,
-        `最近已用 ${formatPercent(summary.recentUsedPercent)}`,
+        `周期余量 ${formatPercent(summary.remainingPercent)}`,
+        `显示已用 ${formatPercent(summary.displayedUsedPercent)}`,
         `周期累计 ${formatPercent(summary.cycleUsedPercent)}`,
         `Token ${summary.tokens.toLocaleString("en-US")}`,
         `API 等价成本 ${formatMoney(summary.apiCostUsd)}`,

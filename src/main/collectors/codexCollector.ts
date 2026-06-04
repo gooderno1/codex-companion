@@ -5,9 +5,11 @@ import readline from "node:readline";
 
 import type { SourceStatus, TokenBreakdown } from "../../shared/contracts";
 import { walkFiles } from "../utils/fs";
-import { startOfMonth, startOfWeek, subtractDays } from "../utils/time";
+import { subtractDays } from "../utils/time";
 import { estimateApiCostUsd, estimateCodexCredits } from "./pricing";
 import { emptyTokens, roundTo, sumTokens } from "./metrics";
+
+const CODEX_HISTORY_LOOKBACK_DAYS = 60;
 
 export interface ObservedLimitWindow {
   usedPercent: number | null;
@@ -395,13 +397,7 @@ export async function collectCodexData(
   const codexHome = resolveCodexHome();
   const sessionsRoot = path.join(codexHome, "sessions");
   const archivedRoot = path.join(codexHome, "archived_sessions");
-  const cutoff = new Date(
-    Math.min(
-      startOfMonth(now).getTime(),
-      startOfWeek(now).getTime(),
-      subtractDays(now, 8).getTime()
-    )
-  );
+  const cutoff = subtractDays(now, CODEX_HISTORY_LOOKBACK_DAYS);
   const ignoreDirectories = new Set<string>([
     ".git",
     "node_modules",

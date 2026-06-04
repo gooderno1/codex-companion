@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.53 fix: 修正额度剩余量和截图验收口径
+
+- 开发原因：继续按用户对 `dev52` 的反馈修正总览页；周额度圆环仍使用最近原始 `rate_limits` 余量，可能显示 `100%`，但同一周额度周期的累计 `quotaEvidence.usedPercent` 已经消耗到 `6%+`；顶部四卡图标仍偏小，额度圆环内部文案层级也需要按设计调整。
+- 实现方式：先对照 `dev-ledger` 已生成的前几周计费周摘要，更新数据契约、UI Contract、组件映射、分区审计、比例测量、设计 token、目标审计和数据审计；随后将 Codex session 扫描窗口扩展到近 `60` 天，`LimitWindow.usedPercent / remainingPercent` 优先使用当前周期 `quotaEvidence` 显示口径，最近原始 `rate_limits` 仅作降级；同步更新 `verify:quota` 断言、顶部四卡图标尺寸、额度圆环内 `剩余量` 与百分比位置，并要求截图前必须强制生成 `live` 快照。
+- 当前结果：周额度圆环和 `verify:quota` 已统一到周期累计余量；当前本机快照显示周额度 `周期余量 91% / 周期累计 9%`；顶部四卡图标最小尺寸提升到 `52px`；截图流程不再允许旧缓存生成当前版本验收图。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev53` 自然/计费四张当前版本截图；执行 `npm run verify:quota`；执行 `npm run verify:overview`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.52 fix: 修正总览页实时刷新与顶部细节
 
 - 开发原因：继续按用户对 `dev51` 的反馈修正总览页；当前页面运行后不会实时更新数据，顶部四卡的 `数据过期` 等状态标签单独占一行，四卡内容左对齐且图标比例不够自适应，顶栏时间视角仍有偏左感。

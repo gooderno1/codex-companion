@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.52`
+- 当前适用版本：`v0.2.2-dev.53`
 - 当前覆盖页面：总览页
 
 ## 总览页
@@ -12,8 +12,8 @@
 | 顶部工具栏 | `src/renderer/App.tsx` `topbar` | 全局复用 | `currentPage`、`overviewMode`、`sourceStatus`、`generatedAt` | `snapshot.sourceHealth`、`snapshot.generatedAt` |
 | 时间视角切换 | `TextTabs` | 可复用 | `natural / billing` | 本地页面状态 |
 | 顶部四卡 | `MetricCard` | 可复用 | `label`、`value`、`detail`、`icon`、`tone`、逐卡 `sourceStatus` | `snapshot.overview`、`snapshot.overview.previous`、`snapshot.sourceHealth` |
-| 5H 额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`snapshot.overview.limitWindows[0]`；右侧：`windowPeriods.fiveHour`、`modelWindows.fiveHour` |
-| 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`snapshot.overview.limitWindows[1]`；右侧：`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
+| 5H 额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`windowPeriods.fiveHour.quotaEvidence.remainingPercent` 优先，降级到 `limitWindows[0]`；右侧：`windowPeriods.fiveHour`、`modelWindows.fiveHour` |
+| 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`windowPeriods.weekLimit.quotaEvidence.remainingPercent` 优先，降级到 `limitWindows[1]`；右侧：`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
 | 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、排序 | `snapshot.overview.projectOverview` |
 | 项目排序标签 | `TextTabs` `variant=chip` | 可复用 | `token / cost / code / recent` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
@@ -29,8 +29,9 @@
 - 左侧导航项遵循设计稿的单行结构，只显示图标和主标签；`总览 / Codex 账本 / 代码仓库 / 设置` 不在导航行内显示二级说明文案。
 - `5H / 周额度窗口` 统一复用 `QuotaWindowCard`，不额外派生其他布局。
 - `QuotaWindowCard` 标题只显示一次，不额外显示 `额度窗口` 辅助行。
-- `QuotaWindowCard` 圆环显示最近 `rate_limits` 剩余量，右侧数据使用当前额度周期内真实 token 增量。
+- `QuotaWindowCard` 圆环显示当前额度周期累计后的剩余量，右侧数据使用同一额度周期内真实 token 增量。
 - `QuotaWindowCard` 圆环弧线和中心数字都使用剩余百分比，不允许弧线使用已用百分比。
+- `QuotaWindowCard` 圆环内部小字 `剩余量` 位于百分比上方，百分比处于圆心视觉位置。
 - `QuotaWindowCard` 圆环下方必须展示当前额度周期起止，使用 `period.startAt / period.endAt`，不额外读取原始日志；周期起止必须与重置时间合并为一行，不再单独占用一行；同日短周期显示时间范围，多日周期显示日期范围，避免周额度显示成 `09:02 - 09:02`。
 - `QuotaWindowCard` 展示当前额度周期 `rate_limits` 观测次数和重置次数，作为真实额度数据的可见证据；可见文案统一为 `观测 N 次 · 重置 N 次`，不额外重复 `额度观测`。
 - `QuotaWindowCard` 的口径说明保留在数据层和文档，不再作为额度卡内独立底部行渲染；页面内证据应并入 `Top 3 模型占比` 标题行右侧，避免多占一行高度。
@@ -46,7 +47,7 @@
 - 顶部四卡必须显示自定义指标图标，图标在左、内容在右、整体居中，状态标签固定在右上角，不使用官方 OpenAI / Codex 视觉资产。
 - 顶部四卡状态必须由单张卡片的数据可观测性决定；计费月未观测时，`本月 Token` 卡片必须显示 `未观测` 状态，不能沿用全局 `已观测`。
 - 顶部四卡高度应接近设计稿比例，`MetricCard` 使用右上角状态覆盖层和居中内容区，不得让状态标签单独占一整行。
-- 顶部四卡内部微调只允许改变图标自适应尺寸、内容居中、标题权重和主数字视觉权重，不改变四卡字段、单位和统计口径。
+- 顶部四卡内部微调只允许改变图标自适应尺寸、内容居中、标题权重和主数字视觉权重，不改变四卡字段、单位和统计口径；当前图标尺寸不能低于 `52px`，避免相对主数字过小。
 - 右侧主工作区外层保持轻描边与浅底，不使用强浮层阴影；卡片渐变和阴影必须弱于当前分区卡片内容层。
 - 颜色使用组件级 token：主标题和主数字为 `#111827` 级深墨色，普通正文为 `#334155` 级蓝灰色，副标题 / 表头 / 页脚为 `#64748b` 级辅助蓝灰色，证据和定价来源为 `#94a3b8` 级弱辅助色；不能把所有文字统一压成主标题色。
 - 设计 token 的唯一运行入口为 `src/renderer/design-tokens.ts`，正式说明见 `docs/design-tokens-v0.1.md`；提交前执行 `npm run verify:design`，防止 CSS 引用未定义 token 或关键色阶漂移。

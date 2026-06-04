@@ -507,7 +507,7 @@ svg {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(12px, 1.2vw, 18px);
+  gap: clamp(16px, 1.5vw, 24px);
   height: 100%;
   padding-top: 10px;
   text-align: center;
@@ -529,15 +529,15 @@ svg {
 
 .metric-icon {
   flex: 0 0 auto;
-  width: clamp(44px, 3.5vw, 56px);
-  height: clamp(44px, 3.5vw, 56px);
-  border-radius: clamp(13px, 1vw, 16px);
+  width: clamp(52px, 4.2vw, 64px);
+  height: clamp(52px, 4.2vw, 64px);
+  border-radius: clamp(15px, 1.1vw, 18px);
   color: #ffffff;
 }
 
 .metric-icon svg {
-  width: 58%;
-  height: 58%;
+  width: 60%;
+  height: 60%;
 }
 
 .metric-card-copy {
@@ -681,8 +681,8 @@ svg {
 }
 
 .quota-ring-inner {
+  position: relative;
   place-items: center;
-  gap: 6px;
   width: 92px;
   height: 92px;
   border-radius: 50%;
@@ -694,12 +694,19 @@ svg {
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.035em;
+  line-height: 1;
 }
 
 .quota-ring-inner span,
 .quota-reset-label,
 .quota-models-title {
   font-size: 12px;
+}
+
+.quota-ring-inner span {
+  position: absolute;
+  top: 20px;
+  color: var(--text-secondary);
 }
 
 .quota-reset-label {

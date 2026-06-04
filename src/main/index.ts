@@ -84,6 +84,12 @@ function scheduleMainWindowCapture() {
             throw new Error("主窗口不存在");
           }
 
+          const snapshot = await refreshDashboardAndBroadcast();
+          if (snapshot.generatedFrom !== "live") {
+            throw new Error("截图前数据采集未生成 live 快照，已拒绝使用缓存截图");
+          }
+          await delay(1_000);
+
           let lastCaptureError: unknown = null;
           let image: Electron.NativeImage | null = null;
           for (let attempt = 1; attempt <= 3; attempt += 1) {

@@ -604,9 +604,39 @@ function buildLimitWindow(
     estimatedFullValueUsd,
     estimatedRemainingValueUsd:
       estimatedFullValueUsd !== null && estimatedSpentUsd !== null
-        ? roundTo(estimatedFullValueUsd - estimatedSpentUsd, 4)
+        ? roundTo(Math.max(0, estimatedFullValueUsd - estimatedSpentUsd), 4)
         : null,
     note
+  };
+}
+
+function buildDisplayedQuotaWindow(
+  rawWindow:
+    | {
+        usedPercent: number | null;
+        remainingPercent: number | null;
+        resetsAt: string | null;
+        observedAt: string | null;
+        windowMinutes: number | null;
+      }
+    | undefined,
+  period: PeriodMetric
+) {
+  if (!rawWindow) {
+    return undefined;
+  }
+
+  const cycleUsedPercent = period.quotaEvidence?.usedPercent ?? null;
+  const displayedUsedPercent = cycleUsedPercent ?? rawWindow.usedPercent;
+  const displayedRemainingPercent =
+    cycleUsedPercent === null
+      ? rawWindow.remainingPercent
+      : Math.max(0, 100 - cycleUsedPercent);
+
+  return {
+    ...rawWindow,
+    usedPercent: displayedUsedPercent,
+    remainingPercent: displayedRemainingPercent
   };
 }
 
@@ -1197,36 +1227,42 @@ async function collectDashboardSnapshot(
     "primary",
     "5 小时额度",
     resolveWindowSourceStatus(codex.latestRateSnapshot, codex.sourceStatus),
-    codex.latestRateSnapshot?.primary
-      ? {
-          ...codex.latestRateSnapshot.primary,
-          remainingPercent:
-            codex.latestRateSnapshot.primary.usedPercent === null
-              ? null
-              : 100 - codex.latestRateSnapshot.primary.usedPercent,
-          observedAt: codex.latestRateSnapshot.observedAt
-      }
-      : undefined,
+    buildDisplayedQuotaWindow(
+      codex.latestRateSnapshot?.primary
+        ? {
+            ...codex.latestRateSnapshot.primary,
+            remainingPercent:
+              codex.latestRateSnapshot.primary.usedPercent === null
+                ? null
+                : 100 - codex.latestRateSnapshot.primary.usedPercent,
+            observedAt: codex.latestRateSnapshot.observedAt
+          }
+        : undefined,
+      primaryPeriod
+    ),
     primaryPeriod.apiCostUsd,
-    "圆环=最近余量；右侧=当前周期累计。",
+    "圆环=周期累计余量；右侧=当前周期累计。",
     primaryPeriod.quotaEvidence?.usedPercent ?? null
   );
   const weeklyWindow = buildLimitWindow(
     "secondary",
     "周额度",
     resolveWindowSourceStatus(codex.latestRateSnapshot, codex.sourceStatus),
-    codex.latestRateSnapshot?.secondary
-      ? {
-          ...codex.latestRateSnapshot.secondary,
-          remainingPercent:
-            codex.latestRateSnapshot.secondary.usedPercent === null
-              ? null
-              : 100 - codex.latestRateSnapshot.secondary.usedPercent,
-          observedAt: codex.latestRateSnapshot.observedAt
-      }
-      : undefined,
+    buildDisplayedQuotaWindow(
+      codex.latestRateSnapshot?.secondary
+        ? {
+            ...codex.latestRateSnapshot.secondary,
+            remainingPercent:
+              codex.latestRateSnapshot.secondary.usedPercent === null
+                ? null
+                : 100 - codex.latestRateSnapshot.secondary.usedPercent,
+            observedAt: codex.latestRateSnapshot.observedAt
+          }
+        : undefined,
+      weeklyLimitPeriod
+    ),
     weeklyLimitPeriod.apiCostUsd,
-    "圆环=最近余量；右侧=当前周期累计。",
+    "圆环=周期累计余量；右侧=当前周期累计。",
     weeklyLimitPeriod.quotaEvidence?.usedPercent ?? null
   );
   const observableMonthWindow = buildLimitWindow(

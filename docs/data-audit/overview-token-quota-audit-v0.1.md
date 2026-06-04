@@ -147,15 +147,44 @@ npm run verify:quota
 
 - `5H` 与 `周额度` 分别绑定 `primary / secondary`。
 - `windowMinutes` 分别为 `300 / 10080`。
-- 圆环余量等于 `100 - 最近 usedPercent`。
+- 圆环余量优先等于当前周期 `quotaEvidence.remainingPercent`；缺少周期证据时才降级为 `100 - 最近 usedPercent`。
 - 周期起止来自 `resetsAt - windowMinutes`，而不是自然时间硬编码。
 - 当前周期包含 `quotaEvidence.observations / resetCount / resetEvents / usageSegments`。
 - 价值折算分母使用 `quotaEvidence.usedPercent`，防止再次回退到最近一次 `rate_limits.used_percent`。
 
 本命令只读取聚合快照，不读取或输出原始会话正文、用户输入、模型回复或本地路径明细。
 
-`v0.2.2-dev.37` 本机运行结果：
+`v0.2.2-dev.37` 当时本机运行结果：
 
 - `5H 额度`：最近余量 `100%`，周期累计 `0%`，Token `109,547`，观测 `2` 次，重置 `0` 次。
 - `周额度`：最近余量 `99%`，最近已用 `1%`，周期累计 `28%`，Token `219,799,653`，观测 `1494` 次，重置 `0` 次。
 - 周额度满额估值使用周期累计 `28%` 作为分母，校验结果约 `$3879.63`。
+
+## 10. `v0.2.2-dev.53` 圆环剩余量口径修正
+
+继续对照 `dev-ledger` 和当前运行态后，确认 `v0.2.2-dev.52` 仍存在一个可见误导：
+
+- 周额度最近一次原始 `rate_limits.secondary.used_percent` 可能回落到 `0%`。
+- 但同一周额度周期的 `quotaEvidence.usedPercent` 已累计到 `6%`。
+- 页面圆环如果继续显示最近原始余量，会显示 `100%`，与当前周已消耗 `6%` 的事实冲突。
+
+`dev-ledger/public/dashboard-data.local.json` 当前已有前几周计费周记录，可用于校验口径：
+
+- `2026-05-21T01:02:50Z - 2026-05-28T01:02:50Z`：周期累计 `119%`，重置 `2` 次，余量 `0%`。
+- `2026-05-28T01:02:50Z - 2026-06-04T01:02:50Z`：周期累计 `117%`，重置 `1` 次，余量 `0%`。
+- `2026-06-04T01:02:50Z - 2026-06-11T01:02:50Z`：周期累计 `6%`，余量 `94%`。
+
+本轮修正要求：
+
+- `LimitWindow.usedPercent / remainingPercent` 从最近原始观测改为页面显示口径，优先使用当前周期 `quotaEvidence.usedPercent / remainingPercent`。
+- 最近原始 `rate_limits.used_percent` 只作为缺少周期证据时的降级来源。
+- `verify:quota` 不再断言圆环等于 `100 - 最近 usedPercent`，改为断言圆环等于 `quotaEvidence.remainingPercent`。
+- Codex session 采集窗口扩展到近 `60` 天，保证上几周计费周期可从原始 session 重建；不硬编码依赖 `dev-ledger` 的本地生成文件路径。
+- 总览页圆环内文案调整为 `剩余量` 在上、百分比在圆心。
+
+`v0.2.2-dev.53` 本机 `npm run verify:quota` 结果：
+
+- `5H 额度`：周期余量 `100%`，显示已用 `0%`，周期累计 `0%`，Token `103,225`，观测 `2` 次，重置 `0` 次。
+- `周额度`：周期余量 `91%`，显示已用 `9%`，周期累计 `9%`，Token `88,675,900`，观测 `604` 次，重置 `0` 次，满额估值约 `$5415.50`。
+
+隐私边界不变：本轮只使用聚合字段与 `dev-ledger` 已生成的周期摘要核对，不输出原始会话正文、用户输入或模型回复。

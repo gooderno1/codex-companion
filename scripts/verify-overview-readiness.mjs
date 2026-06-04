@@ -55,7 +55,8 @@ const STATIC_TEXT_ASSERTIONS = [
       "rate_limits.primary",
       "rate_limits.secondary",
       "quotaEvidence",
-      "estimatedValueBasisUsedPercent"
+      "estimatedValueBasisUsedPercent",
+      "60"
     ]
   },
   {
@@ -71,7 +72,8 @@ const STATIC_TEXT_ASSERTIONS = [
       "DASHBOARD_REFRESH_INTERVAL_MS",
       '"dashboard:updated"',
       "broadcastDashboardSnapshot",
-      "startDashboardAutoRefresh"
+      "startDashboardAutoRefresh",
+      "截图前数据采集未生成 live 快照"
     ]
   },
   {
@@ -85,6 +87,7 @@ const STATIC_TEXT_ASSERTIONS = [
   {
     file: "src/main/collectors/codexCollector.ts",
     includes: [
+      "CODEX_HISTORY_LOOKBACK_DAYS",
       "diffTokenBreakdown",
       "total_token_usage",
       "last_token_usage",
@@ -96,6 +99,7 @@ const STATIC_TEXT_ASSERTIONS = [
     file: "src/main/collectors/dashboardCollector.ts",
     includes: [
       "quotaEvidence",
+      "buildDisplayedQuotaWindow",
       "estimatedValueBasisUsedPercent",
       "primaryPeriod.quotaEvidence?.usedPercent",
       "weeklyLimitPeriod.quotaEvidence?.usedPercent"
@@ -110,6 +114,7 @@ const STATIC_TEXT_ASSERTIONS = [
       "project-row-icon",
       "quota-models-head",
       "formatQuotaPeriodRange",
+      "剩余量",
       "tok",
       "resolveOverviewModeFromHash",
       "onDashboardUpdated",
@@ -122,7 +127,7 @@ const STATIC_TEXT_ASSERTIONS = [
     includes: [
       "grid-template-columns: minmax(300px, 1fr) auto minmax(300px, 1fr)",
       "position: absolute",
-      "clamp(44px, 3.5vw, 56px)",
+      "clamp(52px, 4.2vw, 64px)",
       "justify-self: center"
     ]
   },
