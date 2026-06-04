@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.51 fix: 精修总览页品牌、额度说明和色阶
+
+- 开发原因：继续按用户对 `dev50` 截图的反馈精修总览页；左侧品牌图标和标题仍有轻微错位，额度卡底部说明占用额外行高，时间视角需要更明确的一行容器，整体字体颜色和状态色阶还需更贴近设计稿。
+- 实现方式：先更新 UI Contract、组件映射、设计 token 文档、设计到产品流程、分区审计和视觉测量，明确本轮细节约束；随后将图标资产抽到 `src/renderer/icons.tsx`，调整品牌图标基线、顶栏 `topbar-mode-switch`、额度证据行和颜色 token；同步增强 `verify:overview` 对图标模块与当前结构的检查。
+- 当前结果：品牌区图标与标题顶线更接近；额度卡不再渲染独立底部说明行，观测证据并入 `Top 3 模型占比` 标题行；时间视角由单一 inline 容器承载；文字色阶、主蓝、状态色和左侧激活底色进一步收敛。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev51` 自然/计费四张当前版本截图；执行 `npm run verify:overview`；执行 `npm run verify:design`；执行 `npm run verify:quota`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.50 test: 补齐总览页自然/计费双状态截图
 
 - 开发原因：继续补强“按设计稿对照”和“额度数据正确”的证据链；此前 `capture:overview` 只生成默认自然时间截图，无法证明计费时间状态在真实 Electron 中可达，也无法覆盖计费月未观测状态、计费项目周期切换等 UI 回归。

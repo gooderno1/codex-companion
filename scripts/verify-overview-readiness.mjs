@@ -20,6 +20,7 @@ const STATIC_REQUIRED_FILES = [
   "src/main/collectors/codexCollector.ts",
   "src/main/collectors/dashboardCollector.ts",
   "src/renderer/App.tsx",
+  "src/renderer/icons.tsx",
   "src/renderer/design-tokens.ts"
 ];
 
@@ -84,17 +85,21 @@ const STATIC_TEXT_ASSERTIONS = [
   {
     file: "src/renderer/App.tsx",
     includes: [
-      "function BrandMark",
-      "function Glyph",
+      'from "./icons"',
       "function QuotaWindowCard",
       "function OverviewPage",
       "project-row-icon",
+      "quota-models-head",
       "formatQuotaPeriodRange",
       "tok",
       "resolveOverviewModeFromHash",
       "card.sourceStatus",
       'sourceStatus: billingMonth ? globalSourceStatus : "unobserved"'
     ]
+  },
+  {
+    file: "src/renderer/icons.tsx",
+    includes: ["export function BrandMark", "export function Glyph", "export type IconName", "var(--accent-blue)"]
   }
 ];
 
