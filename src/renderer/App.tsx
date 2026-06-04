@@ -77,6 +77,7 @@ interface OverviewMetricCardData {
   detail: string;
   icon: IconName;
   tone: "blue" | "teal" | "amber" | "neutral" | "muted";
+  sourceStatus: SourceStatus;
 }
 
 function resolvePageFromHash(): AppPage {
@@ -468,11 +469,9 @@ function projectIconTone(projectName: string): ProjectIconTone {
 }
 
 function MetricCard({
-  card,
-  sourceStatus
+  card
 }: {
   card: OverviewMetricCardData;
-  sourceStatus: SourceStatus;
 }) {
   return (
     <article className={`metric-card metric-${card.tone}`}>
@@ -486,8 +485,8 @@ function MetricCard({
           <div className={`metric-card-detail ${deltaToneClass(card.detail)}`}>{card.detail}</div>
         </div>
       </div>
-      <span className={`metric-status ${sourceStatusClass(sourceStatus)}`}>
-        {sourceStatusLabel(sourceStatus)}
+      <span className={`metric-status ${sourceStatusClass(card.sourceStatus)}`}>
+        {sourceStatusLabel(card.sourceStatus)}
       </span>
     </article>
   );
@@ -600,6 +599,7 @@ function buildOverviewCards(
   mode: OverviewMode
 ): OverviewMetricCardData[] {
   const billingMonth = snapshot.overview.windowPeriods.billingMonth;
+  const globalSourceStatus = snapshot.sourceHealth.sourceStatus;
 
   if (mode === "natural") {
     return [
@@ -613,7 +613,8 @@ function buildOverviewCards(
           "昨日"
         ),
         icon: "token",
-        tone: "blue"
+        tone: "blue",
+        sourceStatus: globalSourceStatus
       },
       {
         key: "weekTokens",
@@ -625,7 +626,8 @@ function buildOverviewCards(
           "上周"
         ),
         icon: "calendar",
-        tone: "teal"
+        tone: "teal",
+        sourceStatus: globalSourceStatus
       },
       {
         key: "monthTokens",
@@ -637,7 +639,8 @@ function buildOverviewCards(
           "上月"
         ),
         icon: "month",
-        tone: "amber"
+        tone: "amber",
+        sourceStatus: globalSourceStatus
       },
       {
         key: "todayCode",
@@ -649,7 +652,8 @@ function buildOverviewCards(
           "昨日"
         ),
         icon: "code",
-        tone: "neutral"
+        tone: "neutral",
+        sourceStatus: globalSourceStatus
       }
     ];
   }
@@ -665,7 +669,8 @@ function buildOverviewCards(
         "昨日"
       ),
       icon: "token",
-      tone: "blue"
+      tone: "blue",
+      sourceStatus: globalSourceStatus
     },
     {
       key: "weekTokens",
@@ -677,7 +682,8 @@ function buildOverviewCards(
         "上个额度周"
       ),
       icon: "calendar",
-      tone: "teal"
+      tone: "teal",
+      sourceStatus: globalSourceStatus
     },
     {
       key: "monthTokens",
@@ -691,7 +697,8 @@ function buildOverviewCards(
           )
         : "计费月数据待补齐",
       icon: "month",
-      tone: billingMonth ? "amber" : "muted"
+      tone: billingMonth ? "amber" : "muted",
+      sourceStatus: billingMonth ? globalSourceStatus : "unobserved"
     },
     {
       key: "todayCode",
@@ -703,7 +710,8 @@ function buildOverviewCards(
         "昨日"
       ),
       icon: "code",
-      tone: "neutral"
+      tone: "neutral",
+      sourceStatus: globalSourceStatus
     }
   ];
 }
@@ -769,7 +777,7 @@ function OverviewPage({
     <div className="overview-layout">
       <section className="metric-grid">
         {cards.map((card) => (
-          <MetricCard key={card.key} card={card} sourceStatus={snapshot.sourceHealth.sourceStatus} />
+          <MetricCard key={card.key} card={card} />
         ))}
       </section>
 

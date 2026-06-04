@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.48`
+- 当前适用版本：`v0.2.2-dev.49`
 - 当前覆盖页面：总览页
 
 ## 总览页
@@ -11,7 +11,7 @@
 | 左侧导航 | `src/renderer/App.tsx` `sidebar-shell` | 全局复用 | `currentPage` | 本地路由 hash |
 | 顶部工具栏 | `src/renderer/App.tsx` `topbar` | 全局复用 | `currentPage`、`overviewMode`、`sourceStatus`、`generatedAt` | `snapshot.sourceHealth`、`snapshot.generatedAt` |
 | 时间视角切换 | `TextTabs` | 可复用 | `natural / billing` | 本地页面状态 |
-| 顶部四卡 | `MetricCard` | 可复用 | `label`、`value`、`detail`、`icon`、`tone`、`sourceStatus` | `snapshot.overview`、`snapshot.overview.previous`、`snapshot.sourceHealth` |
+| 顶部四卡 | `MetricCard` | 可复用 | `label`、`value`、`detail`、`icon`、`tone`、逐卡 `sourceStatus` | `snapshot.overview`、`snapshot.overview.previous`、`snapshot.sourceHealth` |
 | 5H 额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`snapshot.overview.limitWindows[0]`；右侧：`windowPeriods.fiveHour`、`modelWindows.fiveHour` |
 | 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`snapshot.overview.limitWindows[1]`；右侧：`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
 | 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、排序 | `snapshot.overview.projectOverview` |
@@ -41,6 +41,7 @@
 - 顶部工具栏不显示 `桌面总控台` 等额外眉标，页面标题与副标题横向组成同一信息组。
 - 左侧品牌区必须保持产品图标和 `Codex Companion` 标题顶线对齐，说明文字放在标题下方，图标与标题间距接近设计稿；文字组允许少量基线补偿，避免标题高于图标造成错位。
 - 顶部四卡必须显示自定义指标图标，图标在左、内容在右、状态在底部，不使用官方 OpenAI / Codex 视觉资产。
+- 顶部四卡状态必须由单张卡片的数据可观测性决定；计费月未观测时，`本月 Token` 卡片必须显示 `未观测` 状态，不能沿用全局 `已观测`。
 - 顶部四卡高度应接近设计稿比例，`MetricCard` 使用内容区和底部状态区两行布局，不得压缩到状态标签和主数字过近。
 - 顶部四卡内部微调只允许改变图标尺寸、标题权重和主数字视觉权重，不改变四卡字段、单位和统计口径。
 - 右侧主工作区外层保持轻描边与浅底，不使用强浮层阴影；卡片渐变和阴影必须弱于当前分区卡片内容层。

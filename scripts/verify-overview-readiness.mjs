@@ -90,7 +90,9 @@ const STATIC_TEXT_ASSERTIONS = [
       "function OverviewPage",
       "project-row-icon",
       "formatQuotaPeriodRange",
-      "tok"
+      "tok",
+      "card.sourceStatus",
+      'sourceStatus: billingMonth ? globalSourceStatus : "unobserved"'
     ]
   }
 ];

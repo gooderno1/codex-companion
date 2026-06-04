@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.49 fix: 修正顶部四卡逐卡状态
+
+- 开发原因：继续复核自然时间 / 计费时间切换的数据状态；计费时间下 `billingMonth` 尚未稳定观测时，`本月 Token` 主值会显示 `未观测`，但顶部四卡状态仍统一沿用全局 `sourceHealth.sourceStatus`，可能错误显示 `已观测`。
+- 实现方式：先更新 UI Contract、组件映射、分区审计和视觉测量，明确顶部四卡状态必须跟随单卡数据可观测性；随后为 `OverviewMetricCardData` 增加 `sourceStatus`，让 `MetricCard` 使用 `card.sourceStatus` 渲染；当 `billingMonth` 缺失时将计费时间下 `本月 Token` 状态设为 `unobserved`；同步增强 `verify:overview` 静态检查。
+- 当前结果：计费时间下未观测的计费月指标不会再显示全局 `已观测`，避免状态和主值互相矛盾；默认自然时间截图布局不变。本轮不改变 Token、额度、成本、Git 聚合、卡片字段或项目概览。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev49` 当前版本截图；执行 `npm run verify:overview`；执行 `npm run verify:design`；执行 `npm run verify:quota`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.48 fix: 修正总览页顶栏时间视角位置
 
 - 开发原因：继续按设计稿分区对照总览页；`dev47` 中 `时间视角 / 自然时间 / 计费时间` 虽然保持单行，但因顶栏使用 `space-between`，控件被推到右侧操作区附近，不符合设计稿“左侧页面识别 / 中部页面控制 / 右侧数据操作”的壳层结构。
