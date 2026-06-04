@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.47 fix: 收敛总览页视觉细节
+
+- 开发原因：继续按设计稿对照总览页；当前页面整体方向已接近，但左侧品牌图标与标题存在轻微基线错位，额度卡底部说明重复具体额度窗口名称，顶栏时间视角需要更强单行保护，颜色和文字色阶仍比设计稿偏重。
+- 实现方式：先更新 `docs/ui-contract/overview-v0.1.md`、设计 token 文档、设计流程和分区审计，明确品牌基线、额度短句、时间视角 inline-flex 和新色阶；随后调整 `design-tokens.ts`、`styles.css`、品牌 SVG 色值和 `dashboardCollector` 额度注记；同步更新 token 校验和版本号。
+- 当前结果：左侧品牌块更接近设计稿顶线对齐；额度注记统一为 `圆环=最近余量；右侧=当前周期累计。`；时间视角保持单行文本切换；整体配色从偏蓝白浮层收敛为更克制的浅蓝白、石墨文字和轻描边。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev47` 当前版本截图；执行 `npm run verify:overview`；执行 `npm run verify:design`；执行 `npm run verify:quota`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.46 test: 增强总览页目标不变量验收
 
 - 开发原因：继续推进“认真对照并争取全部改完”的目标；现有 `verify:overview` 已检查截图和基础文档，但对挂件隐藏、真实 `rate_limits` 采集、连续 token 增量、额度周期证据和近期 UI 细节仍是间接证据，后续容易回退。

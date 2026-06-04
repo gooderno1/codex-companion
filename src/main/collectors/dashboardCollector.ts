@@ -1208,7 +1208,7 @@ async function collectDashboardSnapshot(
       }
       : undefined,
     primaryPeriod.apiCostUsd,
-    "圆环=最近余量；右侧=当前 5H 周期累计。",
+    "圆环=最近余量；右侧=当前周期累计。",
     primaryPeriod.quotaEvidence?.usedPercent ?? null
   );
   const weeklyWindow = buildLimitWindow(
@@ -1226,7 +1226,7 @@ async function collectDashboardSnapshot(
       }
       : undefined,
     weeklyLimitPeriod.apiCostUsd,
-    "圆环=最近余量；右侧=当前周额度周期累计。",
+    "圆环=最近余量；右侧=当前周期累计。",
     weeklyLimitPeriod.quotaEvidence?.usedPercent ?? null
   );
   const observableMonthWindow = buildLimitWindow(

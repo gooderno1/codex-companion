@@ -371,8 +371,8 @@ function BrandMark() {
       <svg viewBox="0 0 64 64">
         <defs>
           <linearGradient id="brandMarkGradient" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#2563eb" />
-            <stop offset="100%" stopColor="#06b6d4" />
+            <stop offset="0%" stopColor="var(--accent-blue)" />
+            <stop offset="100%" stopColor="var(--accent-teal)" />
           </linearGradient>
         </defs>
         <path
@@ -386,7 +386,7 @@ function BrandMark() {
         <path
           d="M43 56H22L8 48V16l14-8h21"
           fill="none"
-          stroke="#2563eb"
+          stroke="var(--accent-blue)"
           strokeWidth="5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -394,15 +394,15 @@ function BrandMark() {
         <path
           d="M39 22 31 18 22 23v18l9 5 8-4"
           fill="none"
-          stroke="#06b6d4"
+          stroke="var(--accent-teal)"
           strokeWidth="4.5"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <circle cx="55" cy="28" r="4.5" fill="#ffffff" stroke="#06b6d4" strokeWidth="3" />
-        <circle cx="44" cy="8" r="4" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
-        <circle cx="44" cy="56" r="4" fill="#ffffff" stroke="#2563eb" strokeWidth="3" />
-        <circle cx="31" cy="32" r="3.5" fill="#0f172a" />
+        <circle cx="55" cy="28" r="4.5" fill="#ffffff" stroke="var(--accent-teal)" strokeWidth="3" />
+        <circle cx="44" cy="8" r="4" fill="#ffffff" stroke="var(--accent-blue)" strokeWidth="3" />
+        <circle cx="44" cy="56" r="4" fill="#ffffff" stroke="var(--accent-blue)" strokeWidth="3" />
+        <circle cx="31" cy="32" r="3.5" fill="var(--text-primary)" />
       </svg>
     </div>
   );

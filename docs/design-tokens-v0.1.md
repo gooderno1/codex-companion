@@ -1,7 +1,7 @@
 # Codex Companion 设计 Token（v0.1）
 
 - 创建时间：2026-06-04
-- 对应开发版本：`v0.2.2-dev.39`
+- 对应开发版本：`v0.2.2-dev.47`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
 - 代码来源：`src/renderer/design-tokens.ts`
 - 应用入口：`src/renderer/main.tsx` 调用 `applyDesignTokens()`
@@ -24,30 +24,30 @@
 
 | Token | 当前值 | 用途 |
 | --- | --- | --- |
-| `--bg-canvas` | `#f8fbff` | 页面浅蓝白背景 |
-| `--bg-veil` | `rgba(255, 255, 255, 0.97)` | 壳层白色透底 |
-| `--surface-primary` | `rgba(255, 255, 255, 0.97)` | 主卡片表面 |
+| `--bg-canvas` | `#f7faff` | 页面浅蓝白背景 |
+| `--bg-veil` | `rgba(255, 255, 255, 0.985)` | 壳层白色透底 |
+| `--surface-primary` | `rgba(255, 255, 255, 0.985)` | 主卡片表面 |
 | `--surface-strong` | `#ffffff` | 强白底 |
-| `--surface-muted` | `rgba(248, 251, 255, 0.88)` | 弱卡片表面 |
+| `--surface-muted` | `rgba(247, 250, 255, 0.86)` | 弱卡片表面 |
 
 ### 2.2 文字
 
 | Token | 当前值 | 用途 |
 | --- | --- | --- |
-| `--text-primary` | `#111827` | 主标题、主数字 |
-| `--text-secondary` | `#475569` | 正文、表格正文、普通按钮 |
-| `--text-tertiary` | `#64748b` | 副标题、表头、页脚 |
-| `--text-muted` | `#7c8ca3` | 证据、定价来源、低权重说明 |
+| `--text-primary` | `#101828` | 主标题、主数字 |
+| `--text-secondary` | `#344054` | 正文、表格正文、普通按钮 |
+| `--text-tertiary` | `#667085` | 副标题、表头、页脚 |
+| `--text-muted` | `#8a97a8` | 证据、定价来源、低权重说明 |
 
 ### 2.3 强调色
 
 | Token | 当前值 | 用途 |
 | --- | --- | --- |
-| `--accent-blue` | `#0f6fff` | 主蓝、当前态、5H 额度 |
+| `--accent-blue` | `#0b6ff2` | 主蓝、当前态、5H 额度 |
 | `--accent-teal` | `#12b8d7` | 蓝色渐变辅助 |
-| `--accent-green` | `#16a34a` | 成功、周额度、正向变化 |
-| `--accent-amber` | `#d97706` | 警告 |
-| `--accent-rose` | `#dc2626` | 风险、负向变化 |
+| `--accent-green` | `#10a35b` | 成功、周额度、正向变化 |
+| `--accent-amber` | `#d88a1f` | 警告 |
+| `--accent-rose` | `#d04444` | 风险、负向变化 |
 
 ### 2.4 圆角、间距与字体
 
@@ -75,6 +75,16 @@ npm run verify:design
 - 核心颜色、圆角和间距 token 不得意外偏离当前 UI Contract。
 - `design-tokens.ts` 必须导出 `applyDesignTokens()`，确保运行时真正注入 CSS 变量。
 - 组件局部变量不纳入全局 token，例如 `--app-scale`、`--quota-accent`、`--quota-accent-end` 和 `--quota-progress`；这些变量只能在对应组件或运行时计算中使用。
+
+## 3.1 `v0.2.2-dev.47` 细节修正
+
+本轮按 `v0.3.3` 总览页设计图对齐细节，重点处理色阶而不是重排页面：
+
+- 主文字从纯黑倾向收敛为 `#101828`，保留强信息层级，但减少截图中的黑色压迫感。
+- 正文与表格值统一到 `#344054`，避免所有非主标题文字都显得过浅或偏蓝。
+- 页脚、证据、定价来源统一使用更弱的 `#8a97a8`，降低底部辅助信息权重。
+- 主描边与强描边降低蓝色透明度，卡片更接近设计图的白底浅线框，而不是偏蓝的浮层块。
+- 状态绿、警告橙、风险红轻微降饱和，优先服务工作型仪表盘，不做营销式高亮。
 
 本校验不替代人工视觉对照。它只防止 token 漏定义和关键视觉变量意外漂移；页面密度、分区比例和真实截图仍按 `docs/design-review/overview-visual-measurement-v0.1.md` 验收。
 
