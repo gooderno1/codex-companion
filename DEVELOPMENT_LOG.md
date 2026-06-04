@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.40 test: 增加总览页级验收命令
+
+- 开发原因：继续推进“认真对照并争取全部改完”的目标；现有 `verify:design`、`verify:quota`、真实截图和分区审计证据分散，缺少一条总览页级命令确认设计图、文档、截图、图标组件、token 和额度真实数据证据齐套。
+- 实现方式：新增 `scripts/verify-overview-readiness.mjs` 和 `npm run verify:overview`；脚本检查总览页交付文件、关键文档内容、实现标记、最新截图，并串联执行 `verify-design-tokens` 与 `verify-quota-snapshot`；同步更新设计到产品流程、目标完成度审计和版本号。
+- 当前结果：总览页具备页面级可执行验收入口；本轮不修改 UI、数据采集、额度计算或项目聚合逻辑。
+- 验证方式：执行 `npm run verify:overview`；执行 `npm run verify:design`；执行 `npm run verify:quota`；执行 `npm run build`；本轮不修改 UI，不生成新截图；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.39 test: 增加设计 token 校验
 
 - 开发原因：继续推进“按流程从设计图过渡到实际产品”的目标；虽然运行时已有 `src/renderer/design-tokens.ts`，但缺少正式 token 文档和可执行校验，后续配色、圆角和核心间距容易在页面迭代中漂移。

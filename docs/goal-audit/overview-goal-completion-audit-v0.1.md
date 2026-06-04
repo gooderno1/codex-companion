@@ -1,7 +1,7 @@
 # 总览页目标完成度审计（v0.1）
 
 - 创建时间：2026-06-04
-- 审计版本：`v0.2.2-dev.39`
+- 审计版本：`v0.2.2-dev.40`
 - 审计对象：总览页设计对照、图标资产、额度真实数据和交付验证
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
 - 实现截图：`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`
@@ -9,6 +9,7 @@
 - 设计 token：`docs/design-tokens-v0.1.md`、`src/renderer/design-tokens.ts`、`npm run verify:design`
 - 运行快照：`C:\Users\85406\AppData\Roaming\codex-companion\snapshot.json`
 - 额度校验：`npm run verify:quota`
+- 页面级验收：`npm run verify:overview`
 - 参考项目：`D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\dev-ledger`
 
 ## 1. 审计结论
@@ -22,6 +23,7 @@
 - 已补齐非官方品牌图标、导航图标、指标图标、额度明细图标和项目图标。
 - 额度卡已接入真实 Codex `rate_limits`、本地 session token 增量和本地 Git 数据，不再使用静态估算。
 - 最新 `1360 x 900` 与 `1080 x 720` 截图均能完整显示总览页主要区块。
+- 已新增 `npm run verify:overview`，把设计图、文档、截图、关键实现标记、设计 token 校验和额度快照校验收敛为总览页级本地验收入口。
 
 仍不能声称“像素级完全一致”：
 
@@ -41,7 +43,7 @@
 | 需要时补充图标等资产 | 已完成 | `src/renderer/App.tsx` 中 `BrandMark`、`Glyph`、项目图标映射；`docs/component-map.md` 当前约束 | 当前使用本项目自定义内联 SVG，不使用 OpenAI / Codex 官方 logo 或第三方品牌资产。 |
 | 额度数据接入真实数据 | 已完成 | `src/main/collectors/codexCollector.ts`、`src/main/collectors/dashboardCollector.ts`、`docs/data-contract-v0.2.md`、`docs/data-audit/overview-token-quota-audit-v0.1.md`、`npm run verify:quota` | 额度余量来自最近 `rate_limits`，周期边界来自 `resets_at + window_minutes`，右侧 token / 成本 / 会话 / 模型占比来自当前额度周期内的真实 token 增量；`verify:quota` 用运行态快照自动断言这些关键不变量。 |
 | 参考 `dev-ledger` 项目 | 已完成 | `docs/data-audit/overview-token-quota-audit-v0.1.md`；`dev-ledger/docs/data-contract.md` 中额度周期口径 | 当前实现采用与 `dev-ledger` 一致的连续快照增量、自然时间 / 计费时间分离、5H / 周额度窗口口径。 |
-| 认真对照并争取全部改完 | 当前可交付，待用户图审 | `local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`、`npm run build`、`npm run verify:quota` | 已处理多轮高置信差异；视觉是否继续精修应以用户对最新截图的确认或新标注为准。 |
+| 认真对照并争取全部改完 | 当前可交付，待用户图审 | `local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`、`npm run build`、`npm run verify:overview` | 已处理多轮高置信差异；`verify:overview` 统一检查交付物齐套、关键文档口径、设计 token 和额度真实数据校验；视觉是否继续精修应以用户对最新截图的确认或新标注为准。 |
 
 ## 3. 区块完成度
 
@@ -126,6 +128,7 @@
 最新已执行验证：
 
 - `npm run build`：通过
+- `npm run verify:overview`：通过，校验总览页设计图、规格文档、组件映射、分区审计、比例测量、设计 token、额度审计、目标审计、关键实现组件和真实 Electron 截图证据，并串联执行 `verify:design` 与 `verify:quota`
 - `npm run verify:design`：通过，校验 `styles.css` 的 token 引用和核心设计变量
 - `npm run verify:quota`：通过，校验 5H / 周额度窗口、周期边界、观测证据和价值折算分母
 - `git diff --check`：通过，仅有 Windows 换行提示

@@ -1,0 +1,135 @@
+#!/usr/bin/env node
+import { access, readFile, stat } from "node:fs/promises";
+import path from "node:path";
+import process from "node:process";
+import { spawnSync } from "node:child_process";
+
+const ROOT = process.cwd();
+
+const REQUIRED_FILES = [
+  "docs/assets/design/v0.3.3/overview-natural-time.png",
+  "docs/ui-contract/overview-v0.1.md",
+  "docs/component-map.md",
+  "docs/design-review/overview-block-audit-v0.1.md",
+  "docs/design-review/overview-visual-measurement-v0.1.md",
+  "docs/design-tokens-v0.1.md",
+  "docs/data-audit/overview-token-quota-audit-v0.1.md",
+  "docs/goal-audit/overview-goal-completion-audit-v0.1.md",
+  "src/renderer/App.tsx",
+  "src/renderer/design-tokens.ts",
+  "local_dev_work/overview-1360x900-dev36.png",
+  "local_dev_work/overview-1080x720-dev36.png"
+];
+
+const TEXT_ASSERTIONS = [
+  {
+    file: "docs/ui-contract/overview-v0.1.md",
+    includes: ["左侧导航", "顶部工具栏", "顶部四卡", "中部两张额度卡", "项目概览", "页脚数据来源"]
+  },
+  {
+    file: "docs/component-map.md",
+    includes: ["BrandMark", "Glyph", "MetricCard", "QuotaWindowCard", "OverviewPage", "FooterNote"]
+  },
+  {
+    file: "docs/design-review/overview-block-audit-v0.1.md",
+    includes: ["左侧", "顶部", "额度", "项目概览", "v0.2.2-dev.36"]
+  },
+  {
+    file: "docs/design-review/overview-visual-measurement-v0.1.md",
+    includes: ["overview-1360x900-dev36.png", "overview-1080x720-dev36.png", "项目概览默认周期复测"]
+  },
+  {
+    file: "docs/goal-audit/overview-goal-completion-audit-v0.1.md",
+    includes: ["npm run verify:design", "npm run verify:quota", "overview-1360x900-dev36.png", "overview-1080x720-dev36.png"]
+  },
+  {
+    file: "src/renderer/App.tsx",
+    includes: ["function BrandMark", "function Glyph", "function QuotaWindowCard", "function OverviewPage", "project-row-icon"]
+  }
+];
+
+function runNodeScript(scriptPath) {
+  const result = spawnSync(process.execPath, [scriptPath], {
+    cwd: ROOT,
+    encoding: "utf8",
+    stdio: "pipe"
+  });
+
+  if (result.status !== 0) {
+    return {
+      ok: false,
+      output: [result.stdout, result.stderr].filter(Boolean).join("\n").trim()
+    };
+  }
+
+  return {
+    ok: true,
+    output: result.stdout.trim()
+  };
+}
+
+async function fileExists(relativePath) {
+  const absolutePath = path.join(ROOT, relativePath);
+  await access(absolutePath);
+  const fileStat = await stat(absolutePath);
+  return fileStat.size;
+}
+
+async function main() {
+  const errors = [];
+  const checkedFiles = [];
+
+  for (const file of REQUIRED_FILES) {
+    try {
+      const size = await fileExists(file);
+      if (size <= 0) {
+        errors.push(`${file} 为空。`);
+      } else {
+        checkedFiles.push(file);
+      }
+    } catch {
+      errors.push(`${file} 缺失。`);
+    }
+  }
+
+  for (const assertion of TEXT_ASSERTIONS) {
+    try {
+      const content = await readFile(path.join(ROOT, assertion.file), "utf8");
+      for (const keyword of assertion.includes) {
+        if (!content.includes(keyword)) {
+          errors.push(`${assertion.file} 缺少关键内容：${keyword}`);
+        }
+      }
+    } catch {
+      errors.push(`${assertion.file} 无法读取。`);
+    }
+  }
+
+  const designCheck = runNodeScript(path.join(ROOT, "scripts", "verify-design-tokens.mjs"));
+  if (!designCheck.ok) {
+    errors.push(`verify-design-tokens 失败：\n${designCheck.output}`);
+  }
+
+  const quotaCheck = runNodeScript(path.join(ROOT, "scripts", "verify-quota-snapshot.mjs"));
+  if (!quotaCheck.ok) {
+    errors.push(`verify-quota-snapshot 失败：\n${quotaCheck.output}`);
+  }
+
+  if (errors.length > 0) {
+    console.error("总览页验收失败：");
+    for (const error of errors) {
+      console.error(`- ${error}`);
+    }
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`总览页验收通过：${checkedFiles.length} 个交付物存在且关键内容完整。`);
+  console.log(designCheck.output);
+  console.log(quotaCheck.output);
+}
+
+main().catch((error) => {
+  console.error(`总览页验收异常：${error instanceof Error ? error.message : String(error)}`);
+  process.exitCode = 1;
+});
