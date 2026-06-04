@@ -57,6 +57,7 @@ const STATIC_TEXT_ASSERTIONS = [
       "rate_limits.secondary",
       "quotaEvidence",
       "estimatedValueBasisUsedPercent",
+      "billingMonthStartDay",
       "limit_id=codex",
       "较昨日",
       "60"
@@ -123,7 +124,11 @@ const STATIC_TEXT_ASSERTIONS = [
   },
   {
     file: "src/shared/contracts.ts",
-    includes: ["yesterday: CodeActivity"]
+    includes: ["yesterday: CodeActivity", "billingMonthStartDay: number"]
+  },
+  {
+    file: "src/main/state/settingsStore.ts",
+    includes: ["DEFAULT_BILLING_MONTH_START_DAY", "billingMonthStartDay"]
   },
   {
     file: "src/renderer/App.tsx",
@@ -141,6 +146,17 @@ const STATIC_TEXT_ASSERTIONS = [
       "onDashboardUpdated",
       "card.sourceStatus",
       'sourceStatus: billingMonth ? globalSourceStatus : "unobserved"'
+    ]
+  },
+  {
+    file: "src/main/collectors/dashboardCollector.ts",
+    includes: [
+      "startOfBillingMonth",
+      "billingMonthStartDay",
+      '"billingMonth"',
+      '"当前计费月"',
+      '"previousBillingMonth"',
+      '"上个计费月"'
     ]
   },
   {

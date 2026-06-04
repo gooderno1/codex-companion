@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.61 fix: 默认计费月与自然月对齐
+
+- 开发原因：用户从套餐信息确认当前月度计费从每月 `1` 日开始；此前计费时间下顶部 `本月 Token` 因未直接观测月额度窗口而显示 `未观测`，但 Token 计费月时间窗口已经可以按套餐起始日明确计算。
+- 实现方式：在文档和实现中统一口径：计费月 Token 默认从每月 `1` 日 00:00 起算，月层面默认与自然月一致；为 `AppPreferences` 增加 `billingMonthStartDay`，新增 `startOfBillingMonth`，并让 `dashboardCollector` 产出 `billingMonth / previousBillingMonth` 周期，同时保留 `可观测月额度` 只来自 Codex `rate_limits` 的边界。
+- 当前结果：计费时间下顶部 `本月 Token` 默认展示与自然月一致的本月 Token，不再显示 `未观测`；后续设置页可以直接接入 `billingMonthStartDay` 让用户选择每月第几天作为计费月起始日。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev61` 自然/计费四张真实 Electron 截图；执行 `npm run verify:overview`；执行 `git diff --check`。
+
 ## [2026-06-04] v0.2.2-dev.60 docs: 为代码仓库页补回仓库级投入信息
 
 - 开发原因：用户认可第三页整体结构，但希望再补一些“项目对应的 Token 消耗和对应成本”等信息，并明确要求参考 `dev-ledger` 的 Git 页展示方式。

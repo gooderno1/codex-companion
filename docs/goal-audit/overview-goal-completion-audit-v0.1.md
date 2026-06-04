@@ -1,10 +1,10 @@
 # 总览页目标完成度审计（v0.1）
 
 - 创建时间：2026-06-04
-- 审计版本：`v0.2.2-dev.57`
+- 审计版本：`v0.2.2-dev.61`
 - 审计对象：总览页设计对照、图标资产、额度真实数据和交付验证
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev57.png`、`local_dev_work/overview-1080x720-dev57.png`、`local_dev_work/overview-billing-1360x900-dev57.png`、`local_dev_work/overview-billing-1080x720-dev57.png`
+- 实现截图：`local_dev_work/overview-1360x900-dev61.png`、`local_dev_work/overview-1080x720-dev61.png`、`local_dev_work/overview-billing-1360x900-dev61.png`、`local_dev_work/overview-billing-1080x720-dev61.png`
 - 比例测量：`docs/design-review/overview-visual-measurement-v0.1.md`
 - 设计 token：`docs/design-tokens-v0.1.md`、`src/renderer/design-tokens.ts`、`npm run verify:design`
 - 运行快照：`C:\Users\85406\AppData\Roaming\codex-companion\snapshot.json`
@@ -34,6 +34,7 @@
 - 页面级实现已按 `v0.2.2-dev.53` 修正额度圆环为周期累计余量，扩大 Codex session 采集窗口以重建前几周计费周历史，提升顶部四卡图标尺寸，并要求截图前必须拿到 `live` 快照，避免旧缓存误导图审。
 - 页面级实现已按 `v0.2.2-dev.54` 修正多 `rate_limits` 池场景，优先主额度池 `limit_id=codex`，并让 `今日代码改动` 的 `较昨日` 使用昨日自然日 Git 行数作为分母。
 - 页面级实现已按 `v0.2.2-dev.57` 隐藏顶部四卡正常 `已观测` 单卡标签，异常态仍保留；四卡图标放大到接近右侧三行文字高度，并收紧图标与文字间距。
+- 页面级实现已按 `v0.2.2-dev.61` 将计费月 Token 默认起始日设为每月 `1` 日，计费时间下 `本月 Token` 默认与自然月一致；月额度仍保持未观测，不用计费月 Token 伪装。
 - 顶部四卡已区分“数据缺失”和“上一周期为 0 的新增场景”，不再把有数据的新增误显示为 `数据待补齐`。
 - 最新 `1360 x 900` 与 `1080 x 720` 截图均能完整显示总览页主要区块。
 - `npm run capture:overview` 已按当前开发版本生成真实 Electron 截图；`npm run verify:overview` 已绑定当前开发版本截图，并把挂件隐藏、真实 `rate_limits` 采集、连续 token 增量、额度周期证据、设计 token 和额度快照校验收敛为总览页级本地验收入口。
@@ -56,7 +57,7 @@
 | 需要时补充图标等资产 | 已完成 | `src/renderer/icons.tsx` 中 `BrandMark`、`Glyph`；`docs/component-map.md` 当前约束 | 当前使用本项目自定义 SVG 图标模块，不使用 OpenAI / Codex 官方 logo 或第三方品牌资产。 |
 | 额度数据接入真实数据 | 已完成 | `src/main/collectors/codexCollector.ts`、`src/main/collectors/dashboardCollector.ts`、`docs/data-contract-v0.2.md`、`docs/data-audit/overview-token-quota-audit-v0.1.md`、`npm run verify:quota` | 额度圆环优先使用当前额度周期 `quotaEvidence.remainingPercent`，周期边界来自 `resets_at + window_minutes`，右侧 token / 成本 / 会话 / 模型占比来自当前额度周期内的真实 token 增量；`verify:quota` 用运行态快照自动断言这些关键不变量。 |
 | 参考 `dev-ledger` 项目 | 已完成 | `docs/data-audit/overview-token-quota-audit-v0.1.md`；`dev-ledger/docs/data-contract.md` 中额度周期口径 | 当前实现采用与 `dev-ledger` 一致的连续快照增量、自然时间 / 计费时间分离、5H / 周额度窗口口径。 |
-| 认真对照并争取全部改完 | 当前可交付，待用户图审 | `local_dev_work/overview-1360x900-dev57.png`、`local_dev_work/overview-1080x720-dev57.png`、`local_dev_work/overview-billing-1360x900-dev57.png`、`local_dev_work/overview-billing-1080x720-dev57.png`、`npm run build`、`npm run verify:overview` | 已处理多轮高置信差异；`verify:overview` 统一检查交付物齐套、关键文档口径、当前版本自然/计费截图、设计 token、额度真实数据、截图前 live 快照、实时刷新广播和目标关键不变量；视觉是否继续精修应以用户对最新截图的确认或新标注为准。 |
+| 认真对照并争取全部改完 | 当前可交付，待用户图审 | `local_dev_work/overview-1360x900-dev61.png`、`local_dev_work/overview-1080x720-dev61.png`、`local_dev_work/overview-billing-1360x900-dev61.png`、`local_dev_work/overview-billing-1080x720-dev61.png`、`npm run build`、`npm run verify:overview` | 已处理多轮高置信差异；`verify:overview` 统一检查交付物齐套、关键文档口径、当前版本自然/计费截图、设计 token、额度真实数据、截图前 live 快照、实时刷新广播和目标关键不变量；视觉是否继续精修应以用户对最新截图的确认或新标注为准。 |
 
 ## 3. 区块完成度
 
@@ -94,6 +95,7 @@
 - 卡片内容区整体居中，标题、主数字和变化说明在内容组内居中对齐；指标图标使用自适应尺寸，当前尺寸约 `64px - 72px`，接近右侧三行文字总高度。
 - Token 自动切换 `万 / 亿` 单位。
 - `今日代码改动` 当前使用今日自然日 `8107` 行与昨日自然日 `5219` 行计算，截图中显示 `较昨日 +55.3%`。
+- 计费时间下 `本月 Token` 默认按每月 `1` 日起算，当前与自然月一致；该字段是 Token 时间窗口，不代表月额度已观测。
 
 状态：已完成当前设计目标。
 
@@ -159,10 +161,10 @@
 - `npm run verify:design`：通过，校验 `styles.css` 的 token 引用和核心设计变量
 - `npm run verify:quota`：通过，校验 5H / 周额度窗口、周期边界、观测证据和价值折算分母
 - `git diff --check`：通过，仅有 Windows 换行提示
-- 真实 Electron 截图：`local_dev_work/overview-1360x900-dev57.png`
-- 真实 Electron 截图：`local_dev_work/overview-1080x720-dev57.png`
-- 真实 Electron 截图：`local_dev_work/overview-billing-1360x900-dev57.png`
-- 真实 Electron 截图：`local_dev_work/overview-billing-1080x720-dev57.png`
+- 真实 Electron 截图：`local_dev_work/overview-1360x900-dev61.png`
+- 真实 Electron 截图：`local_dev_work/overview-1080x720-dev61.png`
+- 真实 Electron 截图：`local_dev_work/overview-billing-1360x900-dev61.png`
+- 真实 Electron 截图：`local_dev_work/overview-billing-1080x720-dev61.png`
 - 运行态快照摘要读取：通过，只输出聚合字段，不输出原始会话内容
 
 ## 5. 后续判定规则

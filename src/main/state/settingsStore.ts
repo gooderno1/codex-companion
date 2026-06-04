@@ -5,6 +5,7 @@ import type { AppPreferences, WidgetPreferences } from "../../shared/contracts";
 import { pathExists, readJsonFile, writeJsonFile } from "../utils/fs";
 
 const SETTINGS_FILE_NAME = "settings.json";
+const DEFAULT_BILLING_MONTH_START_DAY = 1;
 
 function defaultWidgetPreferences(): WidgetPreferences {
   return {
@@ -56,6 +57,7 @@ export class SettingsStore {
   public async read(): Promise<AppPreferences> {
     const fallback: AppPreferences = {
       repoRoots: await resolveDefaultRepoRoots(),
+      billingMonthStartDay: DEFAULT_BILLING_MONTH_START_DAY,
       widget: defaultWidgetPreferences()
     };
 
@@ -69,6 +71,10 @@ export class SettingsStore {
       repoRoots:
         stored.repoRoots?.filter((item): item is string => Boolean(item)) ??
         fallback.repoRoots,
+      billingMonthStartDay:
+        typeof stored.billingMonthStartDay === "number"
+          ? Math.max(1, Math.min(31, Math.trunc(stored.billingMonthStartDay)))
+          : fallback.billingMonthStartDay,
       widget: {
         ...fallback.widget,
         ...stored.widget

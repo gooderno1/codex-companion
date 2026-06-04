@@ -12,7 +12,13 @@ import type {
 } from "../../shared/contracts";
 import { SnapshotStore } from "../state/snapshotStore";
 import { SettingsStore } from "../state/settingsStore";
-import { addMinutes, startOfDay, startOfMonth, startOfWeek } from "../utils/time";
+import {
+  addMinutes,
+  startOfBillingMonth,
+  startOfDay,
+  startOfMonth,
+  startOfWeek
+} from "../utils/time";
 import {
   collectCodexData,
   type CodexTokenEvent,
@@ -1124,6 +1130,14 @@ async function collectDashboardSnapshot(
   const sevenDayStart = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
   const naturalWeekStart = startOfWeek(now);
   const monthStart = startOfMonth(now);
+  const billingMonthStart = startOfBillingMonth(
+    now,
+    preferences.billingMonthStartDay
+  );
+  const previousBillingMonthStart = startOfBillingMonth(
+    addMinutes(billingMonthStart, -1),
+    preferences.billingMonthStartDay
+  );
 
   const todayPeriod = buildPeriodMetric(
     "today",
@@ -1245,8 +1259,23 @@ async function collectDashboardSnapshot(
           secondaryWindowRange?.end ?? now
         )
       : null;
-  const billingMonthPeriod: PeriodMetric | null = null;
-  const previousBillingMonthPeriod: PeriodMetric | null = null;
+  const billingMonthPeriod = buildPeriodMetric(
+    "billingMonth",
+    "当前计费月",
+    billingMonthStart,
+    now,
+    codex.events,
+    preferences.billingMonthStartDay === 1
+      ? aggregateCodeFromRepos(git.items, "month")
+      : emptyCodeActivity()
+  );
+  const previousBillingMonthPeriod = buildPeriodMetric(
+    "previousBillingMonth",
+    "上个计费月",
+    previousBillingMonthStart,
+    billingMonthStart,
+    codex.events
+  );
 
   const primaryWindow = buildLimitWindow(
     "primary",
@@ -1398,7 +1427,8 @@ async function collectDashboardSnapshot(
       sourceStatus: codex.sourceStatus,
       notes: [
         ...codex.notes,
-        "代码改动基于 Git 已提交历史与当前工作区 diff，不读取云端仓库信息。"
+        "代码改动基于 Git 已提交历史与当前工作区 diff，不读取云端仓库信息。",
+        `计费月 Token 默认按每月第 ${preferences.billingMonthStartDay} 天 00:00 起算；月额度字段仍以 Codex rate_limits 是否暴露为准。`
       ]
     },
     overview: {

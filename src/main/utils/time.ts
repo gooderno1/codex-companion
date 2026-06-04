@@ -22,6 +22,44 @@ export function startOfMonth(value: Date): Date {
   return new Date(value.getFullYear(), value.getMonth(), 1, 0, 0, 0, 0);
 }
 
+function daysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function normalizeBillingMonthStartDay(day: number): number {
+  if (!Number.isFinite(day)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.min(31, Math.trunc(day)));
+}
+
+function makeBillingMonthStart(year: number, month: number, day: number): Date {
+  const normalizedDay = normalizeBillingMonthStartDay(day);
+  return new Date(
+    year,
+    month,
+    Math.min(normalizedDay, daysInMonth(year, month)),
+    0,
+    0,
+    0,
+    0
+  );
+}
+
+export function startOfBillingMonth(value: Date, startDay: number): Date {
+  const currentStart = makeBillingMonthStart(
+    value.getFullYear(),
+    value.getMonth(),
+    startDay
+  );
+  if (value >= currentStart) {
+    return currentStart;
+  }
+
+  return makeBillingMonthStart(value.getFullYear(), value.getMonth() - 1, startDay);
+}
+
 export function addMinutes(value: Date, minutes: number): Date {
   return new Date(value.getTime() + minutes * 60_000);
 }

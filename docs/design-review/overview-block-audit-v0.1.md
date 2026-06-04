@@ -708,3 +708,24 @@
 - 不改变顶部四卡字段、主数字、变化说明、单位、图标语义和数据口径。
 - 不全局拉大卡片间距或页面高度，避免重新造成小窗口溢出。
 - `1360 x 900` 与 `1080 x 720` 的自然/计费四张截图必须重新生成到 `dev57`。
+
+## 46. `v0.2.2-dev.61` 计费月 Token 默认口径修正
+
+基于用户从套餐信息确认的月度计费起始规则，本轮修正计费时间下顶部 `本月 Token` 的数据状态：
+
+- 当前套餐计费月从每月 `1` 日开始，因此默认计费月 Token 与自然月 Token 一致。
+- Codex 原始 `rate_limits` 仍未暴露月额度窗口，因此 `可观测月额度` 不能因此变成已观测。
+- 后续设置页应提供 `billingMonthStartDay`，让用户选择每月第几天作为计费月起始日。
+
+本轮要求：
+
+- `AppPreferences` 增加 `billingMonthStartDay`，默认 `1`。
+- `dashboardCollector` 使用 `startOfBillingMonth(now, billingMonthStartDay)` 构建 `overview.windowPeriods.billingMonth`。
+- 计费时间下顶部 `本月 Token` 使用该计费月周期，不再显示 `未观测`。
+- `observableMonthWindow` 继续保持月额度未观测，避免把计费月 Token 当成月额度。
+
+验收边界：
+
+- 不改变自然时间顶部四卡字段和数值口径。
+- 不改变 5H / 周额度真实 `rate_limits` 口径。
+- `1360 x 900` 与 `1080 x 720` 的自然/计费四张截图必须重新生成到 `dev61`。

@@ -249,6 +249,7 @@ export interface WidgetPreferences {
 
 export interface AppPreferences {
   repoRoots: string[];
+  billingMonthStartDay: number;
   widget: WidgetPreferences;
 }
 
