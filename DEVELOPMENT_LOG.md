@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.44 fix: 优化额度周期范围文案
+
+- 开发原因：继续按区块对照总览页设计稿；当前周额度窗口的周期文案会显示成 `周期 09:02 - 09:02`，真实周期边界正确，但前端文案容易被误解为零长度周期。
+- 实现方式：更新 UI Contract、组件映射、分区审计、比例测量和目标审计，明确额度周期范围按跨度自适应显示；新增 `formatQuotaPeriodRange`，同日短周期显示 `HH:mm - HH:mm`，跨日短周期显示 `MM/DD HH:mm - MM/DD HH:mm`，周额度等多日周期显示 `MM/DD - MM/DD`；同步提升版本号。
+- 当前结果：额度卡保留重置时间和周期范围同一行展示，周额度不再显示两个相同时间点；不改变额度周期计算、Token、成本、代码行数、会话数、圆环余量、观测证据或模型占比。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev44` 当前版本截图；执行 `npm run verify:overview`；执行 `npm run verify:design`；执行 `npm run verify:quota`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.43 fix: 补齐额度 Token 明细单位
 
 - 开发原因：继续按区块对照总览页设计稿；中部额度卡右侧 `Token 用量` 在设计稿中带 `tok` 后缀，当前实现只显示紧凑数字，扫读时不如设计稿明确。

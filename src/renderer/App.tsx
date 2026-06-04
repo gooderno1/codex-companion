@@ -160,6 +160,17 @@ function formatTime(iso: string | null) {
   });
 }
 
+function formatMonthDay(iso: string | null) {
+  if (!iso) {
+    return "--";
+  }
+
+  return new Date(iso).toLocaleDateString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit"
+  });
+}
+
 function formatDateTime(iso: string | null) {
   if (!iso) {
     return "--";
@@ -172,6 +183,38 @@ function formatDateTime(iso: string | null) {
     minute: "2-digit",
     hour12: false
   });
+}
+
+function isSameLocalDate(left: Date, right: Date) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
+function formatQuotaPeriodRange(startIso: string | null, endIso: string | null) {
+  if (!startIso || !endIso) {
+    return "--";
+  }
+
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  const durationMs = end.getTime() - start.getTime();
+
+  if (!Number.isFinite(durationMs) || durationMs <= 0) {
+    return `${formatTime(startIso)} - ${formatTime(endIso)}`;
+  }
+
+  if (isSameLocalDate(start, end)) {
+    return `${formatTime(startIso)} - ${formatTime(endIso)}`;
+  }
+
+  if (durationMs < 24 * 60 * 60 * 1000) {
+    return `${formatDateTime(startIso)} - ${formatDateTime(endIso)}`;
+  }
+
+  return `${formatMonthDay(startIso)} - ${formatMonthDay(endIso)}`;
 }
 
 function formatShortDate(iso: string | null) {
@@ -495,8 +538,8 @@ function QuotaWindowCard({
             </div>
           </div>
           <div className="quota-reset-label">
-            重置 {formatDateTime(windowData.resetsAt)} · 周期 {formatTime(period.startAt)} -{" "}
-            {formatTime(period.endAt)}
+            重置 {formatDateTime(windowData.resetsAt)} · 周期{" "}
+            {formatQuotaPeriodRange(period.startAt, period.endAt)}
           </div>
         </div>
 
