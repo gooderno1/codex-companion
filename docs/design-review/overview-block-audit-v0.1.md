@@ -522,3 +522,20 @@
 - 刷新页脚数据来源摘要中的 session / archived / 仓库数量。
 - 重新生成当前版本 `1360 x 900` 与 `1080 x 720` 截图，确保页面级验收仍绑定当前版本。
 - 不改变 UI、额度计算、Token 增量、Git 聚合或图标资产。
+
+## 36. `v0.2.2-dev.46` 页面级验收覆盖原目标关键不变量
+
+继续复核 `npm run verify:overview` 的覆盖范围时发现，当前脚本已经检查设计图、文档、截图和基础组件标记，但对原目标中的若干关键约束仍是间接证据：
+
+- 挂件当前必须隐藏，不能因为后续改动重新打开。
+- 额度数据必须来自 Codex `rate_limits`、连续 `total_token_usage` 增量和当前额度周期，而不是静态估算。
+- 额度价值折算必须使用周期累计 `quotaEvidence.usedPercent`，不能回退到最近一次原始百分比。
+- 额度卡周期文案和 `tok` 后缀等近期设计细节不能回退。
+- 设计图标必须继续使用本项目自定义组件，不引入官方或第三方品牌图标。
+
+本轮要求：
+
+- `verify:overview` 增加 `src/main/index.ts`、`codexCollector.ts`、`dashboardCollector.ts` 和 `docs/data-contract-v0.2.md` 的关键内容检查。
+- 校验 `WIDGET_DISABLED`、`rate_limits`、`total_token_usage`、`quotaEvidence`、`estimatedValueBasisUsedPercent`、`formatQuotaPeriodRange` 和 `tok` 等关键标记。
+- 继续串联 `verify:design` 和 `verify:quota`，避免只做静态字符串检查。
+- 本轮不改变 UI、采集逻辑、额度算法或图标实现，只增强回归保护。

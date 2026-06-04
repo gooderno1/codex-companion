@@ -46,6 +46,12 @@ function numberFromEnv(name: string, fallback: number): number {
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 function resolveRendererUrl(page: AppPage): string {
   const route = `#/${page}`;
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -72,7 +78,29 @@ function scheduleMainWindowCapture() {
             throw new Error("主窗口不存在");
           }
 
-          const image = await mainWindow.capturePage();
+          let lastCaptureError: unknown = null;
+          let image: Electron.NativeImage | null = null;
+          for (let attempt = 1; attempt <= 3; attempt += 1) {
+            try {
+              await delay(attempt * 750);
+              const bounds = mainWindow.getBounds();
+              image = await mainWindow.capturePage({
+                x: 0,
+                y: 0,
+                width: bounds.width,
+                height: bounds.height
+              });
+              break;
+            } catch (error) {
+              lastCaptureError = error;
+              await delay(750);
+            }
+          }
+
+          if (!image) {
+            throw lastCaptureError ?? new Error("截图结果为空");
+          }
+
           await writeFile(capturePath, image.toPNG());
         } catch (error) {
           captureFailed = true;

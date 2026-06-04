@@ -13,8 +13,12 @@ const STATIC_REQUIRED_FILES = [
   "docs/design-review/overview-block-audit-v0.1.md",
   "docs/design-review/overview-visual-measurement-v0.1.md",
   "docs/design-tokens-v0.1.md",
+  "docs/data-contract-v0.2.md",
   "docs/data-audit/overview-token-quota-audit-v0.1.md",
   "docs/goal-audit/overview-goal-completion-audit-v0.1.md",
+  "src/main/index.ts",
+  "src/main/collectors/codexCollector.ts",
+  "src/main/collectors/dashboardCollector.ts",
   "src/renderer/App.tsx",
   "src/renderer/design-tokens.ts"
 ];
@@ -41,8 +45,53 @@ const STATIC_TEXT_ASSERTIONS = [
     includes: ["npm run verify:design", "npm run verify:quota", "npm run verify:overview"]
   },
   {
+    file: "docs/data-contract-v0.2.md",
+    includes: [
+      "total_token_usage",
+      "rate_limits.primary",
+      "rate_limits.secondary",
+      "quotaEvidence",
+      "estimatedValueBasisUsedPercent"
+    ]
+  },
+  {
+    file: "docs/data-audit/overview-token-quota-audit-v0.1.md",
+    includes: ["dev-ledger", "不输出原始会话正文", "rate_limits", "quotaEvidence.usedPercent"]
+  },
+  {
+    file: "src/main/index.ts",
+    includes: ["const WIDGET_DISABLED = true", "CODEX_COMPANION_CAPTURE_PATH"]
+  },
+  {
+    file: "src/main/collectors/codexCollector.ts",
+    includes: [
+      "diffTokenBreakdown",
+      "total_token_usage",
+      "last_token_usage",
+      "payload.rate_limits",
+      "window_minutes"
+    ]
+  },
+  {
+    file: "src/main/collectors/dashboardCollector.ts",
+    includes: [
+      "quotaEvidence",
+      "estimatedValueBasisUsedPercent",
+      "primaryPeriod.quotaEvidence?.usedPercent",
+      "weeklyLimitPeriod.quotaEvidence?.usedPercent"
+    ]
+  },
+  {
     file: "src/renderer/App.tsx",
-    includes: ["function BrandMark", "function Glyph", "function QuotaWindowCard", "function OverviewPage", "project-row-icon"]
+    includes: [
+      "function BrandMark",
+      "function Glyph",
+      "function QuotaWindowCard",
+      "function OverviewPage",
+      "project-row-icon",
+      "formatQuotaPeriodRange",
+      "tok"
+    ]
   }
 ];
 

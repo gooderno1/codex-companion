@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.46 test: 增强总览页目标不变量验收
+
+- 开发原因：继续推进“认真对照并争取全部改完”的目标；现有 `verify:overview` 已检查截图和基础文档，但对挂件隐藏、真实 `rate_limits` 采集、连续 token 增量、额度周期证据和近期 UI 细节仍是间接证据，后续容易回退。
+- 实现方式：扩展 `scripts/verify-overview-readiness.mjs`，将 `src/main/index.ts`、`codexCollector.ts`、`dashboardCollector.ts`、`docs/data-contract-v0.2.md` 纳入检查，断言 `WIDGET_DISABLED`、`rate_limits`、`total_token_usage`、`quotaEvidence`、`estimatedValueBasisUsedPercent`、`formatQuotaPeriodRange` 和 `tok` 等关键标记；同时增强主进程截图钩子，在 `capturePage()` 触发 `UnknownVizError` 时通过短延迟进行内部重试；同步更新设计流程、分区审计、比例测量、目标审计和版本号。
+- 当前结果：页面级验收从“交付物齐套”增强为“交付物齐套 + 原目标关键不变量未回退”；本轮不修改 UI、采集逻辑、额度算法或图标实现。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev46` 当前版本截图；执行 `npm run verify:overview`；执行 `npm run verify:design`；执行 `npm run verify:quota`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.45 docs: 刷新总览页目标审计运行态证据
 
 - 开发原因：继续推进“额度数据接入真实数据”和“认真对照并争取全部改完”的目标；目标完成度审计中的 5H / 周额度运行态摘要仍停留在旧快照，与当前 `snapshot.json` 和 `npm run verify:quota` 输出不一致。
