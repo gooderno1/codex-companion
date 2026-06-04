@@ -53,7 +53,10 @@ function delay(ms: number) {
 }
 
 function resolveRendererUrl(page: AppPage): string {
-  const route = `#/${page}`;
+  const overviewMode = process.env.CODEX_COMPANION_OVERVIEW_MODE;
+  const overviewQuery =
+    page === "overview" && overviewMode === "billing" ? "?overviewMode=billing" : "";
+  const route = `#/${page}${overviewQuery}`;
   if (process.env.VITE_DEV_SERVER_URL) {
     return `${process.env.VITE_DEV_SERVER_URL}/${route}`;
   }

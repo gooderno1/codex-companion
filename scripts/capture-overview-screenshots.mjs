@@ -11,6 +11,10 @@ const VIEWPORTS = [
   { width: 1360, height: 900 },
   { width: 1080, height: 720 }
 ];
+const CAPTURE_STATES = [
+  { mode: "natural", filePrefix: "overview" },
+  { mode: "billing", filePrefix: "overview-billing" }
+];
 
 async function readPackageVersion() {
   const packageContent = await readFile(path.join(ROOT, "package.json"), "utf8");
@@ -44,7 +48,7 @@ async function assertScreenshotFile(outputPath) {
   return fileStat.size;
 }
 
-async function captureViewport(electronCli, viewport, outputPath) {
+async function captureViewport(electronCli, viewport, state, outputPath) {
   let lastError = "";
 
   for (let attempt = 1; attempt <= MAX_CAPTURE_ATTEMPTS; attempt += 1) {
@@ -57,7 +61,8 @@ async function captureViewport(electronCli, viewport, outputPath) {
         CODEX_COMPANION_CAPTURE_PATH: outputPath,
         CODEX_COMPANION_CAPTURE_DELAY_MS: CAPTURE_DELAY_MS,
         CODEX_COMPANION_WINDOW_WIDTH: String(viewport.width),
-        CODEX_COMPANION_WINDOW_HEIGHT: String(viewport.height)
+        CODEX_COMPANION_WINDOW_HEIGHT: String(viewport.height),
+        CODEX_COMPANION_OVERVIEW_MODE: state.mode
       },
       encoding: "utf8",
       stdio: "inherit",
@@ -77,11 +82,11 @@ async function captureViewport(electronCli, viewport, outputPath) {
     }
 
     console.warn(
-      `第 ${attempt} 次生成 ${viewport.width}x${viewport.height} 截图失败：${lastError}`
+      `第 ${attempt} 次生成 ${state.mode} ${viewport.width}x${viewport.height} 截图失败：${lastError}`
     );
   }
 
-  throw new Error(`生成 ${viewport.width}x${viewport.height} 截图失败：${lastError}`);
+  throw new Error(`生成 ${state.mode} ${viewport.width}x${viewport.height} 截图失败：${lastError}`);
 }
 
 async function main() {
@@ -91,13 +96,15 @@ async function main() {
   await mkdir(outputDir, { recursive: true });
 
   const electronCli = electronCliPath();
-  for (const viewport of VIEWPORTS) {
-    const outputPath = path.join(
-      outputDir,
-      `overview-${viewport.width}x${viewport.height}-${suffix}.png`
-    );
+  for (const state of CAPTURE_STATES) {
+    for (const viewport of VIEWPORTS) {
+      const outputPath = path.join(
+        outputDir,
+        `${state.filePrefix}-${viewport.width}x${viewport.height}-${suffix}.png`
+      );
 
-    await captureViewport(electronCli, viewport, outputPath);
+      await captureViewport(electronCli, viewport, state, outputPath);
+    }
   }
 }
 

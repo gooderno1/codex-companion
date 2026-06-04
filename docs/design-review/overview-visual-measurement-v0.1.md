@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.49`
+- 适用版本：`v0.2.2-dev.50`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图绑定），`local_dev_work/overview-1360x900-dev42.png`、`local_dev_work/overview-1080x720-dev42.png`（顶部四卡新增语义验证），`local_dev_work/overview-1360x900-dev43.png`、`local_dev_work/overview-1080x720-dev43.png`（额度 Token 明细单位验证），`local_dev_work/overview-1360x900-dev44.png`、`local_dev_work/overview-1080x720-dev44.png`（额度周期范围验证），`local_dev_work/overview-1360x900-dev45.png`、`local_dev_work/overview-1080x720-dev45.png`（目标审计运行态刷新），`local_dev_work/overview-1360x900-dev46.png`、`local_dev_work/overview-1080x720-dev46.png`（目标关键不变量验收增强），`local_dev_work/overview-1360x900-dev47.png`、`local_dev_work/overview-1080x720-dev47.png`（品牌基线、额度说明、单行视角和色阶收敛），`local_dev_work/overview-1360x900-dev48.png`、`local_dev_work/overview-1080x720-dev48.png`（顶栏时间视角位置验证），`local_dev_work/overview-1360x900-dev49.png`、`local_dev_work/overview-1080x720-dev49.png`（顶部四卡逐卡状态验证）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图绑定），`local_dev_work/overview-1360x900-dev42.png`、`local_dev_work/overview-1080x720-dev42.png`（顶部四卡新增语义验证），`local_dev_work/overview-1360x900-dev43.png`、`local_dev_work/overview-1080x720-dev43.png`（额度 Token 明细单位验证），`local_dev_work/overview-1360x900-dev44.png`、`local_dev_work/overview-1080x720-dev44.png`（额度周期范围验证），`local_dev_work/overview-1360x900-dev45.png`、`local_dev_work/overview-1080x720-dev45.png`（目标审计运行态刷新），`local_dev_work/overview-1360x900-dev46.png`、`local_dev_work/overview-1080x720-dev46.png`（目标关键不变量验收增强），`local_dev_work/overview-1360x900-dev47.png`、`local_dev_work/overview-1080x720-dev47.png`（品牌基线、额度说明、单行视角和色阶收敛），`local_dev_work/overview-1360x900-dev48.png`、`local_dev_work/overview-1080x720-dev48.png`（顶栏时间视角位置验证），`local_dev_work/overview-1360x900-dev49.png`、`local_dev_work/overview-1080x720-dev49.png`（顶部四卡逐卡状态验证），`local_dev_work/overview-1360x900-dev50.png`、`local_dev_work/overview-1080x720-dev50.png`、`local_dev_work/overview-billing-1360x900-dev50.png`、`local_dev_work/overview-billing-1080x720-dev50.png`（自然/计费双状态截图验收）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -317,6 +317,20 @@
 
 - 自动验收通过静态不变量检查保护该逻辑；页面级截图仍用于确认默认自然时间布局未回退。
 - 不改变四卡字段、单位、变化说明、额度卡和项目概览。
+
+## 4.17 自然/计费双状态截图验收
+
+`v0.2.2-dev.50` 聚焦页面级证据覆盖面：
+
+- 自然时间截图继续使用 `overview-1360x900-devN.png` 与 `overview-1080x720-devN.png`。
+- 计费时间截图新增 `overview-billing-1360x900-devN.png` 与 `overview-billing-1080x720-devN.png`。
+- 截图入口通过 hash 查询参数设置初始视角，普通用户默认进入自然时间不变。
+
+验收边界：
+
+- 四张截图必须都来自真实 Electron，不允许用自然时间截图替代计费时间。
+- 计费时间截图应显示 `计费时间` 高亮，并展示计费时间项目二级周期。
+- 本轮不改变统计口径和 UI 布局，只补齐证据链。
 
 ## 5. 后续页面复用规则
 

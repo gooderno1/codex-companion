@@ -81,11 +81,17 @@ interface OverviewMetricCardData {
 }
 
 function resolvePageFromHash(): AppPage {
-  const hash = window.location.hash.replace(/^#\//, "");
+  const hash = window.location.hash.replace(/^#\//, "").split("?")[0];
   if (hash === "ledger" || hash === "repositories" || hash === "widget") {
     return hash;
   }
   return "overview";
+}
+
+function resolveOverviewModeFromHash(): OverviewMode {
+  const [, query = ""] = window.location.hash.split("?");
+  const params = new URLSearchParams(query);
+  return params.get("overviewMode") === "billing" ? "billing" : "natural";
 }
 
 function formatNumber(value: number) {
@@ -1181,13 +1187,16 @@ export default function App() {
   const [page, setPage] = useState<AppPage>(resolvePageFromHash());
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
-  const [overviewMode, setOverviewMode] = useState<OverviewMode>("natural");
+  const [overviewMode, setOverviewMode] = useState<OverviewMode>(resolveOverviewModeFromHash);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    const handleHashChange = () => setPage(resolvePageFromHash());
+    const handleHashChange = () => {
+      setPage(resolvePageFromHash());
+      setOverviewMode(resolveOverviewModeFromHash());
+    };
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);

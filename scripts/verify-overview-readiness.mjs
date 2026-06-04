@@ -60,7 +60,7 @@ const STATIC_TEXT_ASSERTIONS = [
   },
   {
     file: "src/main/index.ts",
-    includes: ["const WIDGET_DISABLED = true", "CODEX_COMPANION_CAPTURE_PATH"]
+    includes: ["const WIDGET_DISABLED = true", "CODEX_COMPANION_CAPTURE_PATH", "CODEX_COMPANION_OVERVIEW_MODE"]
   },
   {
     file: "src/main/collectors/codexCollector.ts",
@@ -91,6 +91,7 @@ const STATIC_TEXT_ASSERTIONS = [
       "project-row-icon",
       "formatQuotaPeriodRange",
       "tok",
+      "resolveOverviewModeFromHash",
       "card.sourceStatus",
       'sourceStatus: billingMonth ? globalSourceStatus : "unobserved"'
     ]
@@ -159,7 +160,9 @@ async function main() {
   const requiredFiles = [
     ...STATIC_REQUIRED_FILES,
     `local_dev_work/overview-1360x900-${screenshotSuffix}.png`,
-    `local_dev_work/overview-1080x720-${screenshotSuffix}.png`
+    `local_dev_work/overview-1080x720-${screenshotSuffix}.png`,
+    `local_dev_work/overview-billing-1360x900-${screenshotSuffix}.png`,
+    `local_dev_work/overview-billing-1080x720-${screenshotSuffix}.png`
   ];
 
   const textAssertions = [
@@ -172,7 +175,9 @@ async function main() {
       file: "docs/design-review/overview-visual-measurement-v0.1.md",
       includes: [
         `overview-1360x900-${screenshotSuffix}.png`,
-        `overview-1080x720-${screenshotSuffix}.png`
+        `overview-1080x720-${screenshotSuffix}.png`,
+        `overview-billing-1360x900-${screenshotSuffix}.png`,
+        `overview-billing-1080x720-${screenshotSuffix}.png`
       ]
     },
     {
@@ -180,7 +185,9 @@ async function main() {
       includes: [
         version,
         `overview-1360x900-${screenshotSuffix}.png`,
-        `overview-1080x720-${screenshotSuffix}.png`
+        `overview-1080x720-${screenshotSuffix}.png`,
+        `overview-billing-1360x900-${screenshotSuffix}.png`,
+        `overview-billing-1080x720-${screenshotSuffix}.png`
       ]
     }
   ];

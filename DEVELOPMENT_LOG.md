@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.50 test: 补齐总览页自然/计费双状态截图
+
+- 开发原因：继续补强“按设计稿对照”和“额度数据正确”的证据链；此前 `capture:overview` 只生成默认自然时间截图，无法证明计费时间状态在真实 Electron 中可达，也无法覆盖计费月未观测状态、计费项目周期切换等 UI 回归。
+- 实现方式：主进程截图入口新增 `CODEX_COMPANION_OVERVIEW_MODE=billing` 支持，渲染层从 hash 查询参数读取初始 `overviewMode`；`capture:overview` 改为生成自然时间与计费时间各 `1360 x 900`、`1080 x 720` 的四张截图；`verify:overview` 要求四张当前版本截图均存在，并检查截图入口相关实现标记；同步更新 UI Contract、设计流程、分区审计、视觉测量和目标审计。
+- 当前结果：页面级验收不再只证明自然时间默认态，计费时间真实页面也纳入截图证据；普通用户默认进入自然时间不变。本轮不改变统计口径、额度计算、默认页面状态或用户手动切换行为。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview` 生成 `dev50` 自然/计费四张当前版本截图；执行 `npm run verify:overview`；执行 `npm run verify:design`；执行 `npm run verify:quota`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.49 fix: 修正顶部四卡逐卡状态
 
 - 开发原因：继续复核自然时间 / 计费时间切换的数据状态；计费时间下 `billingMonth` 尚未稳定观测时，`本月 Token` 主值会显示 `未观测`，但顶部四卡状态仍统一沿用全局 `sourceHealth.sourceStatus`，可能错误显示 `已观测`。

@@ -177,11 +177,13 @@
 - 滚动是否只发生在预期容器内，而不是整页被撑出屏幕
 - 启动时是否先显示可用首屏，再后台刷新真实数据
 
-当前项目默认至少校验两个窗口状态：
+当前项目默认至少校验两个窗口状态和两个总览页视角：
 
 - 标准桌面窗口：`1360 x 900`
 - 最小桌面窗口：`1080 x 720`
 - 全屏或接近全屏窗口
+- 总览页自然时间视角
+- 总览页计费时间视角
 
 如果其中任意一个状态出现下面任意问题，本轮不进入提交：
 
@@ -224,11 +226,11 @@
 - `npm run capture:overview`
 - `npm run verify:overview`
 
-`capture:overview` 用于按当前开发版本自动生成 `1360 x 900` 与 `1080 x 720` 两张真实 Electron 截图。脚本必须删除旧截图后重新生成，并检查新文件存在且非空；如果 Electron 捕获失败，不能沿用旧截图作为当前版本证据。`verify:overview` 用于检查总览页交付物是否齐套，包括确认设计图、`ui-contract`、组件映射、分区审计、比例测量、设计 token、额度数据审计、目标审计、关键实现组件和两张最新真实 Electron 截图均存在，并串联执行 `npm run verify:design` 与 `npm run verify:quota`。
+`capture:overview` 用于按当前开发版本自动生成自然时间与计费时间各 `1360 x 900`、`1080 x 720` 的四张真实 Electron 截图。脚本必须删除旧截图后重新生成，并检查新文件存在且非空；如果 Electron 捕获失败，不能沿用旧截图作为当前版本证据。`verify:overview` 用于检查总览页交付物是否齐套，包括确认设计图、`ui-contract`、组件映射、分区审计、比例测量、设计 token、额度数据审计、目标审计、关键实现组件和四张最新真实 Electron 截图均存在，并串联执行 `npm run verify:design` 与 `npm run verify:quota`。
 
 `verify:overview` 还必须覆盖本轮总览页目标中的关键不变量：挂件当前隐藏、额度来源使用 Codex `rate_limits` 和连续 `total_token_usage` 增量、额度价值折算使用周期累计 `quotaEvidence.usedPercent`、额度周期文案使用自适应范围、图标组件使用本项目自定义实现。
 
-截图检查必须绑定当前开发版本：脚本会从 `package.json` 读取 `vX.Y.Z-dev.N`，并要求存在 `local_dev_work/overview-1360x900-devN.png` 与 `local_dev_work/overview-1080x720-devN.png`。版本号提升后必须重新生成当前版本截图，不能继续沿用旧版本截图作为新版本证据。
+截图检查必须绑定当前开发版本：脚本会从 `package.json` 读取 `vX.Y.Z-dev.N`，并要求存在 `local_dev_work/overview-1360x900-devN.png`、`local_dev_work/overview-1080x720-devN.png`、`local_dev_work/overview-billing-1360x900-devN.png` 与 `local_dev_work/overview-billing-1080x720-devN.png`。版本号提升后必须重新生成当前版本截图，不能继续沿用旧版本截图作为新版本证据。
 
 注意：`verify:overview` 只验证“交付物齐套、关键文档口径存在、核心自动校验通过”，不替代人工视觉确认。任何涉及配色、留白、字体层级、窗口溢出或设计稿贴近度的问题，仍必须重新生成真实 Electron 截图并按区块对照。
 
