@@ -1,4 +1,4 @@
-# Codex Companion 页面设计规格（v0.3.8 草案）
+# Codex Companion 页面设计规格（v0.3.9 草案）
 
 - 创建时间：2026-06-03
 - 对应阶段：页面视觉重设前的设计确认
@@ -18,6 +18,7 @@
 - `v0.3.6`：基于第一页最新实际截图和第三页现有采集链路，重构 `代码仓库页` 设计。统一以本地 Git 仓库为唯一主对象；保留顶部筛选与选中仓库联动；移除 `归因 Token`、`文件体量` 与独立远端大卡；左侧从“排行”改为可排序仓库详情表。
 - `v0.3.7`：根据第二页新一轮反馈，取消账本页顶部重复的额度三卡，首屏改为 `Token 构成与强度 + 强度摘要`；新增 `日 / 周 / 月`、横轴、纵轴切换规则，并把 `7 日均值 / 峰值时段 / 峰值日 / 单次峰值` 纳入账本页主结构。
 - `v0.3.8`：根据第三页新一轮反馈，参考 `dev-ledger` 为代码仓库页补回仓库级 `Token / API 等价成本` 信息，但保持其为下钻信息而非首屏主卡；左侧表新增 `Codex 投入` 列，右侧详情补入累计 Token、累计成本与关联会话摘要。
+- `v0.3.9`：根据第三页进一步反馈，取消左表顶部排序按钮，改成点击列表头部排序并支持正序 / 倒序切换；右侧把仓库级投入摘要改成更独立的 `Codex 投入概览`；弱化 `最近提交`，不再占顶部摘要卡，详情内也只保留紧凑的最新少量记录。
 
 ## 0.1 当前生效范围
 
@@ -448,12 +449,12 @@ Constraints: reuse the overview shell, do not include repeated top quota cards, 
 - `今日改动`
 - `近 7 日改动`
 - `本月改动`
-- `最近提交`
+- `关联仓库`
 
 约束：
 
 - 四卡直接复用第一页当前已落地的卡片比例、圆角、阴影、状态徽标和信息密度。
-- `最近提交` 卡显示最近一次提交时间与仓库名，不强求大型数值主视图。
+- 第四卡改为 `关联仓库` 或同义表达，主值显示存在 Codex 会话归因的仓库数；它比“全局最近一次提交时间”更稳定，也更贴合第三页“Codex 投入和仓库关系”的主题。
 - 顶部不再出现 `归因 Token`、`API 等价成本`、`文件体量` 这类字段；这些信息只出现在中部工作台。
 
 第三行：仓库详情表 + 单仓库详情
@@ -474,7 +475,10 @@ Constraints: reuse the overview shell, do not include repeated top quota cards, 
 左侧表约束：
 
 - 去掉旧稿中的 `#` 排名列，不再做固定“排行”语义。
-- 用顶部排序 chips 表达当前排序方式，例如 `按最近提交 / 按今日改动 / 按 7 日改动 / 按本月改动 / 按累计 Token / 按累计成本`。
+- 不再使用一排排序 chips / 按钮。
+- 默认排序为 `最近提交` 倒序，也就是最新提交的仓库默认排在最前。
+- 用户点击表头字段即可切换排序：第一次切换到该字段的默认顺序，再次点击同一字段时切换正序 / 倒序。
+- 允许点击排序的字段为：`今日改动 / 近 7 日改动 / 本月改动 / Codex 投入 / 最近提交`。
 - 默认分支折叠进仓库名下方的辅助信息，与路径一起显示，不再单独占一列。
 - `Codex 投入` 列主值显示累计 Token，辅值显示 API 等价成本；呈现方式参考 `dev-ledger` 的紧凑双层信息，而不是拆成两个宽列。
 - 仍不展示 `风险等级`、`文件体量`。
@@ -483,8 +487,8 @@ Constraints: reuse the overview shell, do not include repeated top quota cards, 
 
 - 头部信息：仓库名、完整路径、默认分支、最近提交时间。
 - 指标块：`今日改动 / 近 7 日改动 / 本月改动 / 工作区改动`。
-- 投入摘要：`累计 Token / 累计 API 等价成本 / 关联会话 / 最近 Codex 活动`。
-- 最近提交：展示最近 `5` 条提交。
+- `Codex 投入概览`：`累计 Token / 累计 API 等价成本 / 关联会话 / 最近 Codex 活动`。
+- 最近提交：只保留紧凑的最新 `2` 到 `3` 条提交，或者仅保留“最近一次提交 + 查看全部”入口，不再展示长列表。
 - 仓库状态：`origin 地址（如存在）` 与必要的补充说明。
 
 右侧详情约束：
@@ -493,6 +497,8 @@ Constraints: reuse the overview shell, do not include repeated top quota cards, 
 - 不把 `origin` 地址升级成独立功能区；它只是辅助识别信息。
 - 如果当前仓库没有远端，只显示 `未配置远端`，不出现空的大卡占位。
 - 当前数据边界下，`Token / 成本` 统一使用累计口径；不伪造 `30 天成本`、`30 天 Token` 等当前合同里还没有的仓库级周期字段。
+- `Codex 投入概览` 不应挤成一整条生硬的横向统计行；更适合做成右侧详情中的独立浅色内嵌卡或 `2 x 2` 紧凑指标矩阵，和上方活动指标区形成两段式层级。
+- `最近提交` 的价值主要是验证仓库新鲜度和补充当前工作上下文，不是页面主叙事；因此只保留最小必要信息，不再让它占据过大视觉面积。
 
 第四行：紧凑数据来源说明
 
@@ -510,8 +516,8 @@ Scene/backdrop: local Git repository activity and Codex local session linkage, f
 Style/medium: high-fidelity desktop app mockup, practical engineering operations dashboard, same blue-white shell and card rhythm as the latest overview screenshot.
 Composition/framing: 1440x960 desktop app screenshot, fixed left navigation rail, fixed top toolbar, scan-directory filter row, four compact summary cards, sortable repository detail table on the left, selected repository detail panel on the right, compact footer note.
 Color palette: soft white and pale blue base, graphite text, restrained blue/cyan accents, green only for positive status, avoid dark mode, avoid purple bias.
-Text (verbatim): "代码仓库", "Git 仓库活动与本地工程状态", "筛选 Git 仓库", "扫描目录", "今日改动", "近 7 日改动", "本月改动", "最近提交", "Git 仓库详情", "Codex 投入", "已选仓库", "累计 Token", "累计 API 等价成本", "工作区改动", "关联会话", "最近 Codex 活动"
-Constraints: no OpenAI logo, no official branding, no marketing page, no oversized hero, no token-focused top KPI cards, no file-size chart, no separate GitHub remote card, no fixed ranking column, Chinese UI text, compact readable table, same rounded cards and toolbar language as the latest overview page.
+Text (verbatim): "代码仓库", "Git 仓库活动与本地工程状态", "筛选 Git 仓库", "扫描目录", "今日改动", "近 7 日改动", "本月改动", "关联仓库", "Git 仓库详情", "Codex 投入", "已选仓库", "Codex 投入概览", "累计 Token", "累计 API 等价成本", "工作区改动", "关联会话", "最近 Codex 活动"
+Constraints: no OpenAI logo, no official branding, no marketing page, no oversized hero, no token-focused top KPI cards, no file-size chart, no separate GitHub remote card, no fixed ranking number column, no row of sort buttons above the left table, Chinese UI text, compact readable table, same rounded cards and toolbar language as the latest overview page.
 ```
 
 ## 5. 本轮确认标准
@@ -880,3 +886,17 @@ Constraints: no OpenAI logo, no official branding, no marketing page, no oversiz
 - 左表排序项补回 `按累计 Token / 按累计成本`，便于从工程活跃和 Codex 投入两个视角切换。
 - 右侧 `已选仓库` 在保留活动指标的同时，补入 `累计 Token / 累计 API 等价成本 / 关联会话 / 最近 Codex 活动` 一排摘要，方便判断该仓库既活跃又是否消耗了更多 Codex 投入。
 - 当前文档已明确：第三页的 Token / 成本只允许用现有合同里的累计口径，不伪造 `30 天成本`、`30 天 Token` 或 GitHub 云端成本字段。
+
+## 15. 代码仓库页 v0.3.9 状态图
+
+根据第三页进一步反馈，继续精修排序交互、右侧详情结构和最近提交权重，生成以下状态图：
+
+- 代码仓库页状态图：[repositories-page.png](./assets/design/v0.3.9/repositories-page.png)
+
+当前观察：
+
+- 左侧 `Git 仓库详情` 不再需要额外一排排序按钮，排序语义已经收敛到表头本身；从视觉和交互上都更像真实工作台表格。
+- 默认排序保持 `最近提交` 倒序，但“最近提交”不再占据顶部四卡，只保留在表头排序和当前仓库头部的一行新鲜度提示里。
+- 顶部第四卡改成 `关联仓库`，比“全局最近一次提交时间”更稳定，也更贴近第三页回答“哪些仓库真正和 Codex 有关系”的目标。
+- 右侧新增的投入信息不再是一整条生硬横排，而是独立成 `Codex 投入概览` 分区，用 `2 x 2` 指标矩阵承载 `累计 Token / 累计 API 等价成本 / 关联会话 / 最近 Codex 活动`。
+- 最近提交区域只保留极少量记录或“最近一次提交 + 查看全部”，继续承担上下文补充作用，但不再抢占详情主空间。
