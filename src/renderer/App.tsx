@@ -141,7 +141,7 @@ function describeDelta(
   }
 
   if (previous === 0) {
-    return "数据待补齐";
+    return `较${compareLabel} 新增`;
   }
 
   const delta = ((current - previous) / Math.abs(previous)) * 100;
@@ -407,7 +407,7 @@ function deltaToneClass(detail: string) {
     return "is-negative";
   }
 
-  if (detail.includes("+")) {
+  if (detail.includes("+") || detail.includes("新增")) {
     return "is-positive";
   }
 

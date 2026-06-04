@@ -57,12 +57,13 @@ async function main() {
         CODEX_COMPANION_WINDOW_HEIGHT: String(viewport.height)
       },
       encoding: "utf8",
-      stdio: "inherit"
+      stdio: "inherit",
+      timeout: 30000
     });
 
     if (result.status !== 0) {
       throw new Error(
-        `生成 ${viewport.width}x${viewport.height} 截图失败，退出码：${String(result.status)}。`
+        `生成 ${viewport.width}x${viewport.height} 截图失败，退出码：${String(result.status)}，错误：${result.error?.message ?? "--"}。`
       );
     }
 

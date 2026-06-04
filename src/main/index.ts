@@ -62,14 +62,21 @@ function scheduleMainWindowCapture() {
   mainWindow.webContents.once("did-finish-load", () => {
     setTimeout(() => {
       void (async () => {
-        if (!mainWindow) {
-          return;
-        }
+        try {
+          if (!mainWindow) {
+            return;
+          }
 
-        const image = await mainWindow.capturePage();
-        await writeFile(capturePath, image.toPNG());
-        isQuitting = true;
-        app.quit();
+          const image = await mainWindow.capturePage();
+          await writeFile(capturePath, image.toPNG());
+        } catch (error) {
+          console.error(
+            `截图失败：${error instanceof Error ? error.message : String(error)}`
+          );
+        } finally {
+          isQuitting = true;
+          app.quit();
+        }
       })();
     }, delayMs);
   });

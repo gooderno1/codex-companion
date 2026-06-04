@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.41`
+- 适用版本：`v0.2.2-dev.42`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图绑定），`local_dev_work/overview-1360x900-dev42.png`、`local_dev_work/overview-1080x720-dev42.png`（顶部四卡新增语义验证）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -207,6 +207,20 @@
 - 当前版本截图只证明 `v0.2.2-dev.41` 的真实 Electron 页面仍可打开并完整显示主要区块。
 - 本轮不重新声明像素级一致，也不替代人工按区块对照。
 - 若用户继续指出视觉差异，应回到分区审计追加具体区块，而不是只更新截图编号。
+
+## 4.9 顶部四卡新增语义复测
+
+`v0.2.2-dev.42` 聚焦顶部四卡次级说明，不调整布局比例：
+
+- 当上一周期为 `0` 且当前周期大于 `0`，卡片显示 `较上一周期 新增`。
+- `新增` 按正向变化使用绿色样式，和设计稿中增长说明的视觉方向一致。
+- 缺少当前值或上一周期值时仍显示 `数据待补齐`，避免把真实缺口误包装成增长。
+
+验收边界：
+
+- 本轮不改变顶部四卡高度、图标尺寸、主数字字号和状态标签位置。
+- 本轮不改变额度卡、项目概览、Git 统计和 Codex Token 统计。
+- 当前版本截图必须确认顶部四卡不再把有数据的新增场景误报为 `数据待补齐`。
 
 ## 5. 后续页面复用规则
 
