@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 
 const ROOT = process.cwd();
 
-const REQUIRED_FILES = [
+const STATIC_REQUIRED_FILES = [
   "docs/assets/design/v0.3.3/overview-natural-time.png",
   "docs/ui-contract/overview-v0.1.md",
   "docs/component-map.md",
@@ -16,12 +16,10 @@ const REQUIRED_FILES = [
   "docs/data-audit/overview-token-quota-audit-v0.1.md",
   "docs/goal-audit/overview-goal-completion-audit-v0.1.md",
   "src/renderer/App.tsx",
-  "src/renderer/design-tokens.ts",
-  "local_dev_work/overview-1360x900-dev36.png",
-  "local_dev_work/overview-1080x720-dev36.png"
+  "src/renderer/design-tokens.ts"
 ];
 
-const TEXT_ASSERTIONS = [
+const STATIC_TEXT_ASSERTIONS = [
   {
     file: "docs/ui-contract/overview-v0.1.md",
     includes: ["左侧导航", "顶部工具栏", "顶部四卡", "中部两张额度卡", "项目概览", "页脚数据来源"]
@@ -32,15 +30,15 @@ const TEXT_ASSERTIONS = [
   },
   {
     file: "docs/design-review/overview-block-audit-v0.1.md",
-    includes: ["左侧", "顶部", "额度", "项目概览", "v0.2.2-dev.36"]
+    includes: ["左侧", "顶部", "额度", "项目概览"]
   },
   {
     file: "docs/design-review/overview-visual-measurement-v0.1.md",
-    includes: ["overview-1360x900-dev36.png", "overview-1080x720-dev36.png", "项目概览默认周期复测"]
+    includes: ["项目概览默认周期复测"]
   },
   {
     file: "docs/goal-audit/overview-goal-completion-audit-v0.1.md",
-    includes: ["npm run verify:design", "npm run verify:quota", "overview-1360x900-dev36.png", "overview-1080x720-dev36.png"]
+    includes: ["npm run verify:design", "npm run verify:quota", "npm run verify:overview"]
   },
   {
     file: "src/renderer/App.tsx",
@@ -75,11 +73,68 @@ async function fileExists(relativePath) {
   return fileStat.size;
 }
 
+async function readPackageVersion() {
+  const packageContent = await readFile(path.join(ROOT, "package.json"), "utf8");
+  const packageJson = JSON.parse(packageContent);
+  if (!packageJson.version || typeof packageJson.version !== "string") {
+    throw new Error("package.json 缺少 version 字段。");
+  }
+
+  return packageJson.version;
+}
+
+function screenshotSuffixFromVersion(version) {
+  const match = version.match(/-dev\.(\d+)$/);
+  if (!match) {
+    throw new Error(`当前版本 ${version} 不是开发迭代版本，无法推导截图后缀。`);
+  }
+
+  return `dev${match[1]}`;
+}
+
 async function main() {
   const errors = [];
   const checkedFiles = [];
+  let version = "";
+  let screenshotSuffix = "";
 
-  for (const file of REQUIRED_FILES) {
+  try {
+    version = await readPackageVersion();
+    screenshotSuffix = screenshotSuffixFromVersion(version);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+  }
+
+  const requiredFiles = [
+    ...STATIC_REQUIRED_FILES,
+    `local_dev_work/overview-1360x900-${screenshotSuffix}.png`,
+    `local_dev_work/overview-1080x720-${screenshotSuffix}.png`
+  ];
+
+  const textAssertions = [
+    ...STATIC_TEXT_ASSERTIONS,
+    {
+      file: "docs/design-review/overview-block-audit-v0.1.md",
+      includes: [version]
+    },
+    {
+      file: "docs/design-review/overview-visual-measurement-v0.1.md",
+      includes: [
+        `overview-1360x900-${screenshotSuffix}.png`,
+        `overview-1080x720-${screenshotSuffix}.png`
+      ]
+    },
+    {
+      file: "docs/goal-audit/overview-goal-completion-audit-v0.1.md",
+      includes: [
+        version,
+        `overview-1360x900-${screenshotSuffix}.png`,
+        `overview-1080x720-${screenshotSuffix}.png`
+      ]
+    }
+  ];
+
+  for (const file of requiredFiles) {
     try {
       const size = await fileExists(file);
       if (size <= 0) {
@@ -92,7 +147,7 @@ async function main() {
     }
   }
 
-  for (const assertion of TEXT_ASSERTIONS) {
+  for (const assertion of textAssertions) {
     try {
       const content = await readFile(path.join(ROOT, assertion.file), "utf8");
       for (const keyword of assertion.includes) {
@@ -125,6 +180,7 @@ async function main() {
   }
 
   console.log(`总览页验收通过：${checkedFiles.length} 个交付物存在且关键内容完整。`);
+  console.log(`当前版本截图：${screenshotSuffix}。`);
   console.log(designCheck.output);
   console.log(quotaCheck.output);
 }

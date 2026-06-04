@@ -1,9 +1,9 @@
 # 总览页视觉比例测量（v0.1）
 
 - 创建时间：2026-06-04
-- 适用版本：`v0.2.2-dev.36`
+- 适用版本：`v0.2.2-dev.41`
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证）
+- 实现截图：`local_dev_work/overview-1360x900-dev28.png`、`local_dev_work/overview-1080x720-dev28.png`（比例基线），`local_dev_work/overview-1360x900-dev30.png`、`local_dev_work/overview-1080x720-dev30.png`（顶部四卡验证），`local_dev_work/overview-1360x900-dev32.png`、`local_dev_work/overview-1080x720-dev32.png`（左侧导航验证），`local_dev_work/overview-1360x900-dev33.png`、`local_dev_work/overview-1080x720-dev33.png`（项目表格验证），`local_dev_work/overview-1360x900-dev34.png`、`local_dev_work/overview-1080x720-dev34.png`（页脚归属验证），`local_dev_work/overview-1360x900-dev35.png`、`local_dev_work/overview-1080x720-dev35.png`（顶栏状态验证），`local_dev_work/overview-1360x900-dev36.png`、`local_dev_work/overview-1080x720-dev36.png`（项目默认周期验证），`local_dev_work/overview-1360x900-dev41.png`、`local_dev_work/overview-1080x720-dev41.png`（当前版本验收截图）
 - 目的：把“对照设计稿还有差距”转成可复用的区块比例验收规则，避免后续页面只靠整页截图主观判断。
 
 ## 1. 测量方法
@@ -192,6 +192,21 @@
 - `1360 x 900`：项目概览标题右侧默认高亮 `周`，表格首屏展示周期项目活动，更接近设计稿。
 - `1080 x 720`：项目概览、内部滚动条和页脚仍完整可见，默认周期改变未造成页面级溢出。
 - 本轮不改变项目聚合、排序、字段、滚动、项目图标或数据来源说明。
+
+## 4.8 当前版本截图绑定复测
+
+`v0.2.2-dev.41` 不修改 UI 样式和数据口径，主要修正页面级验收证据的新鲜度：
+
+- 当前版本截图必须使用 `overview-1360x900-dev41.png` 与 `overview-1080x720-dev41.png`。
+- 当前版本截图由 `npm run capture:overview` 生成，避免手工拼接截图环境变量。
+- `npm run verify:overview` 必须从 `package.json` 当前版本推导截图后缀，不能继续静态依赖历史截图。
+- 如果后续版本号提升但未重新生成对应截图，页面级验收应失败。
+
+验收边界：
+
+- 当前版本截图只证明 `v0.2.2-dev.41` 的真实 Electron 页面仍可打开并完整显示主要区块。
+- 本轮不重新声明像素级一致，也不替代人工按区块对照。
+- 若用户继续指出视觉差异，应回到分区审计追加具体区块，而不是只更新截图编号。
 
 ## 5. 后续页面复用规则
 

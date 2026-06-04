@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-04] v0.2.2-dev.41 test: 绑定总览页当前版本截图
+
+- 开发原因：继续推进“认真对照设计稿并争取全部改完”的目标；上一轮 `verify:overview` 已提供页面级验收入口，但仍静态依赖 `dev36` 真实截图，不能证明当前开发版本的视觉证据仍然新鲜。
+- 实现方式：新增 `scripts/capture-overview-screenshots.mjs` 和 `npm run capture:overview`，按当前 `package.json` 版本生成 `1360 x 900` 与 `1080 x 720` 总览页真实 Electron 截图；更新 `verify:overview`，从当前版本推导截图后缀并要求对应截图、审计文档和目标审计同步引用；同步更新设计流程、分区审计、比例测量、目标审计和版本号。
+- 当前结果：总览页页面级验收不再沿用历史截图；后续版本号提升后，如果没有重新生成当前版本截图，`npm run verify:overview` 会失败。本轮不修改 UI、额度数据、项目聚合或设计 token。
+- 验证方式：执行 `npm run build`；执行 `npm run capture:overview`；执行 `npm run verify:overview`；执行 `npm run verify:design`；执行 `npm run verify:quota`；执行 `git diff --check` 检查空白问题。
+
 ## [2026-06-04] v0.2.2-dev.40 test: 增加总览页级验收命令
 
 - 开发原因：继续推进“认真对照并争取全部改完”的目标；现有 `verify:design`、`verify:quota`、真实截图和分区审计证据分散，缺少一条总览页级命令确认设计图、文档、截图、图标组件、token 和额度真实数据证据齐套。
