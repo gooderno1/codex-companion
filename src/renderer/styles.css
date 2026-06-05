@@ -888,6 +888,11 @@ svg {
   white-space: nowrap;
 }
 
+.text-tabs button:disabled {
+  color: rgba(86, 100, 123, 0.45);
+  cursor: not-allowed;
+}
+
 .text-tabs-underline button {
   padding: 0 0 7px;
   border-bottom: 2px solid transparent;
@@ -1266,9 +1271,15 @@ svg {
 
 .ledger-segment {
   display: block;
+  position: relative;
   min-height: 0;
   width: 100%;
   transition: height 180ms ease;
+}
+
+.segment-cached,
+.segment-output {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }
 
 .segment-raw {

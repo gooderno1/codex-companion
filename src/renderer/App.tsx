@@ -332,7 +332,7 @@ function TextTabs<T extends string>({
   onChange,
   variant = "underline"
 }: {
-  items: Array<{ value: T; label: string }>;
+  items: Array<{ value: T; label: string; disabled?: boolean; title?: string }>;
   value: T;
   onChange: (value: T) => void;
   variant?: "underline" | "chip";
@@ -344,7 +344,13 @@ function TextTabs<T extends string>({
           key={item.value}
           type="button"
           className={item.value === value ? "active" : ""}
-          onClick={() => onChange(item.value)}
+          disabled={item.disabled}
+          title={item.title}
+          onClick={() => {
+            if (!item.disabled) {
+              onChange(item.value);
+            }
+          }}
         >
           {item.label}
         </button>
@@ -969,10 +975,15 @@ function OverviewPage({
   );
 }
 
-const LEDGER_TREND_TABS: Array<{ value: LedgerTrendPeriod; label: string }> = [
-  { value: "day", label: "日" },
+const LEDGER_TREND_TABS: Array<{
+  value: LedgerTrendPeriod;
+  label: string;
+  disabled?: boolean;
+  title?: string;
+}> = [
+  { value: "day", label: "日", disabled: true, title: "日视角暂不可用，后续重新设计" },
   { value: "week", label: "周" },
-  { value: "month", label: "月" }
+  { value: "month", label: "月", disabled: true, title: "月视角暂不可用，后续重新设计" }
 ];
 
 const LEDGER_ANALYSIS_TABS: Array<{ value: LedgerAnalysisKey; label: string }> = [
@@ -1100,6 +1111,15 @@ function metricValue(tokens: TokenBreakdown, axis: LedgerYAxis) {
 
 function metricLabel(axis: LedgerYAxis) {
   return LEDGER_Y_AXIS_OPTIONS.find((item) => item.value === axis)?.label ?? "总 Token";
+}
+
+function visualBarHeight(value: number, maxValue: number, minVisiblePercent = 3) {
+  if (value <= 0 || maxValue <= 0) {
+    return "0%";
+  }
+
+  const percent = Math.max(0, Math.min(100, (value / maxValue) * 100));
+  return `${Math.max(minVisiblePercent, percent)}%`;
 }
 
 function trendBuckets(
@@ -1276,11 +1296,13 @@ function TokenTrendCard({
             const tokens = bucket.tokens;
             const rawInput = rawInputTokens(tokens);
             const value = metricValue(tokens, yAxis);
-            const singleHeight = `${Math.max(0, Math.min(100, (value / maxValue) * 100))}%`;
-            const outputHeight = `${Math.max(0, Math.min(100, (tokens.output / maxValue) * 100))}%`;
+            const rawInputHeight = visualBarHeight(rawInput, maxValue);
+            const cachedInputHeight = visualBarHeight(tokens.cachedInput, maxValue);
+            const singleHeight = visualBarHeight(value, maxValue);
+            const outputHeight = visualBarHeight(tokens.output, maxValue);
             const reasoningHeight =
-              tokens.output > 0
-                ? `${Math.max(0, Math.min(100, (tokens.reasoningOutput / tokens.output) * 100))}%`
+              tokens.output > 0 && tokens.reasoningOutput > 0
+                ? `${Math.max(16, Math.min(100, (tokens.reasoningOutput / tokens.output) * 100))}%`
                 : "0%";
 
             return (
@@ -1297,25 +1319,30 @@ function TokenTrendCard({
                     <>
                       <span
                         className="ledger-segment segment-raw"
-                        style={{ height: `${(rawInput / maxValue) * 100}%` }}
+                        style={{ height: rawInputHeight }}
                       />
                       <span
                         className="ledger-segment segment-cached"
-                        style={{ height: `${(tokens.cachedInput / maxValue) * 100}%` }}
+                        style={{ height: cachedInputHeight }}
                       />
                       <span className="ledger-segment segment-output" style={{ height: outputHeight }}>
-                        <span className="reasoning-marker" style={{ height: reasoningHeight }} />
+                        {tokens.reasoningOutput > 0 ? (
+                          <span
+                            className="reasoning-marker"
+                            style={{ height: reasoningHeight, minHeight: "3px" }}
+                          />
+                        ) : null}
                       </span>
                     </>
                   ) : yAxis === "input" ? (
                     <>
                       <span
                         className="ledger-segment segment-raw"
-                        style={{ height: `${(rawInput / maxValue) * 100}%` }}
+                        style={{ height: rawInputHeight }}
                       />
                       <span
                         className="ledger-segment segment-cached"
-                        style={{ height: `${(tokens.cachedInput / maxValue) * 100}%` }}
+                        style={{ height: cachedInputHeight }}
                       />
                     </>
                   ) : (
@@ -1628,13 +1655,19 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
     }));
   };
 
+  const handleTrendPeriodChange = (value: LedgerTrendPeriod) => {
+    if (value === "week") {
+      setTrendPeriod(value);
+    }
+  };
+
   return (
     <div className="ledger-layout">
       <div className="ledger-top-grid">
         <TokenTrendCard
           snapshot={snapshot}
           period={trendPeriod}
-          onPeriodChange={setTrendPeriod}
+          onPeriodChange={handleTrendPeriodChange}
           xAxis={xAxis}
           onXAxisChange={setXAxis}
           yAxis={yAxis}
