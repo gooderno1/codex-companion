@@ -1741,11 +1741,20 @@ function TrendLineChart({
             </rect>
           ))}
         </svg>
-        <div className="trend-x-axis" aria-hidden="true">
+        <div className="trend-x-axis" aria-label="趋势日期选择">
           {buckets.map((bucket, index) => (
-            <span key={bucket.key}>
-              {shouldShowTrendLabel(index, buckets.length) ? bucket.label : ""}
-            </span>
+            shouldShowTrendLabel(index, buckets.length) ? (
+              <button
+                type="button"
+                className="trend-x-axis-button"
+                key={bucket.key}
+                onClick={() => onBucketSelect(bucket.key)}
+              >
+                {bucket.label}
+              </button>
+            ) : (
+              <span key={bucket.key} />
+            )
           ))}
         </div>
       </div>
@@ -1974,6 +1983,13 @@ function TokenTrendExpandedView({
         <TrendSeriesControls visibleSeries={visibleSeries} onSeriesToggle={onSeriesToggle} />
 
         <div className={`trend-expanded-body${isDetailOpen ? " detail-open" : " detail-hidden"}`}>
+          {isDetailOpen ? (
+            <TrendDetailPanel
+              period={period}
+              selectedBucket={trendView.selectedBucket}
+              selectedTokens={trendView.selectedTokens}
+            />
+          ) : null}
           <div className="trend-expanded-chart">
             <TrendLineChart
               period={period}
@@ -1986,13 +2002,6 @@ function TokenTrendExpandedView({
               onBucketSelect={onBucketSelect}
             />
           </div>
-          {isDetailOpen ? (
-            <TrendDetailPanel
-              period={period}
-              selectedBucket={trendView.selectedBucket}
-              selectedTokens={trendView.selectedTokens}
-            />
-          ) : null}
         </div>
 
         <footer className="trend-expanded-footer">
