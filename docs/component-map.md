@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.0-dev.4`
+- 当前适用版本：`v0.3.0-dev.5`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、设置页
 
 ## 总览页
@@ -35,8 +35,8 @@
 
 | 设计区块 | 代码组件 / 位置 | 复用性 | 关键 props / 状态 | 数据来源 |
 | --- | --- | --- | --- | --- |
-| Token 走势拆解 | `TokenTrendCard` | 账本页模块 | `trendPeriod`、`visibleTrendSeries`、`selectedTrendBucketKey`、`isTrendExpanded`；开放 `day / week / month` | `snapshot.ledger.trend`、`TokenBreakdown` |
-| 趋势曲线图 | `TrendLineChart` / `TrendDetailPanel` / `TokenTrendExpandedView` | 账本页模块 | `LedgerTimeBucket[]`、平滑曲线、曲线显隐、点位选择、当前粒度表、放大查看 | `snapshot.ledger.trend.day / week / monthByDate` |
+| Token 走势拆解 | `TokenTrendCard` | 账本页模块 | `trendPeriod`、`visibleTrendSeries`、`selectedTrendBucketKey`、`isTrendExpanded`、`isTrendDetailOpen`；开放 `day / week / month` | `snapshot.ledger.trend`、`TokenBreakdown` |
+| 趋势曲线图 | `TrendLineChart` / `TrendDetailPanel` / `TokenTrendExpandedView` | 账本页模块 | `LedgerTimeBucket[]`、平滑曲线、曲线显隐、点位选择、当前粒度表、放大查看、明细显隐 | `snapshot.ledger.trend.day / week / monthByDate` |
 | 周期洞察 | `PeriodInsightCard` | 账本页模块 | `insightPeriod` | `snapshot.ledger.analysis.sevenDays / thirtyDays / cumulative` |
 | 周额度账本 | `WeeklyLedgerCard` | 账本页模块 | `weeklyPeriods` | `snapshot.ledger.weeklyPeriods`、`period.quotaEvidence` |
 | 模型贡献 | `ModelContributionCard` | 账本页模块 | `modelPeriod`、`modelSort` | `snapshot.ledger.analysis.*.models` |
@@ -52,6 +52,7 @@
 - `Token 走势拆解` 使用多曲线表达 `总 Token / 输入总量 / 原始输入 / 缓存输入 / 输出 / 推理 Token`；用户可点击图例显示或隐藏某条曲线，点击曲线点位后右侧显示当前粒度明细表。
 - `Token 走势拆解` 当前已把折线升级为平滑曲线，并新增 `放大查看` 全截面视图；放大层复用 `trendPeriod / visibleTrendSeries / selectedTrendBucketKey` 和 `snapshot.ledger.trend`，不新增统计口径。
 - `Token 走势拆解` 曲线色板必须保持明显色相差异：总量、输入、原始输入、缓存输入、输出、推理 Token 不使用近似蓝绿同色系堆叠。
+- `Token 走势拆解` 当前粒度明细默认隐藏；点击点位或 `明细` 按钮后展开，展开后可用 `隐藏` 收起；放大层与原卡片共用同一明细显隐状态，放大态明细以右上浮层展示，不切出整列空白。
 - `周期洞察` 与 `模型贡献` 使用各自的 `近7天 / 近30天 / 累计`，不使用 `全部`，也不跟随左侧趋势图的 `日 / 周 / 月`。
 - `模型贡献` 不设置额外排序按钮；默认 `Token` 倒序，点击表头字段后第一次正序、第二次倒序。
 - 应用启动优先读取缓存快照；实时采集延迟到启动后后台执行，自动刷新间隔为 `5` 分钟，避免打开应用时立刻触发完整 Codex + Git 扫描造成卡顿。

@@ -1768,11 +1768,18 @@ function TrendDetailPanel({
   return (
     <aside className="ledger-trend-detail is-open">
       <div className="trend-detail-head">
-        <span>{trendDetailTitle(period)}</span>
-        <strong>{selectedBucket?.label ?? "--"}</strong>
-        <small>
-          {selectedBucket ? formatDateRange(selectedBucket.startAt, selectedBucket.endAt) : "--"}
-        </small>
+        <div className="trend-detail-date">
+          <span>{trendDetailTitle(period)}</span>
+          <strong>{selectedBucket?.label ?? "--"}</strong>
+        </div>
+        <div className="trend-detail-summary">
+          {detailMetrics.map((metric) => (
+            <span className="trend-detail-metric" key={metric.label}>
+              <small>{metric.label}</small>
+              <strong>{metric.value}</strong>
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="trend-detail-table-shell">
@@ -1803,15 +1810,6 @@ function TrendDetailPanel({
           </tbody>
         </table>
       </div>
-
-      <div className="trend-detail-grid">
-        {detailMetrics.map((metric) => (
-          <span className="trend-detail-metric" key={metric.label}>
-            <small>{metric.label}</small>
-            <strong>{metric.value}</strong>
-          </span>
-        ))}
-      </div>
     </aside>
   );
 }
@@ -1824,7 +1822,9 @@ function TokenTrendCard({
   onBucketSelect,
   visibleSeries,
   onSeriesToggle,
-  onExpand
+  onExpand,
+  isDetailOpen,
+  onDetailToggle
 }: {
   snapshot: DashboardSnapshot;
   period: LedgerTrendPeriod;
@@ -1834,6 +1834,8 @@ function TokenTrendCard({
   visibleSeries: TrendSeriesVisibility;
   onSeriesToggle: (seriesKey: LedgerTrendSeriesKey) => void;
   onExpand: () => void;
+  isDetailOpen: boolean;
+  onDetailToggle: () => void;
 }) {
   const trendView = resolveTrendView(snapshot, period, selectedBucketKey, visibleSeries);
 
@@ -1848,6 +1850,16 @@ function TokenTrendCard({
           <span className="ledger-trend-meta">{trendPeriodMeta(period)}</span>
           <button
             type="button"
+            className={`detail-toggle-button${isDetailOpen ? " active" : ""}`}
+            aria-pressed={isDetailOpen}
+            title={isDetailOpen ? "隐藏当前粒度明细" : "展开当前粒度明细"}
+            onClick={onDetailToggle}
+          >
+            <Glyph name="ledger" />
+            {isDetailOpen ? "隐藏" : "明细"}
+          </button>
+          <button
+            type="button"
             className="icon-action-button"
             title="放大查看"
             aria-label="放大查看 Token 走势拆解"
@@ -1858,7 +1870,7 @@ function TokenTrendCard({
         </div>
       </div>
 
-      <div className="ledger-trend-body">
+      <div className={`ledger-trend-body${isDetailOpen ? " detail-open" : " detail-hidden"}`}>
         <div className="ledger-line-panel">
           <TrendSeriesControls visibleSeries={visibleSeries} onSeriesToggle={onSeriesToggle} />
           <TrendLineChart
@@ -1873,11 +1885,13 @@ function TokenTrendCard({
           />
         </div>
 
-        <TrendDetailPanel
-          period={period}
-          selectedBucket={trendView.selectedBucket}
-          selectedTokens={trendView.selectedTokens}
-        />
+        {isDetailOpen ? (
+          <TrendDetailPanel
+            period={period}
+            selectedBucket={trendView.selectedBucket}
+            selectedTokens={trendView.selectedTokens}
+          />
+        ) : null}
       </div>
     </SectionCard>
   );
@@ -1891,7 +1905,9 @@ function TokenTrendExpandedView({
   onBucketSelect,
   visibleSeries,
   onSeriesToggle,
-  onClose
+  onClose,
+  isDetailOpen,
+  onDetailToggle
 }: {
   snapshot: DashboardSnapshot;
   period: LedgerTrendPeriod;
@@ -1901,6 +1917,8 @@ function TokenTrendExpandedView({
   visibleSeries: TrendSeriesVisibility;
   onSeriesToggle: (seriesKey: LedgerTrendSeriesKey) => void;
   onClose: () => void;
+  isDetailOpen: boolean;
+  onDetailToggle: () => void;
 }) {
   const trendView = resolveTrendView(snapshot, period, selectedBucketKey, visibleSeries);
 
@@ -1933,6 +1951,16 @@ function TokenTrendExpandedView({
             <TextTabs items={LEDGER_TREND_TABS} value={period} onChange={onPeriodChange} />
             <button
               type="button"
+              className={`detail-toggle-button${isDetailOpen ? " active" : ""}`}
+              aria-pressed={isDetailOpen}
+              title={isDetailOpen ? "隐藏当前粒度明细" : "展开当前粒度明细"}
+              onClick={onDetailToggle}
+            >
+              <Glyph name="ledger" />
+              {isDetailOpen ? "隐藏明细" : "显示明细"}
+            </button>
+            <button
+              type="button"
               className="icon-action-button"
               title="关闭"
               aria-label="关闭放大查看"
@@ -1945,7 +1973,7 @@ function TokenTrendExpandedView({
 
         <TrendSeriesControls visibleSeries={visibleSeries} onSeriesToggle={onSeriesToggle} />
 
-        <div className="trend-expanded-body">
+        <div className={`trend-expanded-body${isDetailOpen ? " detail-open" : " detail-hidden"}`}>
           <div className="trend-expanded-chart">
             <TrendLineChart
               period={period}
@@ -1958,11 +1986,13 @@ function TokenTrendExpandedView({
               onBucketSelect={onBucketSelect}
             />
           </div>
-          <TrendDetailPanel
-            period={period}
-            selectedBucket={trendView.selectedBucket}
-            selectedTokens={trendView.selectedTokens}
-          />
+          {isDetailOpen ? (
+            <TrendDetailPanel
+              period={period}
+              selectedBucket={trendView.selectedBucket}
+              selectedTokens={trendView.selectedTokens}
+            />
+          ) : null}
         </div>
 
         <footer className="trend-expanded-footer">
@@ -2249,6 +2279,7 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
   const [selectedTrendBucketKey, setSelectedTrendBucketKey] = useState<string | null>(null);
   const [visibleTrendSeries, setVisibleTrendSeries] = useState(DEFAULT_TREND_SERIES_VISIBILITY);
   const [isTrendExpanded, setIsTrendExpanded] = useState(false);
+  const [isTrendDetailOpen, setIsTrendDetailOpen] = useState(false);
   const [insightPeriod, setInsightPeriod] = useState<LedgerAnalysisKey>("sevenDays");
   const [modelPeriod, setModelPeriod] = useState<LedgerAnalysisKey>("sevenDays");
   const [modelSort, setModelSort] = useState<ModelContributionSortState>({
@@ -2273,6 +2304,11 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
     setTrendPeriod(value);
   };
 
+  const handleTrendBucketSelect = (bucketKey: string) => {
+    setSelectedTrendBucketKey(bucketKey);
+    setIsTrendDetailOpen(true);
+  };
+
   const handleTrendSeriesToggle = (seriesKey: LedgerTrendSeriesKey) => {
     setVisibleTrendSeries((current) => {
       const visibleCount = Object.values(current).filter(Boolean).length;
@@ -2295,10 +2331,12 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
           period={trendPeriod}
           onPeriodChange={handleTrendPeriodChange}
           selectedBucketKey={selectedTrendBucketKey}
-          onBucketSelect={setSelectedTrendBucketKey}
+          onBucketSelect={handleTrendBucketSelect}
           visibleSeries={visibleTrendSeries}
           onSeriesToggle={handleTrendSeriesToggle}
           onExpand={() => setIsTrendExpanded(true)}
+          isDetailOpen={isTrendDetailOpen}
+          onDetailToggle={() => setIsTrendDetailOpen((current) => !current)}
         />
         <PeriodInsightCard
           analysisKey={insightPeriod}
@@ -2326,10 +2364,12 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
           period={trendPeriod}
           onPeriodChange={handleTrendPeriodChange}
           selectedBucketKey={selectedTrendBucketKey}
-          onBucketSelect={setSelectedTrendBucketKey}
+          onBucketSelect={handleTrendBucketSelect}
           visibleSeries={visibleTrendSeries}
           onSeriesToggle={handleTrendSeriesToggle}
           onClose={() => setIsTrendExpanded(false)}
+          isDetailOpen={isTrendDetailOpen}
+          onDetailToggle={() => setIsTrendDetailOpen((current) => !current)}
         />
       ) : null}
     </div>
