@@ -1765,17 +1765,21 @@ function TrendLineChart({
 function TrendDetailPanel({
   period,
   selectedBucket,
-  selectedTokens
+  selectedTokens,
+  showCacheSummary = true
 }: {
   period: LedgerTrendPeriod;
   selectedBucket: LedgerTimeBucket | null;
   selectedTokens: TokenBreakdown;
+  showCacheSummary?: boolean;
 }) {
   const detailRows = trendDetailRows(selectedTokens);
-  const detailMetrics = trendDetailMetrics(selectedBucket, selectedTokens);
+  const detailMetrics = trendDetailMetrics(selectedBucket, selectedTokens).filter(
+    (metric) => showCacheSummary || metric.label !== "缓存输入占比"
+  );
 
   return (
-    <aside className="ledger-trend-detail is-open">
+    <aside className={`ledger-trend-detail is-open${showCacheSummary ? "" : " no-cache-summary"}`}>
       <div className="trend-detail-head">
         <div className="trend-detail-date">
           <span>{trendDetailTitle(period)}</span>
@@ -1899,6 +1903,7 @@ function TokenTrendCard({
             period={period}
             selectedBucket={trendView.selectedBucket}
             selectedTokens={trendView.selectedTokens}
+            showCacheSummary={false}
           />
         ) : null}
       </div>

@@ -1715,16 +1715,18 @@ svg {
 }
 
 .ledger-trend-card .trend-detail-head {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(78px, auto) minmax(0, 1fr);
   gap: 6px;
+  align-items: stretch;
 }
 
 .ledger-trend-card .trend-detail-summary {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.ledger-trend-card .trend-detail-summary .trend-detail-metric:last-child {
-  grid-column: 1 / -1;
+.ledger-trend-card .ledger-trend-detail.no-cache-summary .trend-detail-metric {
+  align-content: center;
+  min-height: 42px;
 }
 
 .trend-table-series {
@@ -1914,9 +1916,10 @@ svg {
 }
 
 .trend-expanded-panel .ledger-trend-detail {
-  grid-template-columns: minmax(230px, 0.32fr) minmax(0, 1fr);
+  grid-template-columns: minmax(420px, 0.42fr) minmax(0, 1fr);
   grid-template-rows: auto;
   align-items: stretch;
+  gap: 12px;
   min-width: 0;
   padding: 10px;
   overflow: hidden;
@@ -1937,7 +1940,31 @@ svg {
 }
 
 .trend-expanded-panel .trend-detail-table-shell {
-  max-height: 122px;
+  max-height: none;
+  overflow: hidden;
+}
+
+.trend-expanded-panel .trend-detail-table th,
+.trend-expanded-panel .trend-detail-table td {
+  padding: 3px 7px;
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+
+.trend-expanded-panel .trend-detail-table th:nth-child(1),
+.trend-expanded-panel .trend-detail-table td:nth-child(1) {
+  width: 45%;
+}
+
+.trend-expanded-panel .trend-detail-table th:nth-child(2),
+.trend-expanded-panel .trend-detail-table td:nth-child(2) {
+  width: 30%;
+}
+
+.trend-expanded-panel .trend-detail-table th:nth-child(3),
+.trend-expanded-panel .trend-detail-table td:nth-child(3) {
+  width: 25%;
+  text-align: right;
 }
 
 .trend-expanded-footer {

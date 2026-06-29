@@ -1,4 +1,4 @@
-# Codex Companion 页面设计规格（v0.3.27 草案）
+# Codex Companion 页面设计规格（v0.3.28 草案）
 
 - 创建时间：2026-06-03
 - 对应阶段：页面视觉重设前的设计确认
@@ -38,6 +38,7 @@
 - `v0.3.25`：修正全局刷新状态和趋势曲线辨识度。刷新成功且存在可解析 token 事件时显示 `已观测`，最近活动超过 `45` 分钟只作为 `最新观测` 说明；`Token 走势拆解` 曲线色板改为蓝、紫、橙、青、绿、玫红。产品开发版本同步提升到 `v0.3.0-dev.4`。
 - `v0.3.26`：优化第二页 `Token 走势拆解` 当前粒度表。未放大状态下默认隐藏明细，点击点位或 `明细` 按钮后展开，展开后可隐藏；明细头部去掉重复日期范围，并把 `会话 / API 等价成本 / 缓存输入占比` 移到日期右侧；放大层也支持明细收起后大图占满，展开明细时以右上浮层展示。产品开发版本同步提升到 `v0.3.0-dev.5`。
 - `v0.3.27`：按最新反馈把第二页 `Token 走势拆解` 放大态从右上浮层改为上下结构：默认隐藏上方明细，点击曲线点位、横轴日期或 `明细` 后，上方展开当前粒度表，下方保留曲线图；非放大态仅优化右侧明细栏的日期与指标排版。产品开发版本同步提升到 `v0.3.0-dev.6`。
+- `v0.3.28`：按确认后的二次设计落地第二页 `Token 走势拆解` 明细排版。放大态上方明细带的右侧表格固定为 `曲线 / 数值 / 占比` 三列；非放大态顶部摘要去掉 `缓存输入占比`，只把 `会话 / API 等价成本` 放到日期右侧。产品开发版本同步提升到 `v0.3.0-dev.7`。
 
 ## 0.1 当前生效范围
 
@@ -363,8 +364,8 @@ Constraints: the top four cards must stay the same under both natural-time and b
     - 平滑曲线必须穿过真实桶点，不得为了平滑改变点位数值
     - 如果点数不足或局部曲率可能造成数值误读，允许降级为保守曲线或直线段
     - 当前粒度表固定展示 `总 Token / 输入总量 / 原始输入 / 缓存输入 / 输出 / 推理 Token`
-    - 明细区额外展示 `会话 / API 等价成本 / 缓存输入占比`
-    - 当前粒度表头部不重复展示日期范围，非放大态可把 `会话 / API 等价成本 / 缓存输入占比` 在日期下方分行展示
+    - 明细区额外展示 `会话 / API 等价成本`；放大态摘要可继续展示 `缓存输入占比`
+    - 当前粒度表头部不重复展示日期范围，非放大态只把 `会话 / API 等价成本` 放到日期右侧
     - `推理 Token` 仍作为 `输出` 子集，不作为第四段独立总量
     - 真实值仍以当前粒度表和 tooltip 为准，不改变统计口径
   - 放大视图规则：
@@ -464,7 +465,7 @@ Style/medium: high-fidelity desktop app mockup, restrained operational software,
 Composition/framing: 1440x960 desktop app screenshot, same left navigation rail and top toolbar as the shipped overview page, top toolbar center stays minimal without day/week/month tabs, first row with a large token composition and intensity chart on the left plus a compact signal summary card on the right, second row with a weekly billing ledger table on the left and a real-model composition panel on the right, third row with a session attribution table.
 Color palette: off-white workspace, graphite text, blue/cyan/green accents, subtle borders, same tone and spacing as the actual overview screenshot.
 Text (verbatim): "Codex 账本", "构成强度、周期细账与会话归因", "Token 走势拆解", "放大查看", "日", "周", "月", "总 Token", "输入总量", "原始输入", "缓存输入", "输出", "推理 Token", "当前日期", "当前小时", "周期洞察", "周额度账本", "模型贡献", "会话归因", "窗口累计", "窗口均值", "峰值位置", "峰值用量", "单次峰值", "缓存输入占比", "累计已用", "API 等价成本", "满额周折算", "事件数", "近7天", "近30天", "累计"
-Constraints: reuse the overview shell, do not include repeated top quota cards, remaining token count, fixed monthly quota, user names, average response time, or completion status; place day/week/month only inside the trend chart header, do not draw extra x-axis or y-axis dropdown controls; the token trend chart uses smooth SVG curves, not angular polylines, for 总 Token / 输入总量 / 原始输入 / 缓存输入 / 输出 / 推理 Token; smooth curves must pass through real data points and keep point markers visible; legend chips toggle each curve on and off; clicking a point opens or updates the current granularity table for that hour/date; include a compact maximize icon button with tooltip 放大查看 in the trend chart header; enlarged view appears as a main-workspace overlay with a large smooth chart and a top-right floating current granularity panel, reusing the same period, visible series, and selected point state; the summary card uses the six fixed metrics 窗口累计 / 窗口均值 / 峰值位置 / 峰值用量 / 单次峰值 / 缓存输入占比 and adds its own 近7天 / 近30天 / 累计 switch; the model contribution card also uses 近7天 / 近30天 / 累计 and clickable column headers for sorting instead of a separate button row; do not use the label 全部; display date ranges instead of labels like 上上周; use real model names such as GPT-5.5 and GPT-5.4 or gpt-5.5 / gpt-5.4 / gpt-5.3-codex-spark; no OpenAI logo, no official branding, no decorative hero, Chinese UI text, 8px card radius.
+Constraints: reuse the overview shell, do not include repeated top quota cards, remaining token count, fixed monthly quota, user names, average response time, or completion status; place day/week/month only inside the trend chart header, do not draw extra x-axis or y-axis dropdown controls; the token trend chart uses smooth SVG curves, not angular polylines, for 总 Token / 输入总量 / 原始输入 / 缓存输入 / 输出 / 推理 Token; smooth curves must pass through real data points and keep point markers visible; legend chips toggle each curve on and off; clicking a point opens or updates the current granularity table for that hour/date; include a compact maximize icon button with tooltip 放大查看 in the trend chart header; enlarged view appears as a main-workspace overlay with a top detail band and a large smooth chart below, reusing the same period, visible series, and selected point state; the top detail band table must use 曲线 / 数值 / 占比 columns; the summary card uses the six fixed metrics 窗口累计 / 窗口均值 / 峰值位置 / 峰值用量 / 单次峰值 / 缓存输入占比 and adds its own 近7天 / 近30天 / 累计 switch; the model contribution card also uses 近7天 / 近30天 / 累计 and clickable column headers for sorting instead of a separate button row; do not use the label 全部; display date ranges instead of labels like 上上周; use real model names such as GPT-5.5 and GPT-5.4 or gpt-5.5 / gpt-5.4 / gpt-5.3-codex-spark; no OpenAI logo, no official branding, no decorative hero, Chinese UI text, 8px card radius.
 ```
 
 ## 4. 代码仓库页设计
@@ -969,7 +970,7 @@ Constraints: no OpenAI logo, no official branding, no marketing page, no oversiz
 
 ### 12.6 v0.3.25 当前修正说明
 
-- 开发版本提升到 `v0.3.0-dev.6`。
+- 开发版本提升到 `v0.3.0-dev.7`。
 - 全局 `sourceStatus` 不再因为最新 token 事件超过 `45` 分钟而自动显示 `数据过期`。
 - 刷新成功且存在可解析 token 事件时，顶部状态显示 `已观测`。
 - 最近活动时间继续通过刷新反馈和 `sourceHealth.notes` 说明。
@@ -989,6 +990,13 @@ Constraints: no OpenAI logo, no official branding, no marketing page, no oversiz
 - 放大态 `Token 走势拆解` 使用上下结构：上方当前粒度明细、下方曲线图。
 - 放大态默认隐藏上方明细；点击曲线点位、横轴日期或 `显示明细` 后展开。
 - 非放大态仍保留右侧明细栏，只优化日期与 `会话 / API 等价成本 / 缓存输入占比` 的排版，避免一行内拥挤。
+
+### 12.9 v0.3.28 当前修正说明
+
+- 开发版本提升到 `v0.3.0-dev.7`。
+- 放大态上方明细带的右侧表格必须显示 `曲线 / 数值 / 占比` 三列，且六条曲线行完整可见。
+- 非放大态顶部摘要移除 `缓存输入占比`，只保留 `会话 / API 等价成本` 并放在日期右侧。
+- `缓存输入` 仍作为明细表曲线行展示，统计口径不变。
 
 ## 13. 代码仓库页 v0.3.6 状态图
 
