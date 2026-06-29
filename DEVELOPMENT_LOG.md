@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-29] v0.2.2-dev.78 fix: 临时化刷新反馈并补设置页刷新历史
+
+- 开发原因：用户确认项目继续作为独立应用维护，并指出刷新反馈常驻横条冗余、计费项目概览缺少月周期、总览默认视角应切到计费时间，同时需要确认当前数据是否独立统计。
+- 实现方式：将总览默认视角改为 `计费时间`；把刷新反馈条改为仅在刷新中和完成/失败后约 `5s` 临时显示；为 `sourceHealth.refresh` 增加 `trigger`，新增 `sourceHealth.refreshHistory` 记录最近 `30` 次手动、自动、启动和后台刷新；设置页正式接入左下角入口，支持计费月起始日保存并刷新、刷新历史查看和数据边界说明；项目概览计费时间新增 `计费月`，并让 Git 采集器按 `billingMonthStartDay` 采集真实计费月代码活动；同步更新数据契约、组件映射、总览 UI Contract、页面设计规格、README 和隐私说明。
+- 当前结果：刷新横条不再常驻；长期刷新记录迁移到设置页；计费时间下项目概览支持 `5H / 周额度 / 计费月`；应用明确独立读取 Codex 与 Git 数据，不使用 DevLedger 运行结果。
+- 验证方式：执行 `npm run build`；用编译后的 `DashboardService.getSnapshot(true, "manual")` 与 `"auto"` 验证刷新历史来源；执行 `npm run capture:overview`；生成并目视检查 `local_dev_work/settings-1360x900-dev78.png`；执行 `npm run verify:overview`、`npm run verify:design`、`npm run verify:quota`、`git diff --check`，均通过。
+
 ## [2026-06-29] v0.2.2-dev.77 fix: 修正刷新反馈并接入 Codex 增量采集
 
 - 开发原因：用户反馈点击刷新后长时间没有可见变化，需要确认刷新是否生效，并要求刷新时必须有反馈、Codex 会话采集必须增量化，避免每次重复解析大量本地 JSONL。

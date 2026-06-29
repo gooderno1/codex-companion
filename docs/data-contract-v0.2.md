@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.2.2-dev.77`
+- 对应开发版本：`v0.2.2-dev.78`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -88,6 +88,7 @@
 - 若无法找到 Git 根目录，则该会话保留 `未归因`
 - 总览页项目概览保留所有已发现本地项目；当前周期无 Token、代码、提交和会话活动的项目显示 0 / `--`，不从表格中过滤。
 - 顶部 `今日代码改动` 使用自然日 Git `changedLines = additions + deletions`；次级说明 `较昨日` 使用昨日自然日同口径作为分母。昨日有 Git 数据时必须计算百分比，不能因为 token 昨日窗口为空而把昨日代码默认为 0。
+- 计费时间项目概览包含 `5H / 周额度 / 计费月` 三个周期；其中 `计费月` 的 Token、会话、成本和 Git 代码活动都使用 `billingMonthStartDay` 推导出的计费月起点，不能用自然月数据冒充。
 
 ### 2.5 刷新与增量采集
 
@@ -95,12 +96,15 @@
 - Codex 会话采集必须优先使用增量缓存：同一 JSONL 文件的 `size + mtimeMs` 未变化时复用上次解析结果；只有新增或变更文件才重新流式解析。
 - 增量缓存只用于减少重复读盘，不改变 Token、额度、模型、会话和仓库归因口径。
 - 每次刷新必须在 `sourceHealth.refresh` 写入可见反馈字段：
+  - `trigger`：刷新来源，取值为 `manual / auto / startup / background`
   - `startedAt / completedAt / durationMs`：本次刷新起止与总耗时
   - `codexDurationMs / gitDurationMs`：Codex 会话段与 Git 仓库段耗时
   - `codexFilesTotal`：本次纳入最近 60 天窗口的 Codex JSONL 文件数
   - `codexFilesParsed`：本次实际重新解析的 JSONL 文件数
   - `codexFilesReused`：本次从增量缓存复用的 JSONL 文件数
   - `codexCachePruned`：本次清理出缓存窗口的旧文件数
+- 每次 live 刷新或缓存回退必须向 `sourceHealth.refreshHistory` 追加一条记录，最多保留最近 `30` 条，用于设置页展示手动、自动、启动和后台刷新情况。
+- 顶部刷新反馈条只是临时状态提示，刷新完成或失败后约 `5s` 消失；长期追溯以 `sourceHealth.refreshHistory` 为准。
 - 读取旧版 `snapshot.json` 时如果缺少 `sourceHealth.refresh`，主进程必须补齐默认结构，避免升级后首屏渲染异常。
 
 ## 3. 状态字段

@@ -8,7 +8,9 @@ import type {
   PeriodMetric,
   QuotaResetEvent,
   QuotaUsageSegment,
+  RefreshHistoryEntry,
   RefreshTelemetry,
+  RefreshTrigger,
   SessionAttribution,
   SourceStatus,
   WidgetMetric
@@ -60,10 +62,16 @@ const DAY_MINUTES = 24 * 60;
 
 interface CollectDashboardSnapshotOptions {
   codexSessionCacheStore?: CodexSessionCacheStoreLike;
+  trigger?: RefreshTrigger;
+  refreshHistory?: RefreshHistoryEntry[];
 }
 
-function emptyRefreshTelemetry(startedAt: string | null = null): RefreshTelemetry {
+function emptyRefreshTelemetry(
+  startedAt: string | null = null,
+  trigger: RefreshTrigger = "background"
+): RefreshTelemetry {
   return {
+    trigger,
     startedAt,
     completedAt: null,
     durationMs: null,
@@ -79,9 +87,10 @@ function emptyRefreshTelemetry(startedAt: string | null = null): RefreshTelemetr
 function ensureRefreshTelemetry(snapshot: DashboardSnapshot): DashboardSnapshot {
   const sourceHealth = snapshot.sourceHealth as DashboardSnapshot["sourceHealth"] & {
     refresh?: RefreshTelemetry;
+    refreshHistory?: RefreshHistoryEntry[];
   };
 
-  if (sourceHealth.refresh) {
+  if (sourceHealth.refresh && sourceHealth.refreshHistory) {
     return snapshot;
   }
 
@@ -89,10 +98,53 @@ function ensureRefreshTelemetry(snapshot: DashboardSnapshot): DashboardSnapshot 
     ...snapshot,
     sourceHealth: {
       ...snapshot.sourceHealth,
-      refresh: {
+      refresh: sourceHealth.refresh ?? {
         ...emptyRefreshTelemetry(null),
         completedAt: snapshot.generatedAt
-      }
+      },
+      refreshHistory: sourceHealth.refreshHistory ?? []
+    }
+  };
+}
+
+function buildRefreshHistoryEntry(
+  snapshot: DashboardSnapshot,
+  message: string | null = null
+): RefreshHistoryEntry {
+  const refresh = snapshot.sourceHealth.refresh;
+  const completedAt =
+    refresh.completedAt ?? snapshot.generatedAt ?? new Date().toISOString();
+
+  return {
+    id: `${completedAt}-${refresh.trigger}-${snapshot.generatedFrom}`,
+    trigger: refresh.trigger,
+    generatedFrom: snapshot.generatedFrom,
+    sourceStatus: snapshot.sourceHealth.sourceStatus,
+    completedAt,
+    durationMs: refresh.durationMs,
+    codexDurationMs: refresh.codexDurationMs,
+    gitDurationMs: refresh.gitDurationMs,
+    codexFilesTotal: refresh.codexFilesTotal,
+    codexFilesParsed: refresh.codexFilesParsed,
+    codexFilesReused: refresh.codexFilesReused,
+    codexCachePruned: refresh.codexCachePruned,
+    message
+  };
+}
+
+function appendRefreshHistory(
+  snapshot: DashboardSnapshot,
+  previousHistory: RefreshHistoryEntry[],
+  message: string | null = null
+): DashboardSnapshot {
+  return {
+    ...snapshot,
+    sourceHealth: {
+      ...snapshot.sourceHealth,
+      refreshHistory: [
+        buildRefreshHistoryEntry(snapshot, message),
+        ...previousHistory
+      ].slice(0, 30)
     }
   };
 }
@@ -957,6 +1009,7 @@ function aggregateCodeFromRepos(
     | "month"
     | "fiveHour"
     | "weekLimit"
+    | "billingMonth"
 ) {
   return repoItems.reduce(
     (total, repo) =>
@@ -988,7 +1041,8 @@ function buildProjectOverviewPeriod(args: {
     | "naturalWeek"
     | "month"
     | "fiveHour"
-    | "weekLimit";
+    | "weekLimit"
+    | "billingMonth";
 }): OverviewProjectItem[] {
   const aggregateMap = new Map<
     string,
@@ -1159,7 +1213,8 @@ function buildPendingDashboardSnapshot(
       repoCount: 0,
       lastObservedAt: null,
       sourceStatus: "pending",
-      refresh: emptyRefreshTelemetry(now.toISOString()),
+      refresh: emptyRefreshTelemetry(now.toISOString(), "startup"),
+      refreshHistory: [],
       notes: ["正在后台读取本机 Codex 与 Git 数据。"]
     },
     overview: {
@@ -1203,7 +1258,8 @@ function buildPendingDashboardSnapshot(
         },
         billing: {
           fiveHour: [],
-          weekLimit: []
+          weekLimit: [],
+          billingMonth: []
         }
       },
       apiValueSummaryUsd: null
@@ -1264,6 +1320,7 @@ async function collectDashboardSnapshot(
   options: CollectDashboardSnapshotOptions = {},
   now = new Date()
 ): Promise<DashboardSnapshot> {
+  const trigger = options.trigger ?? "background";
   const refreshStartedAt = new Date();
   const refreshStartedMs = Date.now();
   const codexStartedMs = Date.now();
@@ -1314,6 +1371,14 @@ async function collectDashboardSnapshot(
           end: new Date(codex.latestRateSnapshot.secondary.resetsAt)
         }
       : null;
+  const billingMonthStart = startOfBillingMonth(
+    now,
+    preferences.billingMonthStartDay
+  );
+  const previousBillingMonthStart = startOfBillingMonth(
+    addMinutes(billingMonthStart, -1),
+    preferences.billingMonthStartDay
+  );
   const gitStartedMs = Date.now();
   const git = await collectGitData({
     repoRoots: preferences.repoRoots,
@@ -1324,7 +1389,8 @@ async function collectDashboardSnapshot(
         : []),
       ...(secondaryWindowRange
         ? [{ key: "weekLimit" as const, start: secondaryWindowRange.start, end: secondaryWindowRange.end }]
-        : [])
+        : []),
+      { key: "billingMonth" as const, start: billingMonthStart, end: now }
     ],
     now
   });
@@ -1345,14 +1411,6 @@ async function collectDashboardSnapshot(
       return earliest === null || timestamp < earliest ? timestamp : earliest;
     }, null) ?? todayStart;
   const cumulativeStart = startOfDay(firstEventAt);
-  const billingMonthStart = startOfBillingMonth(
-    now,
-    preferences.billingMonthStartDay
-  );
-  const previousBillingMonthStart = startOfBillingMonth(
-    addMinutes(billingMonthStart, -1),
-    preferences.billingMonthStartDay
-  );
 
   const todayPeriod = buildPeriodMetric(
     "today",
@@ -1480,9 +1538,7 @@ async function collectDashboardSnapshot(
     billingMonthStart,
     now,
     codex.events,
-    preferences.billingMonthStartDay === 1
-      ? aggregateCodeFromRepos(git.items, "month")
-      : emptyCodeActivity()
+    aggregateCodeFromRepos(git.items, "billingMonth")
   );
   const previousBillingMonthPeriod = buildPeriodMetric(
     "previousBillingMonth",
@@ -1690,6 +1746,14 @@ async function collectDashboardSnapshot(
         activityField: "weekLimit"
       })
     : [];
+  const billingProjectMonth = buildProjectOverviewPeriod({
+    repoItems: git.items,
+    events: codex.events,
+    sessionRepoMap: git.sessionRepoMap,
+    startAt: billingMonthStart,
+    endAt: now,
+    activityField: "billingMonth"
+  });
   const refreshCompletedAt = new Date();
 
   return {
@@ -1704,6 +1768,7 @@ async function collectDashboardSnapshot(
       lastObservedAt: codex.lastObservedAt,
       sourceStatus: codex.sourceStatus,
       refresh: {
+        trigger,
         startedAt: refreshStartedAt.toISOString(),
         completedAt: refreshCompletedAt.toISOString(),
         durationMs: refreshCompletedAt.getTime() - refreshStartedMs,
@@ -1714,6 +1779,7 @@ async function collectDashboardSnapshot(
         codexFilesReused: codex.cacheStats.reusedFiles,
         codexCachePruned: codex.cacheStats.prunedFiles
       },
+      refreshHistory: options.refreshHistory ?? [],
       notes: [
         ...codex.notes,
         "代码改动基于 Git 已提交历史与当前工作区 diff，不读取云端仓库信息。",
@@ -1751,7 +1817,8 @@ async function collectDashboardSnapshot(
         },
         billing: {
           fiveHour: billingProjectFiveHour,
-          weekLimit: billingProjectWeekLimit
+          weekLimit: billingProjectWeekLimit,
+          billingMonth: billingProjectMonth
         }
       },
       apiValueSummaryUsd: weeklyWindow.estimatedFullValueUsd
@@ -1840,7 +1907,25 @@ export class DashboardService {
     }));
   }
 
-  public async getSnapshot(force = false): Promise<DashboardSnapshot> {
+  public updatePreferences(patch: Partial<AppPreferences>): Promise<AppPreferences> {
+    return this.settingsStore.update((current) => ({
+      ...current,
+      ...patch,
+      billingMonthStartDay:
+        typeof patch.billingMonthStartDay === "number"
+          ? Math.max(1, Math.min(31, Math.trunc(patch.billingMonthStartDay)))
+          : current.billingMonthStartDay,
+      widget: {
+        ...current.widget,
+        ...patch.widget
+      }
+    }));
+  }
+
+  public async getSnapshot(
+    force = false,
+    trigger: RefreshTrigger = force ? "manual" : "background"
+  ): Promise<DashboardSnapshot> {
     if (
       !force &&
       this.cachedSnapshot &&
@@ -1859,13 +1944,13 @@ export class DashboardService {
       const pending = buildPendingDashboardSnapshot(preferences);
       this.cachedSnapshot = pending;
       this.cachedAt = Date.now();
-      void this.refreshSnapshotInBackground()?.catch(() => {
+      void this.refreshSnapshotInBackground("startup")?.catch(() => {
         // Foreground calls surface collection failures through getSnapshot(true).
       });
       return pending;
     }
 
-    return this.collectSnapshot();
+    return this.collectSnapshot(trigger);
   }
 
   public async getCachedSnapshot(): Promise<DashboardSnapshot | null> {
@@ -1887,32 +1972,44 @@ export class DashboardService {
     return this.cachedSnapshot;
   }
 
-  public refreshSnapshotInBackground(): Promise<DashboardSnapshot> | null {
+  public refreshSnapshotInBackground(
+    trigger: RefreshTrigger = "background"
+  ): Promise<DashboardSnapshot> | null {
     if (this.collectingSnapshot) {
       return this.collectingSnapshot;
     }
 
-    return this.collectSnapshot();
+    return this.collectSnapshot(trigger);
   }
 
-  private async collectSnapshot(): Promise<DashboardSnapshot> {
+  private async collectSnapshot(trigger: RefreshTrigger): Promise<DashboardSnapshot> {
     if (this.collectingSnapshot) {
       return this.collectingSnapshot;
     }
 
-    this.collectingSnapshot = this.collectSnapshotInner().finally(() => {
+    this.collectingSnapshot = this.collectSnapshotInner(trigger).finally(() => {
       this.collectingSnapshot = null;
     });
 
     return this.collectingSnapshot;
   }
 
-  private async collectSnapshotInner(): Promise<DashboardSnapshot> {
+  private async collectSnapshotInner(trigger: RefreshTrigger): Promise<DashboardSnapshot> {
+    const refreshStartedAt = new Date();
+    const refreshStartedMs = Date.now();
     const preferences = await this.settingsStore.read();
+    const cachedBeforeCollect = this.cachedSnapshot ?? (await this.snapshotStore.read());
+    const previousHistory =
+      cachedBeforeCollect?.sourceHealth.refreshHistory ?? [];
     try {
-      const snapshot = await collectDashboardSnapshot(preferences, {
-        codexSessionCacheStore: this.codexSessionCacheStore
-      });
+      const snapshot = appendRefreshHistory(
+        await collectDashboardSnapshot(preferences, {
+          codexSessionCacheStore: this.codexSessionCacheStore,
+          trigger,
+          refreshHistory: previousHistory
+        }),
+        previousHistory
+      );
       this.cachedSnapshot = snapshot;
       this.cachedAt = Date.now();
       await this.snapshotStore.write(snapshot);
@@ -1926,18 +2023,30 @@ export class DashboardService {
       const message =
         error instanceof Error ? error.message : "未知采集异常";
       const normalized = ensureRefreshTelemetry(cached);
+      const completedAt = new Date();
       const fallback: DashboardSnapshot = {
         ...normalized,
-        generatedAt: new Date().toISOString(),
+        generatedAt: completedAt.toISOString(),
         generatedFrom: "cache",
         sourceHealth: {
           ...normalized.sourceHealth,
+          refresh: {
+            ...emptyRefreshTelemetry(refreshStartedAt.toISOString(), trigger),
+            completedAt: completedAt.toISOString(),
+            durationMs: completedAt.getTime() - refreshStartedMs
+          },
           notes: [...normalized.sourceHealth.notes, `实时采集失败，已回退缓存：${message}`]
         }
       };
-      this.cachedSnapshot = fallback;
+      const fallbackWithHistory = appendRefreshHistory(
+        fallback,
+        normalized.sourceHealth.refreshHistory,
+        `实时采集失败，已回退缓存：${message}`
+      );
+      this.cachedSnapshot = fallbackWithHistory;
       this.cachedAt = Date.now();
-      return fallback;
+      await this.snapshotStore.write(fallbackWithHistory);
+      return fallbackWithHistory;
     }
   }
 }

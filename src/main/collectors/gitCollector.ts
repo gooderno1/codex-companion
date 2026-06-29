@@ -10,7 +10,7 @@ interface CollectGitDataArgs {
   repoRoots: string[];
   sessions: CodexSessionSummary[];
   activityWindows?: Array<{
-    key: "fiveHour" | "weekLimit";
+    key: "fiveHour" | "weekLimit" | "billingMonth";
     start: Date;
     end: Date;
   }>;
@@ -319,7 +319,7 @@ export async function collectGitData({
       ]);
 
     const customActivityMap = new Map<
-      "fiveHour" | "weekLimit",
+      "fiveHour" | "weekLimit" | "billingMonth",
       ReturnType<typeof emptyCodeActivity>
     >();
     activityWindows.forEach((windowRange, index) => {
@@ -346,7 +346,8 @@ export async function collectGitData({
         month: month ?? emptyCodeActivity(),
         workingTree: workingTree ?? emptyCodeActivity(),
         fiveHour: customActivityMap.get("fiveHour") ?? emptyCodeActivity(),
-        weekLimit: customActivityMap.get("weekLimit") ?? emptyCodeActivity()
+        weekLimit: customActivityMap.get("weekLimit") ?? emptyCodeActivity(),
+        billingMonth: customActivityMap.get("billingMonth") ?? emptyCodeActivity()
       },
       tokens: tokenTotal,
       apiCostUsd,

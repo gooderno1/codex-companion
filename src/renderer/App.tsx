@@ -2,6 +2,7 @@ import React, {
   useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
   type CSSProperties
@@ -19,6 +20,8 @@ import type {
   OverviewProjectItem,
   PeriodMetric,
   RepoMetric,
+  RefreshHistoryEntry,
+  RefreshTrigger,
   SourceStatus,
   TokenBreakdown,
   WidgetMetric
@@ -36,7 +39,7 @@ const NAV_ITEMS: Array<{
 ];
 
 const PAGE_META: Record<
-  Extract<AppPage, "overview" | "ledger" | "repositories">,
+  Extract<AppPage, "overview" | "ledger" | "repositories" | "settings">,
   { title: string; subtitle: string }
 > = {
   overview: {
@@ -50,12 +53,16 @@ const PAGE_META: Record<
   repositories: {
     title: "代码仓库",
     subtitle: "同步 Git 仓库活动与 Codex 投入"
+  },
+  settings: {
+    title: "设置",
+    subtitle: "计费口径、刷新历史与本机数据边界"
   }
 };
 
 type OverviewMode = "natural" | "billing";
 type NaturalProjectPeriod = "day" | "week" | "month";
-type BillingProjectPeriod = "fiveHour" | "weekLimit";
+type BillingProjectPeriod = "fiveHour" | "weekLimit" | "billingMonth";
 type ProjectSort = "name" | "token" | "cost" | "code" | "commits" | "sessions" | "recent";
 type RepoSort = "name" | "today" | "sevenDays" | "month" | "codex" | "recentCommit";
 type SortDirection = "asc" | "desc";
@@ -100,7 +107,7 @@ interface OverviewMetricCardData {
 
 function resolvePageFromHash(): AppPage {
   const hash = window.location.hash.replace(/^#\//, "").split("?")[0];
-  if (hash === "ledger" || hash === "repositories" || hash === "widget") {
+  if (hash === "ledger" || hash === "repositories" || hash === "settings" || hash === "widget") {
     return hash;
   }
   return "overview";
@@ -109,7 +116,7 @@ function resolvePageFromHash(): AppPage {
 function resolveOverviewModeFromHash(): OverviewMode {
   const [, query = ""] = window.location.hash.split("?");
   const params = new URLSearchParams(query);
-  return params.get("overviewMode") === "billing" ? "billing" : "natural";
+  return params.get("overviewMode") === "natural" ? "natural" : "billing";
 }
 
 function formatNumber(value: number) {
@@ -356,6 +363,27 @@ function refreshTelemetryDetail(snapshot: DashboardSnapshot) {
   }
 
   return parts.join(" · ");
+}
+
+function refreshTriggerLabel(trigger: RefreshTrigger) {
+  const mapping: Record<RefreshTrigger, string> = {
+    manual: "手动刷新",
+    auto: "自动刷新",
+    startup: "启动刷新",
+    background: "后台刷新"
+  };
+
+  return mapping[trigger];
+}
+
+function generatedFromLabel(value: DashboardSnapshot["generatedFrom"]) {
+  const mapping: Record<DashboardSnapshot["generatedFrom"], string> = {
+    live: "实时",
+    cache: "缓存",
+    pending: "采集中"
+  };
+
+  return mapping[value];
 }
 
 function maskValue(value: string, privacyMode: boolean) {
@@ -890,6 +918,138 @@ function RepositoriesFooter({ snapshot }: { snapshot: DashboardSnapshot }) {
   );
 }
 
+function RefreshHistoryTable({
+  history
+}: {
+  history: RefreshHistoryEntry[];
+}) {
+  if (history.length === 0) {
+    return <div className="table-empty">暂无刷新历史。完成一次手动或自动刷新后会显示记录。</div>;
+  }
+
+  return (
+    <div className="settings-table-wrap">
+      <table className="settings-table">
+        <thead>
+          <tr>
+            <th>时间</th>
+            <th>来源</th>
+            <th>结果</th>
+            <th>耗时</th>
+            <th>Codex 文件</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          {history.map((entry) => (
+            <tr key={entry.id}>
+              <td>{formatDateTime(entry.completedAt)}</td>
+              <td>{refreshTriggerLabel(entry.trigger)}</td>
+              <td>{generatedFromLabel(entry.generatedFrom)}</td>
+              <td>{formatDurationMs(entry.durationMs)}</td>
+              <td>
+                新解析 {entry.codexFilesParsed} · 复用 {entry.codexFilesReused}
+              </td>
+              <td>{entry.message ?? sourceStatusLabel(entry.sourceStatus)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SettingsPage({
+  snapshot,
+  preferences,
+  onSaveBillingMonthStartDay
+}: {
+  snapshot: DashboardSnapshot | null;
+  preferences: AppPreferences | null;
+  onSaveBillingMonthStartDay: (day: number) => Promise<void>;
+}) {
+  const currentDay = preferences?.billingMonthStartDay ?? 1;
+  const [draftDay, setDraftDay] = useState(currentDay);
+  const [saving, setSaving] = useState(false);
+
+  async function saveBillingDay() {
+    setSaving(true);
+    try {
+      await onSaveBillingMonthStartDay(normalizedDraftDay);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const safeDraftDay = Number.isFinite(draftDay) ? draftDay : currentDay;
+  const normalizedDraftDay = Math.max(1, Math.min(31, Math.trunc(safeDraftDay)));
+  const canSave = normalizedDraftDay !== currentDay && !saving;
+
+  return (
+    <div className="page-stack settings-page">
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>计费口径</h3>
+            <p>用于总览页计费时间、计费月 Token 和项目概览计费月。</p>
+          </div>
+        </div>
+        <div className="settings-form-row">
+          <label htmlFor="billing-month-start">计费月起始日</label>
+          <input
+            id="billing-month-start"
+            type="number"
+            min={1}
+            max={31}
+            value={Number.isFinite(draftDay) ? draftDay : ""}
+            onChange={(event) => setDraftDay(Number(event.target.value))}
+          />
+          <button
+            type="button"
+            className="action-button"
+            disabled={!canSave}
+            onClick={() => void saveBillingDay()}
+          >
+            保存并刷新
+          </button>
+        </div>
+        <p className="settings-note">
+          当前为每月第 {currentDay} 天 00:00 起算；如果某月没有该日期，会由系统日期规则自然回落到可表示日期。
+        </p>
+      </SectionCard>
+
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>刷新历史</h3>
+            <p>记录最近的手动、自动和启动后台刷新结果。</p>
+          </div>
+        </div>
+        <RefreshHistoryTable history={snapshot?.sourceHealth.refreshHistory ?? []} />
+      </SectionCard>
+
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>数据边界</h3>
+            <p>当前应用独立读取本机 Codex 与 Git 数据，不使用 DevLedger 运行结果。</p>
+          </div>
+        </div>
+        <div className="settings-source-grid">
+          <span>Codex 数据</span>
+          <strong>{snapshot?.sourceHealth.codexHome || "等待快照"}</strong>
+          <span>仓库根目录</span>
+          <strong>{snapshot?.sourceHealth.repoRoots.join("；") || "等待快照"}</strong>
+          <span>本地快照</span>
+          <strong>%APPDATA%/codex-companion/snapshot.json</strong>
+          <span>增量缓存</span>
+          <strong>%APPDATA%/codex-companion/codex-session-cache.json</strong>
+        </div>
+      </SectionCard>
+    </div>
+  );
+}
+
 function OverviewPage({
   snapshot,
   mode,
@@ -962,7 +1122,8 @@ function OverviewPage({
                     ]
                   : [
                       { value: "fiveHour", label: "5H" },
-                      { value: "weekLimit", label: "周额度" }
+                      { value: "weekLimit", label: "周额度" },
+                      { value: "billingMonth", label: "计费月" }
                     ]
               }
               value={mode === "natural" ? naturalPeriod : billingPeriod}
@@ -2074,12 +2235,25 @@ export default function App() {
   const [overviewMode, setOverviewMode] = useState<OverviewMode>(resolveOverviewModeFromHash);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshFeedback, setRefreshFeedback] = useState<RefreshFeedback>({
-    phase: "loading",
-    title: "正在读取本机快照",
-    detail: "启动后会继续执行增量采集"
-  });
+  const [refreshFeedback, setRefreshFeedback] = useState<RefreshFeedback | null>(null);
+  const refreshFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function showRefreshFeedback(feedback: RefreshFeedback, autoHide = false) {
+    if (refreshFeedbackTimerRef.current) {
+      clearTimeout(refreshFeedbackTimerRef.current);
+      refreshFeedbackTimerRef.current = null;
+    }
+
+    setRefreshFeedback(feedback);
+
+    if (autoHide) {
+      refreshFeedbackTimerRef.current = setTimeout(() => {
+        setRefreshFeedback(null);
+        refreshFeedbackTimerRef.current = null;
+      }, 5_000);
+    }
+  }
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -2097,15 +2271,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (refreshFeedbackTimerRef.current) {
+        clearTimeout(refreshFeedbackTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = window.codexCompanion.onDashboardUpdated((nextSnapshot) => {
       startTransition(() => setSnapshot(nextSnapshot));
       setError(null);
       setLoading(false);
-      setRefreshFeedback({
+      showRefreshFeedback({
         phase: "done",
         title: nextSnapshot.generatedFrom === "live" ? "后台刷新完成" : "快照已更新",
         detail: refreshTelemetryDetail(nextSnapshot)
-      });
+      }, true);
     });
     return unsubscribe;
   }, [startTransition]);
@@ -2114,27 +2296,17 @@ export default function App() {
     void (async () => {
       try {
         setLoading(true);
-        setRefreshFeedback({
-          phase: "loading",
-          title: "正在读取本机快照",
-          detail: "优先显示缓存，后台会继续检查新数据"
-        });
         const nextSnapshot = await window.codexCompanion.getDashboard();
         startTransition(() => setSnapshot(nextSnapshot));
         setError(null);
-        setRefreshFeedback({
-          phase: "done",
-          title: nextSnapshot.generatedFrom === "cache" ? "已显示缓存快照" : "快照读取完成",
-          detail: refreshTelemetryDetail(nextSnapshot)
-        });
       } catch (reason) {
         const message = reason instanceof Error ? reason.message : "读取仪表板失败";
         setError(message);
-        setRefreshFeedback({
+        showRefreshFeedback({
           phase: "error",
           title: "快照读取失败",
           detail: message
-        });
+        }, true);
       } finally {
         setLoading(false);
       }
@@ -2144,7 +2316,7 @@ export default function App() {
   async function refresh(force = true) {
     try {
       setLoading(true);
-      setRefreshFeedback({
+      showRefreshFeedback({
         phase: "refreshing",
         title: "正在增量采集",
         detail: "正在比对 Codex 会话文件签名，并复用未变化的解析缓存"
@@ -2154,19 +2326,55 @@ export default function App() {
         : await window.codexCompanion.getDashboard();
       startTransition(() => setSnapshot(nextSnapshot));
       setError(null);
-      setRefreshFeedback({
+      showRefreshFeedback({
         phase: "done",
         title: nextSnapshot.generatedFrom === "live" ? "刷新完成" : "已回退缓存",
         detail: refreshTelemetryDetail(nextSnapshot)
-      });
+      }, true);
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "刷新失败";
       setError(message);
-      setRefreshFeedback({
+      showRefreshFeedback({
         phase: "error",
         title: "刷新失败",
         detail: message
+      }, true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveBillingMonthStartDay(day: number) {
+    const normalizedDay = Number.isFinite(day)
+      ? Math.max(1, Math.min(31, Math.trunc(day)))
+      : preferences?.billingMonthStartDay ?? 1;
+    try {
+      setLoading(true);
+      showRefreshFeedback({
+        phase: "refreshing",
+        title: "正在保存计费口径",
+        detail: `计费月将按每月第 ${normalizedDay} 天 00:00 起算，保存后立即刷新快照`
       });
+      const nextPreferences = await window.codexCompanion.updatePreferences({
+        billingMonthStartDay: normalizedDay
+      });
+      setPreferences(nextPreferences);
+      const nextSnapshot = await window.codexCompanion.refreshDashboard();
+      startTransition(() => setSnapshot(nextSnapshot));
+      setError(null);
+      showRefreshFeedback({
+        phase: "done",
+        title: "计费口径已更新",
+        detail: refreshTelemetryDetail(nextSnapshot)
+      }, true);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "保存设置失败";
+      setError(message);
+      showRefreshFeedback({
+        phase: "error",
+        title: "保存设置失败",
+        detail: message
+      }, true);
     } finally {
       setLoading(false);
     }
@@ -2177,7 +2385,7 @@ export default function App() {
   }
 
   const currentPage =
-    page === "overview" || page === "ledger" || page === "repositories"
+    page === "overview" || page === "ledger" || page === "repositories" || page === "settings"
       ? page
       : "overview";
 
@@ -2216,7 +2424,13 @@ export default function App() {
         </div>
 
         <div className="sidebar-bottom">
-          <button type="button" className="settings-entry" disabled>
+          <button
+            type="button"
+            className={`settings-entry${currentPage === "settings" ? " active" : ""}`}
+            onClick={() => {
+              window.location.hash = "#/settings";
+            }}
+          >
             <span className="nav-icon">
               <Glyph name="settings" />
             </span>
@@ -2278,10 +2492,12 @@ export default function App() {
           </div>
         </header>
 
-        <div className={`refresh-feedback refresh-feedback-${refreshFeedback.phase}`} role="status" aria-live="polite">
-          <strong>{refreshFeedback.title}</strong>
-          <span>{refreshFeedback.detail}</span>
-        </div>
+        {refreshFeedback ? (
+          <div className={`refresh-feedback refresh-feedback-${refreshFeedback.phase}`} role="status" aria-live="polite">
+            <strong>{refreshFeedback.title}</strong>
+            <span>{refreshFeedback.detail}</span>
+          </div>
+        ) : null}
         {error ? <div className="error-banner">{error}</div> : null}
         {loading && !snapshot ? <div className="loading-card">正在读取本机 Codex 与 Git 数据…</div> : null}
         {isPending ? <div className="loading-hint">界面正在切换到最新快照…</div> : null}
@@ -2294,6 +2510,14 @@ export default function App() {
             ) : null}
             {currentPage === "ledger" ? <LedgerPage snapshot={snapshot} /> : null}
             {currentPage === "repositories" ? <RepositoriesPage snapshot={snapshot} /> : null}
+            {currentPage === "settings" ? (
+              <SettingsPage
+                key={preferences?.billingMonthStartDay ?? "settings"}
+                snapshot={snapshot}
+                preferences={preferences}
+                onSaveBillingMonthStartDay={saveBillingMonthStartDay}
+              />
+            ) : null}
 
             {currentPage === "ledger" ? <FooterNote snapshot={snapshot} /> : null}
             {currentPage === "repositories" ? <RepositoriesFooter snapshot={snapshot} /> : null}

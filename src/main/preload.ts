@@ -5,6 +5,7 @@ import type { CodexCompanionApi } from "../shared/contracts";
 const api: CodexCompanionApi = {
   getDashboard: (force) => ipcRenderer.invoke("dashboard:get", force),
   getPreferences: () => ipcRenderer.invoke("preferences:get"),
+  updatePreferences: (patch) => ipcRenderer.invoke("preferences:update", patch),
   refreshDashboard: () => ipcRenderer.invoke("dashboard:refresh"),
   updateWidgetPreferences: (patch) =>
     ipcRenderer.invoke("widget:update-preferences", patch),

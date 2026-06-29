@@ -1,8 +1,8 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.77`
-- 当前覆盖页面：总览页、Codex 账本页、代码仓库页
+- 当前适用版本：`v0.2.2-dev.78`
+- 当前覆盖页面：总览页、Codex 账本页、代码仓库页、设置页
 
 ## 总览页
 
@@ -17,11 +17,19 @@
 | 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、表头排序 | `snapshot.overview.projectOverview` |
 | 项目表头排序 | `ProjectSortHeader` | 页面级 | `name / token / cost / code / commits / sessions / recent`、`asc / desc` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
-| 刷新反馈条 | `refresh-feedback` | 全局复用 | `loading / refreshing / done / error`、耗时与缓存命中摘要 | `snapshot.sourceHealth.refresh` |
+| 刷新反馈条 | `refresh-feedback` | 全局复用 | `refreshing / done / error`、约 `5s` 自动隐藏 | `snapshot.sourceHealth.refresh` |
 | 页脚数据来源 | `FooterNote` / `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
 | Codex 增量缓存 | `CodexSessionCacheStore` / `collectCodexData` | 主进程复用 | `size`、`mtimeMs`、解析结果 | `%APPDATA%/codex-companion/codex-session-cache.json` |
+
+## 设置页
+
+| 设计区块 | 代码组件 / 位置 | 复用性 | 关键 props / 状态 | 数据来源 |
+| --- | --- | --- | --- | --- |
+| 计费口径 | `SettingsPage` `settings-form-row` | 页面级 | `billingMonthStartDay`、保存并刷新 | `preferences.billingMonthStartDay`、`preferences:update` |
+| 刷新历史 | `RefreshHistoryTable` | 页面级 | 最近 `30` 条刷新记录 | `snapshot.sourceHealth.refreshHistory` |
+| 数据边界 | `SettingsPage` `settings-source-grid` | 页面级 | Codex home、仓库根、本地快照、增量缓存 | `snapshot.sourceHealth`、本项目独立采集约定 |
 
 ## Codex 账本页
 
@@ -46,9 +54,9 @@
 - `模型贡献` 不设置额外排序按钮；默认 `Token` 倒序，点击表头字段后第一次正序、第二次倒序。
 - 应用启动优先读取缓存快照；实时采集延迟到启动后后台执行，自动刷新间隔为 `5` 分钟，避免打开应用时立刻触发完整 Codex + Git 扫描造成卡顿。
 - Codex 会话采集必须增量复用 `codex-session-cache.json`：文件签名未变化时复用解析结果，新增或变更文件才重新解析，反馈条展示本次新解析和复用数量。
-- 手动刷新必须有顶部反馈条，采集中禁用重复点击；完成后展示 `sourceHealth.refresh.durationMs / codexFilesParsed / codexFilesReused`，不能只改按钮文字。
+- 手动刷新必须有顶部临时反馈条，采集中禁用重复点击；完成后展示 `sourceHealth.refresh.durationMs / codexFilesParsed / codexFilesReused`，约 `5s` 后消失，长期记录进入设置页刷新历史。
 - 顶部 `今日代码改动` 的 `detail` 使用 `snapshot.overview.previous.yesterday.code.changedLines` 与 `snapshot.overview.today.code.changedLines` 计算，昨日 Git 有数据时必须显示百分比。
-- 顶部计费时间 `本月 Token` 使用 `snapshot.overview.windowPeriods.billingMonth`；默认 `billingMonthStartDay=1`，因此当前默认与自然月一致，后续设置页可调整起始日。
+- 顶部计费时间 `本月 Token` 使用 `snapshot.overview.windowPeriods.billingMonth`；默认 `billingMonthStartDay=1`，因此当前默认与自然月一致，设置页可调整起始日并触发刷新。
 - 左侧品牌图标使用 `src/renderer/icons.tsx` 中的 `BrandMark` SVG，必须保持非官方自定义资产，不使用 OpenAI / Codex 官方 logo。
 - 左侧导航图标使用 `src/renderer/icons.tsx` 中的 `Glyph` SVG：总览为首页图标，账本为文档账本图标，代码仓库为代码方块图标，设置为齿轮图标；图标本身不使用额外白色胶囊背景。
 - 左侧导航项遵循设计稿的单行结构，只显示图标和主标签；`总览 / Codex 账本 / 代码仓库 / 设置` 不在导航行内显示二级说明文案。
@@ -66,7 +74,7 @@
 - 顶部 `时间视角` 与 `自然时间 / 计费时间` 使用同一个 `topbar-mode-switch` 文本切换。
 - 顶部时间视角切换内部不允许换行；较窄窗口优先压缩标题、副标题或右侧操作间距，不能把时间视角整体拆到第二行。
 - 顶部时间视角属于中部页面控制区，不能被 `space-between` 推到右侧操作区旁边，也不能因 `flex-start` 偏到标题组旁边；顶栏桌面态使用左 / 中 / 右三列布局，中部视角控件几何居中，右侧状态、刷新和快照贴右。
-- 页面级截图支持通过 hash 查询参数设置初始 `overviewMode`，用于生成自然时间和计费时间两种真实 Electron 截图；普通用户默认仍进入自然时间。
+- 页面级截图支持通过 hash 查询参数设置初始 `overviewMode`，用于生成自然时间和计费时间两种真实 Electron 截图；普通用户默认进入计费时间。
 - 主进程默认每 `5` 分钟后台采集一次 `DashboardSnapshot` 并通过 `dashboard:updated` 广播；启动时优先显示缓存快照，延迟后台刷新，手动刷新完成后也必须广播，渲染端通过 `window.codexCompanion.onDashboardUpdated` 静默更新页面。
 - 顶部工具栏状态胶囊只显示状态文字，不额外显示状态图标；额度卡和指标卡内状态标签也保持文字-only。
 - 顶部工具栏不显示 `桌面总控台` 等额外眉标，页面标题与副标题横向组成同一信息组。
@@ -81,7 +89,7 @@
 - 项目表表头不强制全大写，保持与设计稿一致的正常标题大小写。
 - 项目概览主标题直接使用 `项目概览`，不再使用“项目消耗”作为主标题。
 - 项目概览二级周期切换必须放在 `项目概览` 标题右侧；排序不再使用右侧 chip 按钮，改为点击表头字段排序。
-- 项目概览自然时间默认选中 `周`，计费时间默认选中 `周额度`；用户在当前页面会话内切换周期后，保持用户选择。
+- 项目概览自然时间默认选中 `周`，计费时间默认选中 `周额度`，并额外提供 `计费月`；用户在当前页面会话内切换周期后，保持用户选择。
 - 项目概览默认按 `最近活动` 倒序，即最新项目活动优先；点击任一表头字段后第一次按该字段正序，第二次按该字段倒序。
 - 项目概览必须保留所有已发现本地项目，当前周期无活动项目显示 0 / `--`，不能因为无活动而从表格中消失。
 - 项目表 `项目` 列必须显示项目小图标和项目名，小图标由项目名稳定映射颜色，只作为扫读锚点，不表示官方身份。

@@ -1,10 +1,10 @@
 # 总览页目标完成度审计（v0.1）
 
 - 创建时间：2026-06-04
-- 审计版本：`v0.2.2-dev.68`
+- 审计版本：`v0.2.2-dev.78`
 - 审计对象：总览页设计对照、图标资产、额度真实数据和交付验证
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev68.png`、`local_dev_work/overview-1080x720-dev68.png`、`local_dev_work/overview-billing-1360x900-dev68.png`、`local_dev_work/overview-billing-1080x720-dev68.png`
+- 实现截图：`local_dev_work/overview-1360x900-dev78.png`、`local_dev_work/overview-1080x720-dev78.png`、`local_dev_work/overview-billing-1360x900-dev78.png`、`local_dev_work/overview-billing-1080x720-dev78.png`
 - 比例测量：`docs/design-review/overview-visual-measurement-v0.1.md`
 - 设计 token：`docs/design-tokens-v0.1.md`、`src/renderer/design-tokens.ts`、`npm run verify:design`
 - 运行快照：`C:\Users\85406\AppData\Roaming\codex-companion\snapshot.json`
@@ -192,3 +192,17 @@
 - Codex JSONL 采集改为基于 `size + mtimeMs` 的增量缓存；缓存只保存文件签名和解析后的聚合结果，不保存原始会话正文。
 - 当前版本真实 Electron 截图：`local_dev_work/overview-1360x900-dev77.png`、`local_dev_work/overview-1080x720-dev77.png`、`local_dev_work/overview-billing-1360x900-dev77.png`、`local_dev_work/overview-billing-1080x720-dev77.png`。
 - 验证：`npm run build`、`npm run capture:overview`、`npm run verify:design`、`npm run verify:quota`、`git diff --check` 均通过；连续强制刷新实测第二次可复用绝大多数 Codex 会话解析缓存。
+
+## 7. `v0.2.2-dev.78` 临时刷新反馈、设置页历史与计费月项目复核
+
+本轮针对用户确认的独立项目方向、刷新反馈冗余和计费月项目周期补齐，不改变 Codex Token、额度和 Git 基础统计来源：
+
+- 项目定位：`Codex Companion` 继续作为独立桌面应用维护，不作为 `dev-ledger` 的桌面端看板。
+- 数据来源：当前快照独立采集 Codex 本地会话与 Git 仓库活动，不读取或依赖 `dev-ledger` 的运行结果。
+- 刷新反馈：顶部反馈条只在刷新中、完成或失败后短暂显示；完成或失败后约 `5s` 自动消失。
+- 刷新历史：`sourceHealth.refreshHistory` 保留最近 `30` 次刷新，设置页显示手动、自动、启动和后台刷新情况。
+- 计费口径：设置页可保存 `billingMonthStartDay`；总览页默认进入计费时间。
+- 项目概览：计费时间下新增 `计费月` 周期，并按计费月起点采集 Git 代码活动。
+- 当前版本真实 Electron 截图：`local_dev_work/overview-1360x900-dev78.png`、`local_dev_work/overview-1080x720-dev78.png`、`local_dev_work/overview-billing-1360x900-dev78.png`、`local_dev_work/overview-billing-1080x720-dev78.png`。
+- 设置页人工复核截图：`local_dev_work/settings-1360x900-dev78.png`。
+- 验证：`npm run build`、`npm run capture:overview`、`npm run verify:design`、`npm run verify:quota`、`npm run verify:overview`、`git diff --check` 均通过；刷新历史来源已使用编译后的 `DashboardService.getSnapshot(true, "manual")` 与 `"auto"` 单独核对。

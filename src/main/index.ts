@@ -15,6 +15,7 @@ import type {
   AppPage,
   AppPreferences,
   DashboardSnapshot,
+  RefreshTrigger,
   WidgetPreferences
 } from "../shared/contracts";
 import { DashboardService } from "./collectors/dashboardCollector";
@@ -77,6 +78,7 @@ function resolveInitialPage(): AppPage {
     capturePage === "overview" ||
     capturePage === "ledger" ||
     capturePage === "repositories" ||
+    capturePage === "settings" ||
     capturePage === "widget"
   ) {
     return capturePage;
@@ -283,13 +285,15 @@ function broadcastDashboardSnapshot(snapshot: DashboardSnapshot) {
   refreshTrayMenu();
 }
 
-function refreshDashboardAndBroadcast(): Promise<DashboardSnapshot> {
+function refreshDashboardAndBroadcast(
+  trigger: RefreshTrigger = "manual"
+): Promise<DashboardSnapshot> {
   if (dashboardRefreshTask) {
     return dashboardRefreshTask;
   }
 
   dashboardRefreshTask = dashboardService
-    .getSnapshot(true)
+    .getSnapshot(true, trigger)
     .then((snapshot) => {
       broadcastDashboardSnapshot(snapshot);
       return snapshot;
@@ -307,7 +311,7 @@ function startDashboardAutoRefresh() {
   }
 
   dashboardRefreshTimer = setInterval(() => {
-    void refreshDashboardAndBroadcast().catch((error) => {
+    void refreshDashboardAndBroadcast("auto").catch((error) => {
       console.error(
         `自动刷新失败：${error instanceof Error ? error.message : String(error)}`
       );
@@ -331,7 +335,7 @@ function scheduleStartupBackgroundRefresh() {
 
   startupRefreshTimer = setTimeout(() => {
     startupRefreshTimer = null;
-    void refreshDashboardAndBroadcast().catch((error) => {
+    void refreshDashboardAndBroadcast("startup").catch((error) => {
       console.error(
         `启动后台刷新失败：${error instanceof Error ? error.message : String(error)}`
       );
@@ -342,7 +346,7 @@ function scheduleStartupBackgroundRefresh() {
 async function loadSnapshot(force = false) {
   latestSnapshot = await dashboardService.getSnapshot(force);
   if (!force && latestSnapshot.generatedFrom === "pending") {
-    const backgroundRefresh = dashboardService.refreshSnapshotInBackground();
+    const backgroundRefresh = dashboardService.refreshSnapshotInBackground("startup");
     if (backgroundRefresh) {
       void backgroundRefresh
         .then((snapshot) => {
@@ -445,7 +449,7 @@ function refreshTrayMenu() {
     {
       label: "刷新数据",
       click: async () => {
-        await refreshDashboardAndBroadcast();
+        await refreshDashboardAndBroadcast("manual");
       }
     },
     {
@@ -563,10 +567,19 @@ function createWidgetWindow(preferences: AppPreferences) {
 
 function registerIpcHandlers() {
   ipcMain.handle("dashboard:get", async (_event, force?: boolean) =>
-    force ? refreshDashboardAndBroadcast() : loadSnapshot(false)
+    force ? refreshDashboardAndBroadcast("manual") : loadSnapshot(false)
   );
-  ipcMain.handle("dashboard:refresh", async () => refreshDashboardAndBroadcast());
+  ipcMain.handle("dashboard:refresh", async () => refreshDashboardAndBroadcast("manual"));
   ipcMain.handle("preferences:get", async () => dashboardService.getPreferences());
+  ipcMain.handle(
+    "preferences:update",
+    async (_event, patch: Partial<AppPreferences>) => {
+      const next = await dashboardService.updatePreferences(patch);
+      currentPreferences = next;
+      await broadcastPreferences(next);
+      return next;
+    }
+  );
   ipcMain.handle(
     "widget:update-preferences",
     async (_event, patch: Partial<WidgetPreferences>) => {

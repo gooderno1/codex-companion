@@ -1,7 +1,8 @@
 export type SourceStatus = "observed" | "pending" | "unobserved" | "stale";
 
-export type AppPage = "overview" | "ledger" | "repositories" | "widget";
+export type AppPage = "overview" | "ledger" | "repositories" | "settings" | "widget";
 export type WidgetPreset = "signal-bar" | "mini-capsule";
+export type RefreshTrigger = "manual" | "auto" | "startup" | "background";
 
 export interface TokenBreakdown {
   input: number;
@@ -147,6 +148,7 @@ export interface RepoMetric {
     workingTree: CodeActivity;
     fiveHour?: CodeActivity;
     weekLimit?: CodeActivity;
+    billingMonth?: CodeActivity;
   };
   tokens: TokenBreakdown;
   apiCostUsd: number;
@@ -177,6 +179,7 @@ export interface WidgetMetric {
 }
 
 export interface RefreshTelemetry {
+  trigger: RefreshTrigger;
   startedAt: string | null;
   completedAt: string | null;
   durationMs: number | null;
@@ -186,6 +189,22 @@ export interface RefreshTelemetry {
   codexFilesParsed: number;
   codexFilesReused: number;
   codexCachePruned: number;
+}
+
+export interface RefreshHistoryEntry {
+  id: string;
+  trigger: RefreshTrigger;
+  generatedFrom: DashboardSnapshot["generatedFrom"];
+  sourceStatus: SourceStatus;
+  completedAt: string;
+  durationMs: number | null;
+  codexDurationMs: number | null;
+  gitDurationMs: number | null;
+  codexFilesTotal: number;
+  codexFilesParsed: number;
+  codexFilesReused: number;
+  codexCachePruned: number;
+  message: string | null;
 }
 
 export interface DashboardSnapshot {
@@ -200,6 +219,7 @@ export interface DashboardSnapshot {
     lastObservedAt: string | null;
     sourceStatus: SourceStatus;
     refresh: RefreshTelemetry;
+    refreshHistory: RefreshHistoryEntry[];
     notes: string[];
   };
   overview: {
@@ -234,6 +254,7 @@ export interface DashboardSnapshot {
       billing: {
         fiveHour: OverviewProjectItem[];
         weekLimit: OverviewProjectItem[];
+        billingMonth: OverviewProjectItem[];
       };
     };
     apiValueSummaryUsd: number | null;
@@ -304,6 +325,7 @@ export interface AppPreferences {
 export interface CodexCompanionApi {
   getDashboard(force?: boolean): Promise<DashboardSnapshot>;
   getPreferences(): Promise<AppPreferences>;
+  updatePreferences(patch: Partial<AppPreferences>): Promise<AppPreferences>;
   refreshDashboard(): Promise<DashboardSnapshot>;
   updateWidgetPreferences(
     patch: Partial<WidgetPreferences>
