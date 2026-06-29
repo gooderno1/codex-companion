@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-30] v0.3.0-dev.4 fix: 修正刷新状态与趋势曲线辨识度
+
+- 开发原因：用户反馈手动刷新后仍一直显示 `数据过期`，并指出 `Token 走势拆解` 多条曲线颜色过于接近，难以区分不同输入输出类型。
+- 实现方式：将项目版本从 `v0.3.0-dev.3` 提升到 `v0.3.0-dev.4`；调整 `collectCodexData` 的 `sourceStatus` 判定，有可解析 token 事件时即标记为 `已观测`，不再因最新 token 事件超过 `45` 分钟而降级为 `数据过期`；超过 `45` 分钟的最近活动只写入 `sourceHealth.notes` 和刷新反馈里的 `最新观测` 信息；将挂件中的 `最近刷新` 改为 `最近观测`；把趋势曲线色板改为蓝、紫、橙、青、绿、玫红六个差异更大的颜色；同步更新数据合同、UI Contract、组件映射和页面设计规格。
+- 当前结果：刷新成功但最近没有新 Codex token 事件时，顶部状态显示 `已观测`，刷新反馈继续说明最新观测时间；趋势图默认可见曲线之间的色相差异更明显。
+- 验证方式：执行 `npm run typecheck`；执行 `npm run verify:ledger`；执行 `npm run build`；使用编译后的 `DashboardService.getSnapshot(true, "manual")` 验证 `sourceStatus=observed`；执行 `npm run capture:overview`、`npm run verify:quota`、`npm run verify:overview`；生成并人工检查 `local_dev_work/ledger-1360x900-dev4.png`；执行 `git diff --check`。
+
 ## [2026-06-29] v0.3.0-dev.3 feat: 实现趋势平滑曲线与放大查看
 
 - 开发原因：用户确认按上一轮规划实施，要求把 `Token 走势拆解` 的直线折线改为更自然的曲线，并增加可全截面看图的放大功能。

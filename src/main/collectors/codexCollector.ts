@@ -471,21 +471,26 @@ async function parseSessionFile(filePath: string): Promise<SessionParseResult> {
 
 function inferSourceStatus(
   fileCount: number,
-  eventCount: number,
-  lastObservedAt: string | null,
-  now: Date
+  eventCount: number
 ): SourceStatus {
   if (eventCount === 0) {
     return fileCount > 0 ? "pending" : "unobserved";
   }
 
+  return "observed";
+}
+
+function observationAgeMinutes(lastObservedAt: string | null, now: Date) {
   if (!lastObservedAt) {
-    return "pending";
+    return null;
   }
 
-  const ageMinutes =
-    (now.getTime() - new Date(lastObservedAt).getTime()) / 60_000;
-  return ageMinutes > 45 ? "stale" : "observed";
+  const observedAtMs = new Date(lastObservedAt).getTime();
+  if (Number.isNaN(observedAtMs)) {
+    return null;
+  }
+
+  return (now.getTime() - observedAtMs) / 60_000;
 }
 
 export async function collectCodexData(
@@ -602,10 +607,9 @@ export async function collectCodexData(
   const notes: string[] = [];
   const sourceStatus = inferSourceStatus(
     selectedFiles.length,
-    events.length,
-    lastObservedAt,
-    now
+    events.length
   );
+  const lastObservationAgeMinutes = observationAgeMinutes(lastObservedAt, now);
 
   if (sourceStatus === "unobserved") {
     notes.push("未找到可解析的 Codex 会话文件。");
@@ -615,8 +619,13 @@ export async function collectCodexData(
     notes.push("已发现会话文件，但最近窗口内没有可用 token_count 记录。");
   }
 
-  if (sourceStatus === "stale" && lastObservedAt) {
-    notes.push(`最新可观测 token 事件停留在 ${lastObservedAt}。`);
+  if (
+    sourceStatus === "observed" &&
+    lastObservedAt &&
+    lastObservationAgeMinutes !== null &&
+    lastObservationAgeMinutes > 45
+  ) {
+    notes.push(`刷新已完成；最新可观测 token 事件停留在 ${lastObservedAt}。`);
   }
 
   if (!latestRateSnapshot) {

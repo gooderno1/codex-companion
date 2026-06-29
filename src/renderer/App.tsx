@@ -1204,12 +1204,12 @@ const LEDGER_TREND_SERIES: Array<{
   color: string;
   defaultVisible: boolean;
 }> = [
-  { key: "total", label: "总 Token", color: "#0f6fff", defaultVisible: true },
-  { key: "input", label: "输入总量", color: "#12a4b8", defaultVisible: true },
-  { key: "rawInput", label: "原始输入", color: "#6d8df7", defaultVisible: false },
-  { key: "cachedInput", label: "缓存输入", color: "#0f9f79", defaultVisible: true },
-  { key: "output", label: "输出", color: "#21a84f", defaultVisible: true },
-  { key: "reasoningOutput", label: "推理 Token", color: "#115e59", defaultVisible: false }
+  { key: "total", label: "总 Token", color: "#2563eb", defaultVisible: true },
+  { key: "input", label: "输入总量", color: "#7c3aed", defaultVisible: true },
+  { key: "rawInput", label: "原始输入", color: "#f59e0b", defaultVisible: false },
+  { key: "cachedInput", label: "缓存输入", color: "#0891b2", defaultVisible: true },
+  { key: "output", label: "输出", color: "#16a34a", defaultVisible: true },
+  { key: "reasoningOutput", label: "推理 Token", color: "#e11d48", defaultVisible: false }
 ];
 
 const DEFAULT_TREND_SERIES_VISIBILITY = LEDGER_TREND_SERIES.reduce<

@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.0-dev.3`
+- 当前适用版本：`v0.3.0-dev.4`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、设置页
 
 ## 总览页
@@ -51,11 +51,13 @@
 - `Codex 账本` 不再重复总览页的 `5H / 周 / 月额度` 三卡主叙事；第二页首屏必须围绕走势、周期洞察、周额度细账、模型贡献和会话归因。
 - `Token 走势拆解` 使用多曲线表达 `总 Token / 输入总量 / 原始输入 / 缓存输入 / 输出 / 推理 Token`；用户可点击图例显示或隐藏某条曲线，点击曲线点位后右侧显示当前粒度明细表。
 - `Token 走势拆解` 当前已把折线升级为平滑曲线，并新增 `放大查看` 全截面视图；放大层复用 `trendPeriod / visibleTrendSeries / selectedTrendBucketKey` 和 `snapshot.ledger.trend`，不新增统计口径。
+- `Token 走势拆解` 曲线色板必须保持明显色相差异：总量、输入、原始输入、缓存输入、输出、推理 Token 不使用近似蓝绿同色系堆叠。
 - `周期洞察` 与 `模型贡献` 使用各自的 `近7天 / 近30天 / 累计`，不使用 `全部`，也不跟随左侧趋势图的 `日 / 周 / 月`。
 - `模型贡献` 不设置额外排序按钮；默认 `Token` 倒序，点击表头字段后第一次正序、第二次倒序。
 - 应用启动优先读取缓存快照；实时采集延迟到启动后后台执行，自动刷新间隔为 `5` 分钟，避免打开应用时立刻触发完整 Codex + Git 扫描造成卡顿。
 - Codex 会话采集必须增量复用 `codex-session-cache.json`：文件签名未变化时复用解析结果，新增或变更文件才重新解析，反馈条展示本次新解析和复用数量。
 - 手动刷新必须有顶部临时反馈条，采集中禁用重复点击；完成后展示 `sourceHealth.refresh.durationMs / codexFilesParsed / codexFilesReused`，约 `5s` 后消失，长期记录进入设置页刷新历史。
+- 顶部 `sourceStatus` 表达本次 Codex 数据源是否成功观测；最近没有新 token 事件只通过 `lastObservedAt` 和刷新反馈说明，不能把一次成功刷新显示成 `数据过期`。
 - 顶部 `今日代码改动` 的 `detail` 使用 `snapshot.overview.previous.yesterday.code.changedLines` 与 `snapshot.overview.today.code.changedLines` 计算，昨日 Git 有数据时必须显示百分比。
 - 顶部计费时间 `本月 Token` 使用 `snapshot.overview.windowPeriods.billingMonth`；默认 `billingMonthStartDay=1`，因此当前默认与自然月一致，设置页可调整起始日并触发刷新。
 - 左侧品牌图标使用 `src/renderer/icons.tsx` 中的 `BrandMark` SVG，必须保持非官方自定义资产，不使用 OpenAI / Codex 官方 logo。

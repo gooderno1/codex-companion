@@ -206,3 +206,12 @@
 - 当前版本真实 Electron 截图：`local_dev_work/overview-1360x900-dev78.png`、`local_dev_work/overview-1080x720-dev78.png`、`local_dev_work/overview-billing-1360x900-dev78.png`、`local_dev_work/overview-billing-1080x720-dev78.png`。
 - 设置页人工复核截图：`local_dev_work/settings-1360x900-dev78.png`。
 - 验证：`npm run build`、`npm run capture:overview`、`npm run verify:design`、`npm run verify:quota`、`npm run verify:overview`、`git diff --check` 均通过；刷新历史来源已使用编译后的 `DashboardService.getSnapshot(true, "manual")` 与 `"auto"` 单独核对。
+
+## 8. `v0.3.0-dev.4` 刷新状态与总览页验收复核
+
+本轮针对用户反馈的刷新后仍显示 `数据过期` 问题，修正状态语义，不改变总览页布局结构：
+
+- 刷新成功且存在可解析 token 事件时，顶部状态显示 `已观测`。
+- 最近没有新 token 事件只通过 `最新观测` 时间说明，不再触发全局 `数据过期`。
+- 当前版本真实 Electron 截图：`local_dev_work/overview-1360x900-dev4.png`、`local_dev_work/overview-1080x720-dev4.png`、`local_dev_work/overview-billing-1360x900-dev4.png`、`local_dev_work/overview-billing-1080x720-dev4.png`。
+- 验证：执行 `npm run build`、`npm run capture:overview`、`npm run verify:quota`、`npm run verify:overview`、`git diff --check`。

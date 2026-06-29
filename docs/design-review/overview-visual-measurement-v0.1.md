@@ -498,3 +498,11 @@
 - `local_dev_work/overview-1360x900-dev28.png`：顶部四卡更舒展，状态标签与主数字之间的间隔更接近设计稿。
 - `local_dev_work/overview-1080x720-dev28.png`：四卡、额度卡、项目概览和页脚仍完整可见，没有出现页面级溢出。
 - 后续如果继续追求更高贴合度，应进入更细的卡片内部标注，例如图标尺寸、标题基线和状态标签纵向位置，而不是继续调全局区块高度。
+
+## 7. `v0.3.0-dev.4` 刷新状态口径复测
+
+本轮聚焦刷新状态语义和曲线颜色，不改变总览页区块比例：
+
+- 当前版本截图重新生成为 `local_dev_work/overview-1360x900-dev4.png`、`local_dev_work/overview-1080x720-dev4.png`、`local_dev_work/overview-billing-1360x900-dev4.png`、`local_dev_work/overview-billing-1080x720-dev4.png`。
+- 顶部状态胶囊在刷新成功且存在可解析 token 事件时显示 `已观测`。
+- 最近没有新 token 事件只通过刷新反馈的 `最新观测` 时间表达，不再把成功刷新误报为 `数据过期`。

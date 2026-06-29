@@ -1868,7 +1868,7 @@ async function collectDashboardSnapshot(
     widget: {
       statusLabel: widgetStatusLabel(codex.sourceStatus, weeklyWindow, primaryWindow),
       updatedLabel: codex.lastObservedAt
-        ? `最近刷新 ${new Date(codex.lastObservedAt).toLocaleString("zh-CN")}`
+        ? `最近观测 ${new Date(codex.lastObservedAt).toLocaleString("zh-CN")}`
         : "等待首个快照",
       metrics: widgetMetrics
     },

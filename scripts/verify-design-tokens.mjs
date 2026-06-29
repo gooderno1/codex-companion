@@ -31,7 +31,8 @@ const LOCAL_COMPONENT_VARIABLES = new Set([
   "--app-scale",
   "--quota-accent",
   "--quota-accent-end",
-  "--quota-progress"
+  "--quota-progress",
+  "--series-color"
 ]);
 
 function parseTokenVariables(source) {
