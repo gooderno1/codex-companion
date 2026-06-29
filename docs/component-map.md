@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.2.2-dev.75`
+- 当前适用版本：`v0.2.2-dev.77`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页
 
 ## 总览页
@@ -17,9 +17,11 @@
 | 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、表头排序 | `snapshot.overview.projectOverview` |
 | 项目表头排序 | `ProjectSortHeader` | 页面级 | `name / token / cost / code / commits / sessions / recent`、`asc / desc` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
+| 刷新反馈条 | `refresh-feedback` | 全局复用 | `loading / refreshing / done / error`、耗时与缓存命中摘要 | `snapshot.sourceHealth.refresh` |
 | 页脚数据来源 | `FooterNote` / `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
+| Codex 增量缓存 | `CodexSessionCacheStore` / `collectCodexData` | 主进程复用 | `size`、`mtimeMs`、解析结果 | `%APPDATA%/codex-companion/codex-session-cache.json` |
 
 ## Codex 账本页
 
@@ -43,6 +45,8 @@
 - `周期洞察` 与 `模型贡献` 使用各自的 `近7天 / 近30天 / 累计`，不使用 `全部`，也不跟随左侧趋势图的 `日 / 周 / 月`。
 - `模型贡献` 不设置额外排序按钮；默认 `Token` 倒序，点击表头字段后第一次正序、第二次倒序。
 - 应用启动优先读取缓存快照；实时采集延迟到启动后后台执行，自动刷新间隔为 `5` 分钟，避免打开应用时立刻触发完整 Codex + Git 扫描造成卡顿。
+- Codex 会话采集必须增量复用 `codex-session-cache.json`：文件签名未变化时复用解析结果，新增或变更文件才重新解析，反馈条展示本次新解析和复用数量。
+- 手动刷新必须有顶部反馈条，采集中禁用重复点击；完成后展示 `sourceHealth.refresh.durationMs / codexFilesParsed / codexFilesReused`，不能只改按钮文字。
 - 顶部 `今日代码改动` 的 `detail` 使用 `snapshot.overview.previous.yesterday.code.changedLines` 与 `snapshot.overview.today.code.changedLines` 计算，昨日 Git 有数据时必须显示百分比。
 - 顶部计费时间 `本月 Token` 使用 `snapshot.overview.windowPeriods.billingMonth`；默认 `billingMonthStartDay=1`，因此当前默认与自然月一致，后续设置页可调整起始日。
 - 左侧品牌图标使用 `src/renderer/icons.tsx` 中的 `BrandMark` SVG，必须保持非官方自定义资产，不使用 OpenAI / Codex 官方 logo。

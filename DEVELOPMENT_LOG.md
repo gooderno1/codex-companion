@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-29] v0.2.2-dev.77 fix: 修正刷新反馈并接入 Codex 增量采集
+
+- 开发原因：用户反馈点击刷新后长时间没有可见变化，需要确认刷新是否生效，并要求刷新时必须有反馈、Codex 会话采集必须增量化，避免每次重复解析大量本地 JSONL。
+- 实现方式：为 `DashboardSnapshot.sourceHealth` 增加 `refresh` 反馈字段，记录刷新起止、总耗时、Codex/Git 分段耗时、新解析文件数、缓存复用数和清理数；新增 `CodexSessionCacheStore`，在 `%APPDATA%/codex-companion/codex-session-cache.json` 保存 JSONL 文件签名与解析后的聚合结果，采集器按 `size + mtimeMs` 复用未变化文件；渲染层新增顶部刷新反馈条，手动刷新时按钮显示 `采集中` 并禁用重复点击，完成后展示真实快照来源、耗时和缓存命中摘要；同步更新数据契约、组件映射、总览页 UI Contract、页面设计规格、README 和隐私说明。
+- 当前结果：刷新链路仍统一走主进程 `DashboardSnapshot`，但用户可以看到读取缓存、增量采集、后台刷新完成或失败的明确反馈；Codex 会话第二次刷新可复用未变化文件，避免重复解析最近 60 天全部会话。
+- 验证方式：执行 `npm run typecheck`；执行 `npm run build:main`；用编译后的 `DashboardService.getSnapshot(true)` 连续刷新两次，第一次解析 `377` 个 Codex JSONL、耗时约 `15.3s`，第二次解析 `0` 个、复用 `377` 个、总耗时约 `5.9s`；执行 `npm run capture:overview` 并目视检查 `1360 x 900` 与 `1080 x 720` 截图；执行 `npm run verify:overview`；执行 `npm run build`；执行 `npm run verify:design`；执行 `npm run verify:quota`；执行 `git diff --check`。
+
 ## [2026-06-05] v0.2.2-dev.76 fix: 收敛账本页走势周期并增强分层可读性
 
 - 开发原因：用户复核第二页左上角 `Token 走势拆解` 后指出两类问题：分层展示肉眼不明显，且 `日 / 月` 视角当前显示异常；需要先按约定的数据口径和页面原则收敛可用状态，而不是继续暴露未确认视角。

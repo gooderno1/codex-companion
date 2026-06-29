@@ -176,6 +176,18 @@ export interface WidgetMetric {
   tone: "primary" | "neutral" | "success" | "warning" | "danger";
 }
 
+export interface RefreshTelemetry {
+  startedAt: string | null;
+  completedAt: string | null;
+  durationMs: number | null;
+  codexDurationMs: number | null;
+  gitDurationMs: number | null;
+  codexFilesTotal: number;
+  codexFilesParsed: number;
+  codexFilesReused: number;
+  codexCachePruned: number;
+}
+
 export interface DashboardSnapshot {
   generatedAt: string;
   generatedFrom: "live" | "cache" | "pending";
@@ -187,6 +199,7 @@ export interface DashboardSnapshot {
     repoCount: number;
     lastObservedAt: string | null;
     sourceStatus: SourceStatus;
+    refresh: RefreshTelemetry;
     notes: string[];
   };
   overview: {

@@ -1,4 +1,5 @@
 import { createReadStream } from "node:fs";
+import { stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
@@ -11,6 +12,7 @@ import { emptyTokens, roundTo, sumTokens } from "./metrics";
 
 const CODEX_HISTORY_LOOKBACK_DAYS = 60;
 const PRIMARY_CODEX_LIMIT_ID = "codex";
+const CODEX_SESSION_CACHE_VERSION = 1;
 
 export interface ObservedLimitWindow {
   usedPercent: number | null;
@@ -64,14 +66,48 @@ export interface CollectedCodexData {
   quotaObservations: QuotaObservation[];
   lastObservedAt: string | null;
   sourceStatus: SourceStatus;
+  cacheStats: CodexCollectionCacheStats;
   notes: string[];
 }
 
-interface SessionParseResult {
+export interface SessionParseResult {
   events: CodexTokenEvent[];
   session: CodexSessionSummary | null;
   latestRateSnapshot: LatestRateSnapshot | null;
   quotaObservations: QuotaObservation[];
+}
+
+export interface CodexSessionCacheEntry {
+  size: number;
+  mtimeMs: number;
+  result: SessionParseResult;
+}
+
+export interface CodexSessionCache {
+  version: typeof CODEX_SESSION_CACHE_VERSION;
+  entries: Record<string, CodexSessionCacheEntry>;
+}
+
+export interface CodexSessionCacheStoreLike {
+  read(): Promise<CodexSessionCache | null>;
+  write(cache: CodexSessionCache): Promise<void>;
+}
+
+export interface CodexCollectionCacheStats {
+  totalFiles: number;
+  parsedFiles: number;
+  reusedFiles: number;
+  prunedFiles: number;
+}
+
+interface CollectCodexDataOptions {
+  sessionCacheStore?: CodexSessionCacheStoreLike;
+}
+
+interface SessionFileInfo {
+  filePath: string;
+  size: number;
+  mtimeMs: number;
 }
 
 function resolveCodexHome(): string {
@@ -141,6 +177,29 @@ function shouldIncludeFile(filePath: string, cutoff: Date): boolean {
   }
 
   return approximateDate >= cutoff;
+}
+
+async function readSessionFileInfo(filePath: string): Promise<SessionFileInfo | null> {
+  try {
+    const fileStat = await stat(filePath);
+    return {
+      filePath,
+      size: fileStat.size,
+      mtimeMs: fileStat.mtimeMs
+    };
+  } catch {
+    return null;
+  }
+}
+
+function usableCacheEntries(
+  cache: CodexSessionCache | null
+): Record<string, CodexSessionCacheEntry> {
+  if (cache?.version !== CODEX_SESSION_CACHE_VERSION || !cache.entries) {
+    return {};
+  }
+
+  return cache.entries;
 }
 
 function compareIso(left: string | null, right: string | null): number {
@@ -430,7 +489,8 @@ function inferSourceStatus(
 }
 
 export async function collectCodexData(
-  now = new Date()
+  now = new Date(),
+  options: CollectCodexDataOptions = {}
 ): Promise<CollectedCodexData> {
   const codexHome = resolveCodexHome();
   const sessionsRoot = path.join(codexHome, "sessions");
@@ -458,9 +518,58 @@ export async function collectCodexData(
   ]);
 
   const selectedFiles = [...sessionFiles, ...archivedFiles];
-  const results = await Promise.all(
-    selectedFiles.map((filePath) => parseSessionFile(filePath))
+  const selectedFileInfos = (
+    await Promise.all(selectedFiles.map((filePath) => readSessionFileInfo(filePath)))
+  ).filter((item): item is SessionFileInfo => Boolean(item));
+  const cacheEntries = usableCacheEntries(
+    options.sessionCacheStore ? await options.sessionCacheStore.read() : null
   );
+  const nextCacheEntries: Record<string, CodexSessionCacheEntry> = {};
+  let parsedFiles = 0;
+  let reusedFiles = 0;
+  let cacheWriteFailed = false;
+
+  const results = await Promise.all(
+    selectedFileInfos.map(async (fileInfo) => {
+      const cached = cacheEntries[fileInfo.filePath];
+      if (
+        cached &&
+        cached.size === fileInfo.size &&
+        cached.mtimeMs === fileInfo.mtimeMs
+      ) {
+        reusedFiles += 1;
+        nextCacheEntries[fileInfo.filePath] = cached;
+        return cached.result;
+      }
+
+      const result = await parseSessionFile(fileInfo.filePath);
+      parsedFiles += 1;
+      nextCacheEntries[fileInfo.filePath] = {
+        size: fileInfo.size,
+        mtimeMs: fileInfo.mtimeMs,
+        result
+      };
+      return result;
+    })
+  );
+  const prunedFiles = Math.max(
+    0,
+    Object.keys(cacheEntries).length - Object.keys(nextCacheEntries).length
+  );
+
+  const shouldWriteCache =
+    parsedFiles > 0 || prunedFiles > 0 || Object.keys(cacheEntries).length === 0;
+
+  if (options.sessionCacheStore && shouldWriteCache) {
+    try {
+      await options.sessionCacheStore.write({
+        version: CODEX_SESSION_CACHE_VERSION,
+        entries: nextCacheEntries
+      });
+    } catch {
+      cacheWriteFailed = true;
+    }
+  }
 
   const events: CodexTokenEvent[] = [];
   const sessions: CodexSessionSummary[] = [];
@@ -514,6 +623,10 @@ export async function collectCodexData(
     notes.push("当前未观测到可用的 rate_limits 快照，月额度卡片将保持未观测状态。");
   }
 
+  if (cacheWriteFailed) {
+    notes.push("Codex 增量缓存写入失败，本次数据已刷新，但下次可能需要重新解析会话文件。");
+  }
+
   return {
     codexHome,
     sessionFilesScanned: sessionFiles.length,
@@ -524,6 +637,12 @@ export async function collectCodexData(
     quotaObservations,
     lastObservedAt,
     sourceStatus,
+    cacheStats: {
+      totalFiles: selectedFileInfos.length,
+      parsedFiles,
+      reusedFiles,
+      prunedFiles
+    },
     notes
   };
 }

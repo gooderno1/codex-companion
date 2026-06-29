@@ -182,3 +182,13 @@
 - 更新 `docs/design-review/overview-block-audit-v0.1.md`。
 - 必要时补充尺寸标注表。
 - 再改实现并重新截图验证。
+
+## 6. `v0.2.2-dev.77` 刷新链路复核
+
+本轮针对刷新体验与 Codex 会话采集性能修正，不改变总览页主要统计口径：
+
+- 新增顶部刷新反馈条，展示读取快照、增量采集、后台刷新完成或失败。
+- `sourceHealth.refresh` 记录总耗时、Codex/Git 分段耗时、新解析文件数、缓存复用数和缓存清理数。
+- Codex JSONL 采集改为基于 `size + mtimeMs` 的增量缓存；缓存只保存文件签名和解析后的聚合结果，不保存原始会话正文。
+- 当前版本真实 Electron 截图：`local_dev_work/overview-1360x900-dev77.png`、`local_dev_work/overview-1080x720-dev77.png`、`local_dev_work/overview-billing-1360x900-dev77.png`、`local_dev_work/overview-billing-1080x720-dev77.png`。
+- 验证：`npm run build`、`npm run capture:overview`、`npm run verify:design`、`npm run verify:quota`、`git diff --check` 均通过；连续强制刷新实测第二次可复用绝大多数 Codex 会话解析缓存。

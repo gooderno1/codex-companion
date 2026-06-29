@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.2.2-dev.61`
+- 对应开发版本：`v0.2.2-dev.77`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -10,6 +10,10 @@
 
 - `~/.codex/sessions/**/*.jsonl`
 - `~/.codex/archived_sessions/*.jsonl`
+- 派生增量缓存：`%APPDATA%/codex-companion/codex-session-cache.json`
+  - 缓存只保存每个会话文件的路径、`size`、`mtimeMs` 和解析后的聚合结果
+  - 缓存不保存原始 JSONL 行、用户输入正文或模型输出正文
+  - 当文件签名变化、新增文件出现或文件离开最近 `60` 天窗口时，采集器会重新解析或清理对应缓存
 - 重点字段：
   - `session_meta.id`
   - `session_meta.cwd`
@@ -84,6 +88,20 @@
 - 若无法找到 Git 根目录，则该会话保留 `未归因`
 - 总览页项目概览保留所有已发现本地项目；当前周期无 Token、代码、提交和会话活动的项目显示 0 / `--`，不从表格中过滤。
 - 顶部 `今日代码改动` 使用自然日 Git `changedLines = additions + deletions`；次级说明 `较昨日` 使用昨日自然日同口径作为分母。昨日有 Git 数据时必须计算百分比，不能因为 token 昨日窗口为空而把昨日代码默认为 0。
+
+### 2.5 刷新与增量采集
+
+- 手动刷新、启动后台刷新和 5 分钟自动刷新都必须生成同一份 `DashboardSnapshot` 合同。
+- Codex 会话采集必须优先使用增量缓存：同一 JSONL 文件的 `size + mtimeMs` 未变化时复用上次解析结果；只有新增或变更文件才重新流式解析。
+- 增量缓存只用于减少重复读盘，不改变 Token、额度、模型、会话和仓库归因口径。
+- 每次刷新必须在 `sourceHealth.refresh` 写入可见反馈字段：
+  - `startedAt / completedAt / durationMs`：本次刷新起止与总耗时
+  - `codexDurationMs / gitDurationMs`：Codex 会话段与 Git 仓库段耗时
+  - `codexFilesTotal`：本次纳入最近 60 天窗口的 Codex JSONL 文件数
+  - `codexFilesParsed`：本次实际重新解析的 JSONL 文件数
+  - `codexFilesReused`：本次从增量缓存复用的 JSONL 文件数
+  - `codexCachePruned`：本次清理出缓存窗口的旧文件数
+- 读取旧版 `snapshot.json` 时如果缺少 `sourceHealth.refresh`，主进程必须补齐默认结构，避免升级后首屏渲染异常。
 
 ## 3. 状态字段
 

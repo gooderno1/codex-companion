@@ -8,6 +8,7 @@ import type {
   PeriodMetric,
   QuotaResetEvent,
   QuotaUsageSegment,
+  RefreshTelemetry,
   SessionAttribution,
   SourceStatus,
   WidgetMetric
@@ -23,6 +24,7 @@ import {
 } from "../utils/time";
 import {
   collectCodexData,
+  type CodexSessionCacheStoreLike,
   type CodexTokenEvent,
   type CodexSessionSummary,
   type LatestRateSnapshot,
@@ -55,6 +57,45 @@ const QUOTA_RESET_DROP_THRESHOLD_PERCENT = 5;
 const QUOTA_RESET_MIN_SEGMENT_PERCENT = 50;
 const QUOTA_RESET_DEDUPE_WINDOW_MS = 12 * 60 * 60 * 1000;
 const DAY_MINUTES = 24 * 60;
+
+interface CollectDashboardSnapshotOptions {
+  codexSessionCacheStore?: CodexSessionCacheStoreLike;
+}
+
+function emptyRefreshTelemetry(startedAt: string | null = null): RefreshTelemetry {
+  return {
+    startedAt,
+    completedAt: null,
+    durationMs: null,
+    codexDurationMs: null,
+    gitDurationMs: null,
+    codexFilesTotal: 0,
+    codexFilesParsed: 0,
+    codexFilesReused: 0,
+    codexCachePruned: 0
+  };
+}
+
+function ensureRefreshTelemetry(snapshot: DashboardSnapshot): DashboardSnapshot {
+  const sourceHealth = snapshot.sourceHealth as DashboardSnapshot["sourceHealth"] & {
+    refresh?: RefreshTelemetry;
+  };
+
+  if (sourceHealth.refresh) {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    sourceHealth: {
+      ...snapshot.sourceHealth,
+      refresh: {
+        ...emptyRefreshTelemetry(null),
+        completedAt: snapshot.generatedAt
+      }
+    }
+  };
+}
 
 interface QuotaCycleObservation {
   observedAt: string;
@@ -1118,6 +1159,7 @@ function buildPendingDashboardSnapshot(
       repoCount: 0,
       lastObservedAt: null,
       sourceStatus: "pending",
+      refresh: emptyRefreshTelemetry(now.toISOString()),
       notes: ["正在后台读取本机 Codex 与 Git 数据。"]
     },
     overview: {
@@ -1219,9 +1261,16 @@ function buildPendingDashboardSnapshot(
 
 async function collectDashboardSnapshot(
   preferences: AppPreferences,
+  options: CollectDashboardSnapshotOptions = {},
   now = new Date()
 ): Promise<DashboardSnapshot> {
-  const codex = await collectCodexData(now);
+  const refreshStartedAt = new Date();
+  const refreshStartedMs = Date.now();
+  const codexStartedMs = Date.now();
+  const codex = await collectCodexData(now, {
+    sessionCacheStore: options.codexSessionCacheStore
+  });
+  const codexDurationMs = Date.now() - codexStartedMs;
   const primaryQuotaUsage = buildQuotaWindowUsage({
     latestRateSnapshot: codex.latestRateSnapshot,
     events: codex.events,
@@ -1265,6 +1314,7 @@ async function collectDashboardSnapshot(
           end: new Date(codex.latestRateSnapshot.secondary.resetsAt)
         }
       : null;
+  const gitStartedMs = Date.now();
   const git = await collectGitData({
     repoRoots: preferences.repoRoots,
     sessions: codex.sessions,
@@ -1278,6 +1328,7 @@ async function collectDashboardSnapshot(
     ],
     now
   });
+  const gitDurationMs = Date.now() - gitStartedMs;
 
   const todayStart = startOfDay(now);
   const sevenDayStart = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
@@ -1639,6 +1690,7 @@ async function collectDashboardSnapshot(
         activityField: "weekLimit"
       })
     : [];
+  const refreshCompletedAt = new Date();
 
   return {
     generatedAt: now.toISOString(),
@@ -1651,6 +1703,17 @@ async function collectDashboardSnapshot(
       repoCount: git.items.length,
       lastObservedAt: codex.lastObservedAt,
       sourceStatus: codex.sourceStatus,
+      refresh: {
+        startedAt: refreshStartedAt.toISOString(),
+        completedAt: refreshCompletedAt.toISOString(),
+        durationMs: refreshCompletedAt.getTime() - refreshStartedMs,
+        codexDurationMs,
+        gitDurationMs,
+        codexFilesTotal: codex.cacheStats.totalFiles,
+        codexFilesParsed: codex.cacheStats.parsedFiles,
+        codexFilesReused: codex.cacheStats.reusedFiles,
+        codexCachePruned: codex.cacheStats.prunedFiles
+      },
       notes: [
         ...codex.notes,
         "代码改动基于 Git 已提交历史与当前工作区 diff，不读取云端仓库信息。",
@@ -1757,7 +1820,8 @@ export class DashboardService {
 
   public constructor(
     private readonly settingsStore: SettingsStore,
-    private readonly snapshotStore: SnapshotStore
+    private readonly snapshotStore: SnapshotStore,
+    private readonly codexSessionCacheStore?: CodexSessionCacheStoreLike
   ) {}
 
   public getPreferences(): Promise<AppPreferences> {
@@ -1814,8 +1878,9 @@ export class DashboardService {
       return null;
     }
 
+    const normalized = ensureRefreshTelemetry(cached);
     this.cachedSnapshot = {
-      ...cached,
+      ...normalized,
       generatedFrom: "cache"
     };
     this.cachedAt = Date.now();
@@ -1845,7 +1910,9 @@ export class DashboardService {
   private async collectSnapshotInner(): Promise<DashboardSnapshot> {
     const preferences = await this.settingsStore.read();
     try {
-      const snapshot = await collectDashboardSnapshot(preferences);
+      const snapshot = await collectDashboardSnapshot(preferences, {
+        codexSessionCacheStore: this.codexSessionCacheStore
+      });
       this.cachedSnapshot = snapshot;
       this.cachedAt = Date.now();
       await this.snapshotStore.write(snapshot);
@@ -1858,13 +1925,14 @@ export class DashboardService {
 
       const message =
         error instanceof Error ? error.message : "未知采集异常";
+      const normalized = ensureRefreshTelemetry(cached);
       const fallback: DashboardSnapshot = {
-        ...cached,
+        ...normalized,
         generatedAt: new Date().toISOString(),
         generatedFrom: "cache",
         sourceHealth: {
-          ...cached.sourceHealth,
-          notes: [...cached.sourceHealth.notes, `实时采集失败，已回退缓存：${message}`]
+          ...normalized.sourceHealth,
+          notes: [...normalized.sourceHealth.notes, `实时采集失败，已回退缓存：${message}`]
         }
       };
       this.cachedSnapshot = fallback;

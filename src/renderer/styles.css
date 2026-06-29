@@ -135,7 +135,8 @@ svg {
 .footprint-chip,
 .ledger-period-meta,
 .loading-card,
-.loading-hint {
+.loading-hint,
+.refresh-feedback span {
   color: var(--text-secondary);
 }
 
@@ -400,6 +401,13 @@ svg {
   box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 
+.action-button:disabled {
+  cursor: wait;
+  color: var(--text-secondary);
+  transform: none;
+  opacity: 0.78;
+}
+
 .button-icon,
 .pill-icon {
   display: inline-grid;
@@ -442,12 +450,46 @@ svg {
 
 .loading-card,
 .loading-hint,
-.error-banner {
+.error-banner,
+.refresh-feedback {
   padding: 12px 14px;
   margin-bottom: var(--space-3);
   border-radius: var(--radius-card);
   background: rgba(255, 255, 255, 0.82);
   box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+.refresh-feedback {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+}
+
+.refresh-feedback strong {
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.refresh-feedback span {
+  min-width: 0;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.refresh-feedback-loading,
+.refresh-feedback-refreshing {
+  box-shadow: inset 0 0 0 1px rgba(11, 111, 242, 0.16);
+}
+
+.refresh-feedback-done {
+  box-shadow: inset 0 0 0 1px rgba(16, 163, 91, 0.16);
+}
+
+.refresh-feedback-error {
+  box-shadow: inset 0 0 0 1px rgba(214, 103, 97, 0.2);
 }
 
 .error-banner {
@@ -2075,6 +2117,15 @@ svg {
 
   .topbar-actions {
     flex-wrap: wrap;
+  }
+
+  .refresh-feedback {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .refresh-feedback span {
+    white-space: normal;
   }
 
   .project-table {

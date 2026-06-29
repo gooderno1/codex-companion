@@ -18,6 +18,7 @@ import type {
   WidgetPreferences
 } from "../shared/contracts";
 import { DashboardService } from "./collectors/dashboardCollector";
+import { CodexSessionCacheStore } from "./state/codexSessionCacheStore";
 import { SettingsStore } from "./state/settingsStore";
 import { SnapshotStore } from "./state/snapshotStore";
 
@@ -596,9 +597,15 @@ function registerIpcHandlers() {
 }
 
 async function bootstrap() {
-  const settingsStore = new SettingsStore(app.getPath("userData"));
-  const snapshotStore = new SnapshotStore(app.getPath("userData"));
-  dashboardService = new DashboardService(settingsStore, snapshotStore);
+  const userDataPath = app.getPath("userData");
+  const settingsStore = new SettingsStore(userDataPath);
+  const snapshotStore = new SnapshotStore(userDataPath);
+  const codexSessionCacheStore = new CodexSessionCacheStore(userDataPath);
+  dashboardService = new DashboardService(
+    settingsStore,
+    snapshotStore,
+    codexSessionCacheStore
+  );
   currentPreferences = await dashboardService.getPreferences();
 
   createMainWindow();

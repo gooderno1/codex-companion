@@ -185,6 +185,18 @@ function formatTime(iso: string | null) {
   });
 }
 
+function formatDurationMs(value: number | null) {
+  if (value === null) {
+    return "耗时待记录";
+  }
+
+  if (value < 1000) {
+    return `${Math.round(value)}ms`;
+  }
+
+  return `${(value / 1000).toFixed(1)} 秒`;
+}
+
 function formatMonthDay(iso: string | null) {
   if (!iso) {
     return "--";
@@ -306,6 +318,44 @@ function sourceStatusLabel(status: SourceStatus) {
 
 function sourceStatusClass(status: SourceStatus) {
   return `status-${status}`;
+}
+
+type RefreshFeedback = {
+  phase: "loading" | "refreshing" | "done" | "error";
+  title: string;
+  detail: string;
+};
+
+function refreshSourceLabel(snapshot: DashboardSnapshot) {
+  if (snapshot.generatedFrom === "live") {
+    return "实时快照";
+  }
+
+  if (snapshot.generatedFrom === "cache") {
+    return "缓存快照";
+  }
+
+  return "待刷新快照";
+}
+
+function refreshTelemetryDetail(snapshot: DashboardSnapshot) {
+  const refresh = snapshot.sourceHealth.refresh;
+  const parts = [
+    refreshSourceLabel(snapshot),
+    formatDurationMs(refresh.durationMs),
+    `新解析 ${refresh.codexFilesParsed} 个`,
+    `复用 ${refresh.codexFilesReused} 个`
+  ];
+
+  if (refresh.codexCachePruned > 0) {
+    parts.push(`清理 ${refresh.codexCachePruned} 个旧缓存`);
+  }
+
+  if (snapshot.sourceHealth.lastObservedAt) {
+    parts.push(`最新观测 ${formatDateTime(snapshot.sourceHealth.lastObservedAt)}`);
+  }
+
+  return parts.join(" · ");
 }
 
 function maskValue(value: string, privacyMode: boolean) {
@@ -2024,6 +2074,11 @@ export default function App() {
   const [overviewMode, setOverviewMode] = useState<OverviewMode>(resolveOverviewModeFromHash);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshFeedback, setRefreshFeedback] = useState<RefreshFeedback>({
+    phase: "loading",
+    title: "正在读取本机快照",
+    detail: "启动后会继续执行增量采集"
+  });
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -2046,6 +2101,11 @@ export default function App() {
       startTransition(() => setSnapshot(nextSnapshot));
       setError(null);
       setLoading(false);
+      setRefreshFeedback({
+        phase: "done",
+        title: nextSnapshot.generatedFrom === "live" ? "后台刷新完成" : "快照已更新",
+        detail: refreshTelemetryDetail(nextSnapshot)
+      });
     });
     return unsubscribe;
   }, [startTransition]);
@@ -2054,11 +2114,27 @@ export default function App() {
     void (async () => {
       try {
         setLoading(true);
+        setRefreshFeedback({
+          phase: "loading",
+          title: "正在读取本机快照",
+          detail: "优先显示缓存，后台会继续检查新数据"
+        });
         const nextSnapshot = await window.codexCompanion.getDashboard();
         startTransition(() => setSnapshot(nextSnapshot));
         setError(null);
+        setRefreshFeedback({
+          phase: "done",
+          title: nextSnapshot.generatedFrom === "cache" ? "已显示缓存快照" : "快照读取完成",
+          detail: refreshTelemetryDetail(nextSnapshot)
+        });
       } catch (reason) {
-        setError(reason instanceof Error ? reason.message : "读取仪表板失败");
+        const message = reason instanceof Error ? reason.message : "读取仪表板失败";
+        setError(message);
+        setRefreshFeedback({
+          phase: "error",
+          title: "快照读取失败",
+          detail: message
+        });
       } finally {
         setLoading(false);
       }
@@ -2068,13 +2144,29 @@ export default function App() {
   async function refresh(force = true) {
     try {
       setLoading(true);
+      setRefreshFeedback({
+        phase: "refreshing",
+        title: "正在增量采集",
+        detail: "正在比对 Codex 会话文件签名，并复用未变化的解析缓存"
+      });
       const nextSnapshot = force
         ? await window.codexCompanion.refreshDashboard()
         : await window.codexCompanion.getDashboard();
       startTransition(() => setSnapshot(nextSnapshot));
       setError(null);
+      setRefreshFeedback({
+        phase: "done",
+        title: nextSnapshot.generatedFrom === "live" ? "刷新完成" : "已回退缓存",
+        detail: refreshTelemetryDetail(nextSnapshot)
+      });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "刷新失败");
+      const message = reason instanceof Error ? reason.message : "刷新失败";
+      setError(message);
+      setRefreshFeedback({
+        phase: "error",
+        title: "刷新失败",
+        detail: message
+      });
     } finally {
       setLoading(false);
     }
@@ -2168,11 +2260,16 @@ export default function App() {
             <span className={`status-pill ${sourceStatusClass(snapshot?.sourceHealth.sourceStatus ?? "pending")}`}>
               {sourceStatusLabel(snapshot?.sourceHealth.sourceStatus ?? "pending")}
             </span>
-            <button type="button" className="action-button" onClick={() => void refresh(true)}>
+            <button
+              type="button"
+              className="action-button"
+              disabled={loading}
+              onClick={() => void refresh(true)}
+            >
               <span className="button-icon">
                 <Glyph name="refresh" />
               </span>
-              {loading ? "刷新中" : "刷新"}
+              {loading ? "采集中" : "刷新"}
             </button>
             <div className="snapshot-label">
               <span>快照</span>
@@ -2181,6 +2278,10 @@ export default function App() {
           </div>
         </header>
 
+        <div className={`refresh-feedback refresh-feedback-${refreshFeedback.phase}`} role="status" aria-live="polite">
+          <strong>{refreshFeedback.title}</strong>
+          <span>{refreshFeedback.detail}</span>
+        </div>
         {error ? <div className="error-banner">{error}</div> : null}
         {loading && !snapshot ? <div className="loading-card">正在读取本机 Codex 与 Git 数据…</div> : null}
         {isPending ? <div className="loading-hint">界面正在切换到最新快照…</div> : null}
