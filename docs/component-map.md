@@ -35,8 +35,8 @@
 
 | 设计区块 | 代码组件 / 位置 | 复用性 | 关键 props / 状态 | 数据来源 |
 | --- | --- | --- | --- | --- |
-| Token 走势拆解 | `TokenTrendCard` | 账本页模块 | `trendPeriod`、`selectedBucketKey`；当前只开放 `week` | `snapshot.ledger.trend`、`TokenBreakdown` |
-| 趋势柱图 | `TokenTrendCard` 内部总量柱图与选中桶明细 | 账本页模块 | `LedgerTimeBucket[]`、选中日期构成比例、完整 token 明细 | `snapshot.ledger.trend.week`，日/月桶保留但暂不开放 |
+| Token 走势拆解 | `TokenTrendCard` | 账本页模块 | `trendPeriod`、`visibleSeries`、`selectedBucketKey`；开放 `day / week / month` | `snapshot.ledger.trend`、`TokenBreakdown` |
+| 趋势曲线图 | `TokenTrendCard` 内部 SVG 曲线与粒度明细表 | 账本页模块 | `LedgerTimeBucket[]`、曲线显隐、点位选择、当前粒度表 | `snapshot.ledger.trend.day / week / monthByDate` |
 | 周期洞察 | `PeriodInsightCard` | 账本页模块 | `insightPeriod` | `snapshot.ledger.analysis.sevenDays / thirtyDays / cumulative` |
 | 周额度账本 | `WeeklyLedgerCard` | 账本页模块 | `weeklyPeriods` | `snapshot.ledger.weeklyPeriods`、`period.quotaEvidence` |
 | 模型贡献 | `ModelContributionCard` | 账本页模块 | `modelPeriod`、`modelSort` | `snapshot.ledger.analysis.*.models` |
@@ -47,9 +47,9 @@
 ## 当前约束
 
 - `自然时间 / 计费时间` 只改变总览页统计口径，不改变壳层和顶部四卡字段。
-- `Codex 账本` 顶栏中部保持空白节奏，不再放整页 `日 / 周 / 月`；该切换只属于 `Token 走势拆解`，且当前实现只开放 `周`。
+- `Codex 账本` 顶栏中部保持空白节奏，不再放整页 `日 / 周 / 月`；该切换只属于 `Token 走势拆解`，当前实现开放 `日 / 周 / 月`。
 - `Codex 账本` 不再重复总览页的 `5H / 周 / 月额度` 三卡主叙事；第二页首屏必须围绕走势、周期洞察、周额度细账、模型贡献和会话归因。
-- `Token 走势拆解` 的主图默认只承担 `总 Token` 走势；`原始输入 / 缓存输入 / 输出 / 推理 Token` 下沉到选中日期明细和 tooltip，避免在小窗口内把比例拆分挤进每根柱体。
+- `Token 走势拆解` 使用多曲线表达 `总 Token / 输入总量 / 原始输入 / 缓存输入 / 输出 / 推理 Token`；用户可点击图例显示或隐藏某条曲线，点击曲线点位后右侧显示当前粒度明细表。
 - `周期洞察` 与 `模型贡献` 使用各自的 `近7天 / 近30天 / 累计`，不使用 `全部`，也不跟随左侧趋势图的 `日 / 周 / 月`。
 - `模型贡献` 不设置额外排序按钮；默认 `Token` 倒序，点击表头字段后第一次正序、第二次倒序。
 - 应用启动优先读取缓存快照；实时采集延迟到启动后后台执行，自动刷新间隔为 `5` 分钟，避免打开应用时立刻触发完整 Codex + Git 扫描造成卡顿。

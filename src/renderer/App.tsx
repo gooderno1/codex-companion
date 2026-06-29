@@ -69,6 +69,13 @@ type SortDirection = "asc" | "desc";
 type ProjectIconTone = "blue" | "teal" | "green" | "amber" | "rose";
 type QuotaTone = "blue" | "green";
 type LedgerTrendPeriod = "day" | "week" | "month";
+type LedgerTrendSeriesKey =
+  | "total"
+  | "input"
+  | "rawInput"
+  | "cachedInput"
+  | "output"
+  | "reasoningOutput";
 type LedgerAnalysisKey = "sevenDays" | "thirtyDays" | "cumulative";
 type ModelContributionSort = "model" | "share" | "token" | "cost" | "events";
 
@@ -1184,10 +1191,50 @@ const LEDGER_TREND_TABS: Array<{
   disabled?: boolean;
   title?: string;
 }> = [
-  { value: "day", label: "日", disabled: true, title: "日视角暂不可用，后续重新设计" },
+  { value: "day", label: "日" },
   { value: "week", label: "周" },
-  { value: "month", label: "月", disabled: true, title: "月视角暂不可用，后续重新设计" }
+  { value: "month", label: "月" }
 ];
+
+const LEDGER_TREND_SERIES: Array<{
+  key: LedgerTrendSeriesKey;
+  label: string;
+  color: string;
+  defaultVisible: boolean;
+}> = [
+  { key: "total", label: "总 Token", color: "#0f6fff", defaultVisible: true },
+  { key: "input", label: "输入总量", color: "#12a4b8", defaultVisible: true },
+  { key: "rawInput", label: "原始输入", color: "#6d8df7", defaultVisible: false },
+  { key: "cachedInput", label: "缓存输入", color: "#0f9f79", defaultVisible: true },
+  { key: "output", label: "输出", color: "#21a84f", defaultVisible: true },
+  { key: "reasoningOutput", label: "推理 Token", color: "#115e59", defaultVisible: false }
+];
+
+const DEFAULT_TREND_SERIES_VISIBILITY = LEDGER_TREND_SERIES.reduce<
+  Record<LedgerTrendSeriesKey, boolean>
+>(
+  (visibility, series) => ({
+    ...visibility,
+    [series.key]: series.defaultVisible
+  }),
+  {
+    total: true,
+    input: true,
+    rawInput: false,
+    cachedInput: true,
+    output: true,
+    reasoningOutput: false
+  }
+);
+
+const TREND_SVG_WIDTH = 640;
+const TREND_SVG_HEIGHT = 190;
+const TREND_SVG_PADDING = {
+  top: 14,
+  right: 14,
+  bottom: 22,
+  left: 16
+};
 
 const LEDGER_ANALYSIS_TABS: Array<{ value: LedgerAnalysisKey; label: string }> = [
   { value: "sevenDays", label: "近7天" },
@@ -1292,23 +1339,6 @@ function resolveLedgerAnalysis(
   return fallbackAnalysis(key, fallbackPeriod, snapshot.ledger.sessions, snapshot.ledger.models);
 }
 
-function trendBarHeight(value: number, maxValue: number, minVisiblePercent = 4) {
-  if (value <= 0 || maxValue <= 0) {
-    return "0%";
-  }
-
-  const percent = Math.max(0, Math.min(100, (value / maxValue) * 100));
-  return `${Math.max(minVisiblePercent, percent)}%`;
-}
-
-function trendSegmentWidth(value: number, total: number) {
-  if (value <= 0 || total <= 0) {
-    return "0%";
-  }
-
-  return `${Math.max(1.5, (value / total) * 100)}%`;
-}
-
 function selectDefaultTrendBucket(buckets: LedgerTimeBucket[]) {
   if (buckets.length === 0) {
     return null;
@@ -1325,9 +1355,74 @@ function trendBuckets(snapshot: DashboardSnapshot, period: LedgerTrendPeriod) {
     return trend?.day ?? [periodToBucket(snapshot.overview.today)];
   }
   if (period === "month") {
-    return trend?.monthByWeek ?? trend?.monthByDate ?? [periodToBucket(snapshot.overview.month)];
+    return trend?.monthByDate ?? trend?.monthByWeek ?? [periodToBucket(snapshot.overview.month)];
   }
   return trend?.week ?? [periodToBucket(snapshot.overview.sevenDays)];
+}
+
+function trendPeriodMeta(period: LedgerTrendPeriod) {
+  if (period === "day") {
+    return "日视图 · 小时粒度";
+  }
+  if (period === "month") {
+    return "月视图 · 日期粒度";
+  }
+  return "周视图 · 日期粒度";
+}
+
+function trendDetailTitle(period: LedgerTrendPeriod) {
+  if (period === "day") {
+    return "当前小时";
+  }
+  return "当前日期";
+}
+
+function trendSeriesValue(tokens: TokenBreakdown, key: LedgerTrendSeriesKey) {
+  if (key === "input") {
+    return tokens.input;
+  }
+  if (key === "rawInput") {
+    return rawInputTokens(tokens);
+  }
+  if (key === "cachedInput") {
+    return tokens.cachedInput;
+  }
+  if (key === "output") {
+    return tokens.output;
+  }
+  if (key === "reasoningOutput") {
+    return tokens.reasoningOutput;
+  }
+  return tokens.total;
+}
+
+function trendPointX(index: number, bucketCount: number) {
+  const innerWidth = TREND_SVG_WIDTH - TREND_SVG_PADDING.left - TREND_SVG_PADDING.right;
+  if (bucketCount <= 1) {
+    return TREND_SVG_PADDING.left + innerWidth / 2;
+  }
+  return TREND_SVG_PADDING.left + (innerWidth / (bucketCount - 1)) * index;
+}
+
+function trendPointY(value: number, maxValue: number) {
+  const innerHeight = TREND_SVG_HEIGHT - TREND_SVG_PADDING.top - TREND_SVG_PADDING.bottom;
+  if (maxValue <= 0) {
+    return TREND_SVG_PADDING.top + innerHeight;
+  }
+  const ratio = Math.max(0, Math.min(1, value / maxValue));
+  return TREND_SVG_PADDING.top + innerHeight - innerHeight * ratio;
+}
+
+function linePath(points: Array<{ x: number; y: number }>) {
+  return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+}
+
+function shouldShowTrendLabel(index: number, bucketCount: number) {
+  if (bucketCount <= 10) {
+    return true;
+  }
+  const step = Math.ceil(bucketCount / 8);
+  return index === 0 || index === bucketCount - 1 || index % step === 0;
 }
 
 function bucketTooltip(bucket: LedgerTimeBucket) {
@@ -1411,51 +1506,67 @@ function TokenTrendCard({
   onPeriodChange: (value: LedgerTrendPeriod) => void;
 }) {
   const [selectedBucketKey, setSelectedBucketKey] = useState<string | null>(null);
+  const [visibleSeries, setVisibleSeries] = useState(DEFAULT_TREND_SERIES_VISIBILITY);
   const buckets = trendBuckets(snapshot, period);
   const defaultBucket = selectDefaultTrendBucket(buckets);
   const selectedBucket =
     buckets.find((bucket) => bucket.key === selectedBucketKey) ?? defaultBucket;
   const selectedTokens = selectedBucket?.tokens ?? EMPTY_TOKEN_BREAKDOWN;
-  const selectedRawInput = rawInputTokens(selectedTokens);
-  const selectedCompositionTotal = Math.max(
+  const activeSeries = LEDGER_TREND_SERIES.filter((series) => visibleSeries[series.key]);
+  const maxValue = Math.max(
     1,
-    selectedRawInput + selectedTokens.cachedInput + selectedTokens.output
+    ...buckets.flatMap((bucket) =>
+      activeSeries.map((series) => trendSeriesValue(bucket.tokens, series.key))
+    )
   );
-  const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.tokens.total));
   const midValue = formatCompactToken(maxValue / 2);
   const topValue = formatCompactToken(maxValue);
-  const reasoningWidth =
-    selectedTokens.output > 0 && selectedTokens.reasoningOutput > 0
-      ? trendSegmentWidth(selectedTokens.reasoningOutput, selectedTokens.output)
-      : "0%";
-  const compositionSegments = [
-    {
-      key: "raw",
-      label: "原始输入",
-      value: selectedRawInput,
-      width: trendSegmentWidth(selectedRawInput, selectedCompositionTotal)
-    },
-    {
-      key: "cached",
-      label: "缓存输入",
-      value: selectedTokens.cachedInput,
-      width: trendSegmentWidth(selectedTokens.cachedInput, selectedCompositionTotal)
-    },
-    {
-      key: "output",
-      label: "输出",
-      value: selectedTokens.output,
-      width: trendSegmentWidth(selectedTokens.output, selectedCompositionTotal)
-    }
-  ];
+  const gridLines = [1, 0.75, 0.5, 0.25, 0];
+  const selectedX =
+    selectedBucket && buckets.length > 0
+      ? trendPointX(
+          Math.max(
+            0,
+            buckets.findIndex((bucket) => bucket.key === selectedBucket.key)
+          ),
+          buckets.length
+        )
+      : null;
+  const hitWidth =
+    buckets.length > 1
+      ? (TREND_SVG_WIDTH - TREND_SVG_PADDING.left - TREND_SVG_PADDING.right) /
+        (buckets.length - 1)
+      : TREND_SVG_WIDTH - TREND_SVG_PADDING.left - TREND_SVG_PADDING.right;
+  const detailRows = LEDGER_TREND_SERIES.map((series) => {
+    const value = trendSeriesValue(selectedTokens, series.key);
+    return {
+      ...series,
+      value,
+      share:
+        selectedTokens.total > 0
+          ? formatPercent((value / selectedTokens.total) * 100)
+          : "--"
+    };
+  });
   const detailMetrics = [
-    { label: "输入总量", value: formatCompactToken(selectedTokens.input) },
-    { label: "缓存占比", value: formatPercent(cachedInputRatio(selectedTokens)) },
-    { label: "输出", value: formatCompactToken(selectedTokens.output) },
-    { label: "推理 Token", value: formatCompactToken(selectedTokens.reasoningOutput) },
     { label: "会话", value: String(selectedBucket?.sessions ?? 0) },
-    { label: "API 等价成本", value: formatUsd(selectedBucket?.apiCostUsd ?? 0) }
+    { label: "API 等价成本", value: formatUsd(selectedBucket?.apiCostUsd ?? 0) },
+    { label: "缓存输入占比", value: formatPercent(cachedInputRatio(selectedTokens)) }
   ];
+
+  const handleSeriesToggle = (seriesKey: LedgerTrendSeriesKey) => {
+    setVisibleSeries((current) => {
+      const visibleCount = Object.values(current).filter(Boolean).length;
+      if (current[seriesKey] && visibleCount <= 1) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [seriesKey]: !current[seriesKey]
+      };
+    });
+  };
 
   return (
     <SectionCard className="ledger-trend-card">
@@ -1464,84 +1575,157 @@ function TokenTrendCard({
           <h3>Token 走势拆解</h3>
           <TextTabs items={LEDGER_TREND_TABS} value={period} onChange={onPeriodChange} />
         </div>
-        <span className="ledger-trend-meta">周视图 · 日期粒度</span>
+        <span className="ledger-trend-meta">{trendPeriodMeta(period)}</span>
       </div>
 
       <div className="ledger-trend-body">
-        <div className="ledger-chart">
-          <div className="ledger-y-axis">
-            <span>{topValue}</span>
-            <span>{midValue}</span>
-            <span>0</span>
+        <div className="ledger-line-panel">
+          <div className="trend-series-toggle-row" aria-label="曲线显示控制">
+            {LEDGER_TREND_SERIES.map((series) => (
+              <button
+                type="button"
+                className={`trend-series-toggle${visibleSeries[series.key] ? " active" : ""}`}
+                key={series.key}
+                style={{ "--series-color": series.color } as CSSProperties}
+                onClick={() => handleSeriesToggle(series.key)}
+              >
+                <span className="trend-series-dot" aria-hidden="true" />
+                {series.label}
+              </button>
+            ))}
           </div>
-          <div className="ledger-bar-area">
-            {buckets.map((bucket) => {
-              const value = bucket.tokens.total;
-              const isSelected = selectedBucket?.key === bucket.key;
 
-              return (
-                <button
-                  type="button"
-                  className={`ledger-bar-column${isSelected ? " is-selected" : ""}`}
-                  key={bucket.key}
-                  title={bucketTooltip(bucket)}
-                  onClick={() => setSelectedBucketKey(bucket.key)}
-                  aria-label={`${bucket.label} 总 Token ${formatCompactToken(value)}`}
-                >
-                  <span className="ledger-bar-value">
-                    {value > 0 ? formatCompactToken(value) : ""}
-                  </span>
-                  <span className="ledger-bar-stack" aria-hidden="true">
-                    <span
-                      className="ledger-total-bar"
-                      style={{ height: trendBarHeight(value, maxValue) }}
+          <div className="ledger-line-chart">
+            <div className="ledger-y-axis">
+              <span>{topValue}</span>
+              <span>{midValue}</span>
+              <span>0</span>
+            </div>
+            <div className="trend-line-canvas">
+              <svg
+                className="trend-line-svg"
+                viewBox={`0 0 ${TREND_SVG_WIDTH} ${TREND_SVG_HEIGHT}`}
+                role="img"
+                aria-label={`${trendPeriodMeta(period)} Token 曲线`}
+              >
+                {gridLines.map((line) => {
+                  const y = trendPointY(maxValue * line, maxValue);
+                  return (
+                    <line
+                      className="trend-grid-line"
+                      key={line}
+                      x1={TREND_SVG_PADDING.left}
+                      x2={TREND_SVG_WIDTH - TREND_SVG_PADDING.right}
+                      y1={y}
+                      y2={y}
                     />
+                  );
+                })}
+
+                {selectedX !== null ? (
+                  <line
+                    className="trend-selected-guide"
+                    x1={selectedX}
+                    x2={selectedX}
+                    y1={TREND_SVG_PADDING.top}
+                    y2={TREND_SVG_HEIGHT - TREND_SVG_PADDING.bottom}
+                  />
+                ) : null}
+
+                {activeSeries.map((series) => {
+                  const points = buckets.map((bucket, index) => ({
+                    bucket,
+                    x: trendPointX(index, buckets.length),
+                    y: trendPointY(trendSeriesValue(bucket.tokens, series.key), maxValue),
+                    value: trendSeriesValue(bucket.tokens, series.key)
+                  }));
+
+                  return (
+                    <g className="trend-series" key={series.key}>
+                      {points.length > 1 ? (
+                        <path
+                          className="trend-line-path"
+                          d={linePath(points)}
+                          stroke={series.color}
+                        />
+                      ) : null}
+                      {points.map((point) => (
+                        <circle
+                          className={`trend-line-point${
+                            selectedBucket?.key === point.bucket.key ? " is-selected" : ""
+                          }`}
+                          key={`${series.key}-${point.bucket.key}`}
+                          cx={point.x}
+                          cy={point.y}
+                          r={selectedBucket?.key === point.bucket.key ? 4 : 2.8}
+                          fill={series.color}
+                        />
+                      ))}
+                    </g>
+                  );
+                })}
+
+                {buckets.map((bucket, index) => (
+                  <rect
+                    className="trend-hit-zone"
+                    key={bucket.key}
+                    x={trendPointX(index, buckets.length) - hitWidth / 2}
+                    y={TREND_SVG_PADDING.top}
+                    width={hitWidth}
+                    height={TREND_SVG_HEIGHT - TREND_SVG_PADDING.top - TREND_SVG_PADDING.bottom}
+                    onClick={() => setSelectedBucketKey(bucket.key)}
+                  >
+                    <title>{bucketTooltip(bucket)}</title>
+                  </rect>
+                ))}
+              </svg>
+              <div className="trend-x-axis" aria-hidden="true">
+                {buckets.map((bucket, index) => (
+                  <span key={bucket.key}>
+                    {shouldShowTrendLabel(index, buckets.length) ? bucket.label : ""}
                   </span>
-                  <span className="ledger-bar-label">{bucket.label}</span>
-                </button>
-              );
-            })}
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        <aside className="ledger-trend-detail">
+        <aside className="ledger-trend-detail is-open">
           <div className="trend-detail-head">
-            <span>{selectedBucket?.label ?? "--"}</span>
-            <strong>{formatCompactToken(selectedTokens.total)}</strong>
+            <span>{trendDetailTitle(period)}</span>
+            <strong>{selectedBucket?.label ?? "--"}</strong>
             <small>
               {selectedBucket ? formatDateRange(selectedBucket.startAt, selectedBucket.endAt) : "--"}
             </small>
           </div>
 
-          <div className="trend-composition-block">
-            <div
-              className="trend-composition-bar"
-              title={selectedBucket ? bucketTooltip(selectedBucket) : undefined}
-            >
-              {compositionSegments.map((segment) =>
-                segment.value > 0 ? (
-                  <span
-                    className={`composition-segment composition-${segment.key}`}
-                    key={segment.key}
-                    style={{ width: segment.width }}
-                    title={`${segment.label}：${formatCompactToken(segment.value)}`}
-                  >
-                    {segment.key === "output" && selectedTokens.reasoningOutput > 0 ? (
+          <div className="trend-detail-table-shell">
+            <table className="trend-detail-table">
+              <thead>
+                <tr>
+                  <th>曲线</th>
+                  <th>数值</th>
+                  <th>占比</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detailRows.map((row) => (
+                  <tr key={row.key}>
+                    <td>
                       <span
-                        className="composition-reasoning-marker"
-                        style={{ width: reasoningWidth }}
-                      />
-                    ) : null}
-                  </span>
-                ) : null
-              )}
-            </div>
-            <div className="ledger-chart-legend ledger-chart-legend-compact">
-              <span className="legend-raw">原始输入</span>
-              <span className="legend-cached">缓存输入</span>
-              <span className="legend-output">输出</span>
-              <span className="legend-reasoning">推理</span>
-            </div>
+                        className="trend-table-series"
+                        style={{ "--series-color": row.color } as CSSProperties}
+                      >
+                        <span aria-hidden="true" />
+                        {row.label}
+                      </span>
+                    </td>
+                    <td>{formatCompactToken(row.value)}</td>
+                    <td>{row.share}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           <div className="trend-detail-grid">
@@ -1850,9 +2034,7 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
   };
 
   const handleTrendPeriodChange = (value: LedgerTrendPeriod) => {
-    if (value === "week") {
-      setTrendPeriod(value);
-    }
+    setTrendPeriod(value);
   };
 
   return (

@@ -19,7 +19,7 @@ const REQUIRED_FILES = [
 const TEXT_ASSERTIONS = [
   {
     file: "docs/ui-contract/ledger-v0.1.md",
-    includes: ["Token 走势拆解", "周期洞察", "模型贡献", "近7天", "近30天", "累计"]
+    includes: ["Token 走势拆解", "周期洞察", "模型贡献", "日 / 周 / 月", "多曲线走势", "近7天", "近30天", "累计"]
   },
   {
     file: "docs/ui-contract/ledger-intensity-modules-v0.1.md",
@@ -56,11 +56,14 @@ const TEXT_ASSERTIONS = [
       "原始输入",
       "缓存输入",
       "推理 Token",
+      "LEDGER_TREND_SERIES",
       "LEDGER_ANALYSIS_TABS",
       "ModelSortHeader",
       "trendBuckets(snapshot, period)",
+      "visibleSeries",
       "selectedBucketKey",
-      "周视图 · 日期粒度",
+      "trend-line-svg",
+      "trend-detail-table",
       "resolveLedgerAnalysis(snapshot, modelPeriod)"
     ]
   },
@@ -70,10 +73,11 @@ const TEXT_ASSERTIONS = [
       ".ledger-layout",
       ".ledger-top-grid",
       ".ledger-middle-grid",
-      ".ledger-chart",
-      ".ledger-bar-stack",
+      ".ledger-line-chart",
+      ".trend-line-path",
+      ".trend-series-toggle",
       ".ledger-trend-detail",
-      ".trend-composition-bar",
+      ".trend-detail-table",
       ".insight-grid",
       ".ledger-model-table",
       ".ledger-session-card"
