@@ -94,6 +94,8 @@ interface ModelContributionSortState {
   direction: SortDirection;
 }
 
+type TrendSeriesVisibility = Record<LedgerTrendSeriesKey, boolean>;
+
 interface OverviewMetricCardData {
   key: string;
   label: string;
@@ -1211,7 +1213,7 @@ const LEDGER_TREND_SERIES: Array<{
 ];
 
 const DEFAULT_TREND_SERIES_VISIBILITY = LEDGER_TREND_SERIES.reduce<
-  Record<LedgerTrendSeriesKey, boolean>
+  TrendSeriesVisibility
 >(
   (visibility, series) => ({
     ...visibility,
@@ -1413,8 +1415,39 @@ function trendPointY(value: number, maxValue: number) {
   return TREND_SVG_PADDING.top + innerHeight - innerHeight * ratio;
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function linePath(points: Array<{ x: number; y: number }>) {
   return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+}
+
+function smoothTrendPath(points: Array<{ x: number; y: number }>) {
+  if (points.length < 3) {
+    return linePath(points);
+  }
+
+  const segments = [`M ${points[0].x} ${points[0].y}`];
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const previous = points[index - 1] ?? points[index];
+    const current = points[index];
+    const next = points[index + 1];
+    const following = points[index + 2] ?? next;
+    const localMinY = Math.min(previous.y, current.y, next.y, following.y);
+    const localMaxY = Math.max(previous.y, current.y, next.y, following.y);
+    const controlOneX = clamp(current.x + (next.x - previous.x) / 6, current.x, next.x);
+    const controlTwoX = clamp(next.x - (following.x - current.x) / 6, current.x, next.x);
+    const controlOneY = clamp(current.y + (next.y - previous.y) / 6, localMinY, localMaxY);
+    const controlTwoY = clamp(next.y - (following.y - current.y) / 6, localMinY, localMaxY);
+
+    segments.push(
+      `C ${controlOneX} ${controlOneY}, ${controlTwoX} ${controlTwoY}, ${next.x} ${next.y}`
+    );
+  }
+
+  return segments.join(" ");
 }
 
 function shouldShowTrendLabel(index: number, bucketCount: number) {
@@ -1496,17 +1529,12 @@ function sortModels(models: ModelMetric[], sort: ModelContributionSortState) {
   });
 }
 
-function TokenTrendCard({
-  snapshot,
-  period,
-  onPeriodChange
-}: {
-  snapshot: DashboardSnapshot;
-  period: LedgerTrendPeriod;
-  onPeriodChange: (value: LedgerTrendPeriod) => void;
-}) {
-  const [selectedBucketKey, setSelectedBucketKey] = useState<string | null>(null);
-  const [visibleSeries, setVisibleSeries] = useState(DEFAULT_TREND_SERIES_VISIBILITY);
+function resolveTrendView(
+  snapshot: DashboardSnapshot,
+  period: LedgerTrendPeriod,
+  selectedBucketKey: string | null,
+  visibleSeries: TrendSeriesVisibility
+) {
   const buckets = trendBuckets(snapshot, period);
   const defaultBucket = selectDefaultTrendBucket(buckets);
   const selectedBucket =
@@ -1521,6 +1549,96 @@ function TokenTrendCard({
   );
   const midValue = formatCompactToken(maxValue / 2);
   const topValue = formatCompactToken(maxValue);
+
+  return {
+    buckets,
+    selectedBucket,
+    selectedTokens,
+    activeSeries,
+    maxValue,
+    midValue,
+    topValue
+  };
+}
+
+function trendDetailRows(selectedTokens: TokenBreakdown) {
+  return LEDGER_TREND_SERIES.map((series) => {
+    const value = trendSeriesValue(selectedTokens, series.key);
+    return {
+      ...series,
+      value,
+      share:
+        selectedTokens.total > 0
+          ? formatPercent((value / selectedTokens.total) * 100)
+          : "--"
+    };
+  });
+}
+
+function trendDetailMetrics(selectedBucket: LedgerTimeBucket | null, selectedTokens: TokenBreakdown) {
+  return [
+    { label: "会话", value: String(selectedBucket?.sessions ?? 0) },
+    { label: "API 等价成本", value: formatUsd(selectedBucket?.apiCostUsd ?? 0) },
+    { label: "缓存输入占比", value: formatPercent(cachedInputRatio(selectedTokens)) }
+  ];
+}
+
+function trendRangeLabel(buckets: LedgerTimeBucket[]) {
+  const firstBucket = buckets[0];
+  const lastBucket = buckets[buckets.length - 1];
+
+  if (!firstBucket || !lastBucket) {
+    return "暂无趋势范围";
+  }
+
+  return formatDateRange(firstBucket.startAt, lastBucket.endAt);
+}
+
+function TrendSeriesControls({
+  visibleSeries,
+  onSeriesToggle
+}: {
+  visibleSeries: TrendSeriesVisibility;
+  onSeriesToggle: (seriesKey: LedgerTrendSeriesKey) => void;
+}) {
+  return (
+    <div className="trend-series-toggle-row" aria-label="曲线显示控制">
+      {LEDGER_TREND_SERIES.map((series) => (
+        <button
+          type="button"
+          className={`trend-series-toggle${visibleSeries[series.key] ? " active" : ""}`}
+          key={series.key}
+          style={{ "--series-color": series.color } as CSSProperties}
+          aria-pressed={visibleSeries[series.key]}
+          onClick={() => onSeriesToggle(series.key)}
+        >
+          <span className="trend-series-dot" aria-hidden="true" />
+          {series.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TrendLineChart({
+  period,
+  buckets,
+  selectedBucket,
+  activeSeries,
+  maxValue,
+  midValue,
+  topValue,
+  onBucketSelect
+}: {
+  period: LedgerTrendPeriod;
+  buckets: LedgerTimeBucket[];
+  selectedBucket: LedgerTimeBucket | null;
+  activeSeries: typeof LEDGER_TREND_SERIES;
+  maxValue: number;
+  midValue: string;
+  topValue: string;
+  onBucketSelect: (bucketKey: string) => void;
+}) {
   const gridLines = [1, 0.75, 0.5, 0.25, 0];
   const selectedX =
     selectedBucket && buckets.length > 0
@@ -1537,36 +1655,187 @@ function TokenTrendCard({
       ? (TREND_SVG_WIDTH - TREND_SVG_PADDING.left - TREND_SVG_PADDING.right) /
         (buckets.length - 1)
       : TREND_SVG_WIDTH - TREND_SVG_PADDING.left - TREND_SVG_PADDING.right;
-  const detailRows = LEDGER_TREND_SERIES.map((series) => {
-    const value = trendSeriesValue(selectedTokens, series.key);
-    return {
-      ...series,
-      value,
-      share:
-        selectedTokens.total > 0
-          ? formatPercent((value / selectedTokens.total) * 100)
-          : "--"
-    };
-  });
-  const detailMetrics = [
-    { label: "会话", value: String(selectedBucket?.sessions ?? 0) },
-    { label: "API 等价成本", value: formatUsd(selectedBucket?.apiCostUsd ?? 0) },
-    { label: "缓存输入占比", value: formatPercent(cachedInputRatio(selectedTokens)) }
-  ];
 
-  const handleSeriesToggle = (seriesKey: LedgerTrendSeriesKey) => {
-    setVisibleSeries((current) => {
-      const visibleCount = Object.values(current).filter(Boolean).length;
-      if (current[seriesKey] && visibleCount <= 1) {
-        return current;
-      }
+  return (
+    <div className="ledger-line-chart">
+      <div className="ledger-y-axis">
+        <span>{topValue}</span>
+        <span>{midValue}</span>
+        <span>0</span>
+      </div>
+      <div className="trend-line-canvas">
+        <svg
+          className="trend-line-svg"
+          viewBox={`0 0 ${TREND_SVG_WIDTH} ${TREND_SVG_HEIGHT}`}
+          role="img"
+          aria-label={`${trendPeriodMeta(period)} Token 曲线`}
+        >
+          {gridLines.map((line) => {
+            const y = trendPointY(maxValue * line, maxValue);
+            return (
+              <line
+                className="trend-grid-line"
+                key={line}
+                x1={TREND_SVG_PADDING.left}
+                x2={TREND_SVG_WIDTH - TREND_SVG_PADDING.right}
+                y1={y}
+                y2={y}
+              />
+            );
+          })}
 
-      return {
-        ...current,
-        [seriesKey]: !current[seriesKey]
-      };
-    });
-  };
+          {selectedX !== null ? (
+            <line
+              className="trend-selected-guide"
+              x1={selectedX}
+              x2={selectedX}
+              y1={TREND_SVG_PADDING.top}
+              y2={TREND_SVG_HEIGHT - TREND_SVG_PADDING.bottom}
+            />
+          ) : null}
+
+          {activeSeries.map((series) => {
+            const points = buckets.map((bucket, index) => ({
+              bucket,
+              x: trendPointX(index, buckets.length),
+              y: trendPointY(trendSeriesValue(bucket.tokens, series.key), maxValue),
+              value: trendSeriesValue(bucket.tokens, series.key)
+            }));
+
+            return (
+              <g className="trend-series" key={series.key}>
+                {points.length > 1 ? (
+                  <path
+                    className="trend-line-path"
+                    d={smoothTrendPath(points)}
+                    stroke={series.color}
+                  />
+                ) : null}
+                {points.map((point) => (
+                  <circle
+                    className={`trend-line-point${
+                      selectedBucket?.key === point.bucket.key ? " is-selected" : ""
+                    }`}
+                    key={`${series.key}-${point.bucket.key}`}
+                    cx={point.x}
+                    cy={point.y}
+                    r={selectedBucket?.key === point.bucket.key ? 4 : 2.8}
+                    fill={series.color}
+                  />
+                ))}
+              </g>
+            );
+          })}
+
+          {buckets.map((bucket, index) => (
+            <rect
+              className="trend-hit-zone"
+              key={bucket.key}
+              x={trendPointX(index, buckets.length) - hitWidth / 2}
+              y={TREND_SVG_PADDING.top}
+              width={hitWidth}
+              height={TREND_SVG_HEIGHT - TREND_SVG_PADDING.top - TREND_SVG_PADDING.bottom}
+              onClick={() => onBucketSelect(bucket.key)}
+            >
+              <title>{bucketTooltip(bucket)}</title>
+            </rect>
+          ))}
+        </svg>
+        <div className="trend-x-axis" aria-hidden="true">
+          {buckets.map((bucket, index) => (
+            <span key={bucket.key}>
+              {shouldShowTrendLabel(index, buckets.length) ? bucket.label : ""}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TrendDetailPanel({
+  period,
+  selectedBucket,
+  selectedTokens
+}: {
+  period: LedgerTrendPeriod;
+  selectedBucket: LedgerTimeBucket | null;
+  selectedTokens: TokenBreakdown;
+}) {
+  const detailRows = trendDetailRows(selectedTokens);
+  const detailMetrics = trendDetailMetrics(selectedBucket, selectedTokens);
+
+  return (
+    <aside className="ledger-trend-detail is-open">
+      <div className="trend-detail-head">
+        <span>{trendDetailTitle(period)}</span>
+        <strong>{selectedBucket?.label ?? "--"}</strong>
+        <small>
+          {selectedBucket ? formatDateRange(selectedBucket.startAt, selectedBucket.endAt) : "--"}
+        </small>
+      </div>
+
+      <div className="trend-detail-table-shell">
+        <table className="trend-detail-table">
+          <thead>
+            <tr>
+              <th>曲线</th>
+              <th>数值</th>
+              <th>占比</th>
+            </tr>
+          </thead>
+          <tbody>
+            {detailRows.map((row) => (
+              <tr key={row.key}>
+                <td>
+                  <span
+                    className="trend-table-series"
+                    style={{ "--series-color": row.color } as CSSProperties}
+                  >
+                    <span aria-hidden="true" />
+                    {row.label}
+                  </span>
+                </td>
+                <td>{formatCompactToken(row.value)}</td>
+                <td>{row.share}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="trend-detail-grid">
+        {detailMetrics.map((metric) => (
+          <span className="trend-detail-metric" key={metric.label}>
+            <small>{metric.label}</small>
+            <strong>{metric.value}</strong>
+          </span>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function TokenTrendCard({
+  snapshot,
+  period,
+  onPeriodChange,
+  selectedBucketKey,
+  onBucketSelect,
+  visibleSeries,
+  onSeriesToggle,
+  onExpand
+}: {
+  snapshot: DashboardSnapshot;
+  period: LedgerTrendPeriod;
+  onPeriodChange: (value: LedgerTrendPeriod) => void;
+  selectedBucketKey: string | null;
+  onBucketSelect: (bucketKey: string) => void;
+  visibleSeries: TrendSeriesVisibility;
+  onSeriesToggle: (seriesKey: LedgerTrendSeriesKey) => void;
+  onExpand: () => void;
+}) {
+  const trendView = resolveTrendView(snapshot, period, selectedBucketKey, visibleSeries);
 
   return (
     <SectionCard className="ledger-trend-card">
@@ -1575,170 +1844,134 @@ function TokenTrendCard({
           <h3>Token 走势拆解</h3>
           <TextTabs items={LEDGER_TREND_TABS} value={period} onChange={onPeriodChange} />
         </div>
-        <span className="ledger-trend-meta">{trendPeriodMeta(period)}</span>
+        <div className="ledger-head-actions">
+          <span className="ledger-trend-meta">{trendPeriodMeta(period)}</span>
+          <button
+            type="button"
+            className="icon-action-button"
+            title="放大查看"
+            aria-label="放大查看 Token 走势拆解"
+            onClick={onExpand}
+          >
+            <Glyph name="maximize" />
+          </button>
+        </div>
       </div>
 
       <div className="ledger-trend-body">
         <div className="ledger-line-panel">
-          <div className="trend-series-toggle-row" aria-label="曲线显示控制">
-            {LEDGER_TREND_SERIES.map((series) => (
-              <button
-                type="button"
-                className={`trend-series-toggle${visibleSeries[series.key] ? " active" : ""}`}
-                key={series.key}
-                style={{ "--series-color": series.color } as CSSProperties}
-                onClick={() => handleSeriesToggle(series.key)}
-              >
-                <span className="trend-series-dot" aria-hidden="true" />
-                {series.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="ledger-line-chart">
-            <div className="ledger-y-axis">
-              <span>{topValue}</span>
-              <span>{midValue}</span>
-              <span>0</span>
-            </div>
-            <div className="trend-line-canvas">
-              <svg
-                className="trend-line-svg"
-                viewBox={`0 0 ${TREND_SVG_WIDTH} ${TREND_SVG_HEIGHT}`}
-                role="img"
-                aria-label={`${trendPeriodMeta(period)} Token 曲线`}
-              >
-                {gridLines.map((line) => {
-                  const y = trendPointY(maxValue * line, maxValue);
-                  return (
-                    <line
-                      className="trend-grid-line"
-                      key={line}
-                      x1={TREND_SVG_PADDING.left}
-                      x2={TREND_SVG_WIDTH - TREND_SVG_PADDING.right}
-                      y1={y}
-                      y2={y}
-                    />
-                  );
-                })}
-
-                {selectedX !== null ? (
-                  <line
-                    className="trend-selected-guide"
-                    x1={selectedX}
-                    x2={selectedX}
-                    y1={TREND_SVG_PADDING.top}
-                    y2={TREND_SVG_HEIGHT - TREND_SVG_PADDING.bottom}
-                  />
-                ) : null}
-
-                {activeSeries.map((series) => {
-                  const points = buckets.map((bucket, index) => ({
-                    bucket,
-                    x: trendPointX(index, buckets.length),
-                    y: trendPointY(trendSeriesValue(bucket.tokens, series.key), maxValue),
-                    value: trendSeriesValue(bucket.tokens, series.key)
-                  }));
-
-                  return (
-                    <g className="trend-series" key={series.key}>
-                      {points.length > 1 ? (
-                        <path
-                          className="trend-line-path"
-                          d={linePath(points)}
-                          stroke={series.color}
-                        />
-                      ) : null}
-                      {points.map((point) => (
-                        <circle
-                          className={`trend-line-point${
-                            selectedBucket?.key === point.bucket.key ? " is-selected" : ""
-                          }`}
-                          key={`${series.key}-${point.bucket.key}`}
-                          cx={point.x}
-                          cy={point.y}
-                          r={selectedBucket?.key === point.bucket.key ? 4 : 2.8}
-                          fill={series.color}
-                        />
-                      ))}
-                    </g>
-                  );
-                })}
-
-                {buckets.map((bucket, index) => (
-                  <rect
-                    className="trend-hit-zone"
-                    key={bucket.key}
-                    x={trendPointX(index, buckets.length) - hitWidth / 2}
-                    y={TREND_SVG_PADDING.top}
-                    width={hitWidth}
-                    height={TREND_SVG_HEIGHT - TREND_SVG_PADDING.top - TREND_SVG_PADDING.bottom}
-                    onClick={() => setSelectedBucketKey(bucket.key)}
-                  >
-                    <title>{bucketTooltip(bucket)}</title>
-                  </rect>
-                ))}
-              </svg>
-              <div className="trend-x-axis" aria-hidden="true">
-                {buckets.map((bucket, index) => (
-                  <span key={bucket.key}>
-                    {shouldShowTrendLabel(index, buckets.length) ? bucket.label : ""}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
+          <TrendSeriesControls visibleSeries={visibleSeries} onSeriesToggle={onSeriesToggle} />
+          <TrendLineChart
+            period={period}
+            buckets={trendView.buckets}
+            selectedBucket={trendView.selectedBucket}
+            activeSeries={trendView.activeSeries}
+            maxValue={trendView.maxValue}
+            midValue={trendView.midValue}
+            topValue={trendView.topValue}
+            onBucketSelect={onBucketSelect}
+          />
         </div>
 
-        <aside className="ledger-trend-detail is-open">
-          <div className="trend-detail-head">
-            <span>{trendDetailTitle(period)}</span>
-            <strong>{selectedBucket?.label ?? "--"}</strong>
-            <small>
-              {selectedBucket ? formatDateRange(selectedBucket.startAt, selectedBucket.endAt) : "--"}
-            </small>
-          </div>
-
-          <div className="trend-detail-table-shell">
-            <table className="trend-detail-table">
-              <thead>
-                <tr>
-                  <th>曲线</th>
-                  <th>数值</th>
-                  <th>占比</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detailRows.map((row) => (
-                  <tr key={row.key}>
-                    <td>
-                      <span
-                        className="trend-table-series"
-                        style={{ "--series-color": row.color } as CSSProperties}
-                      >
-                        <span aria-hidden="true" />
-                        {row.label}
-                      </span>
-                    </td>
-                    <td>{formatCompactToken(row.value)}</td>
-                    <td>{row.share}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="trend-detail-grid">
-            {detailMetrics.map((metric) => (
-              <span className="trend-detail-metric" key={metric.label}>
-                <small>{metric.label}</small>
-                <strong>{metric.value}</strong>
-              </span>
-            ))}
-          </div>
-        </aside>
+        <TrendDetailPanel
+          period={period}
+          selectedBucket={trendView.selectedBucket}
+          selectedTokens={trendView.selectedTokens}
+        />
       </div>
     </SectionCard>
+  );
+}
+
+function TokenTrendExpandedView({
+  snapshot,
+  period,
+  onPeriodChange,
+  selectedBucketKey,
+  onBucketSelect,
+  visibleSeries,
+  onSeriesToggle,
+  onClose
+}: {
+  snapshot: DashboardSnapshot;
+  period: LedgerTrendPeriod;
+  onPeriodChange: (value: LedgerTrendPeriod) => void;
+  selectedBucketKey: string | null;
+  onBucketSelect: (bucketKey: string) => void;
+  visibleSeries: TrendSeriesVisibility;
+  onSeriesToggle: (seriesKey: LedgerTrendSeriesKey) => void;
+  onClose: () => void;
+}) {
+  const trendView = resolveTrendView(snapshot, period, selectedBucketKey, visibleSeries);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="ledger-trend-overlay" role="dialog" aria-modal="true" aria-labelledby="trend-expanded-title">
+      <button
+        type="button"
+        className="ledger-trend-overlay-backdrop"
+        aria-label="关闭放大查看"
+        onClick={onClose}
+      />
+      <section className="trend-expanded-panel" onClick={(event) => event.stopPropagation()}>
+        <header className="trend-expanded-head">
+          <div className="trend-expanded-title">
+            <h3 id="trend-expanded-title">Token 走势拆解</h3>
+            <span>{trendPeriodMeta(period)}</span>
+          </div>
+          <div className="trend-expanded-actions">
+            <TextTabs items={LEDGER_TREND_TABS} value={period} onChange={onPeriodChange} />
+            <button
+              type="button"
+              className="icon-action-button"
+              title="关闭"
+              aria-label="关闭放大查看"
+              onClick={onClose}
+            >
+              <Glyph name="close" />
+            </button>
+          </div>
+        </header>
+
+        <TrendSeriesControls visibleSeries={visibleSeries} onSeriesToggle={onSeriesToggle} />
+
+        <div className="trend-expanded-body">
+          <div className="trend-expanded-chart">
+            <TrendLineChart
+              period={period}
+              buckets={trendView.buckets}
+              selectedBucket={trendView.selectedBucket}
+              activeSeries={trendView.activeSeries}
+              maxValue={trendView.maxValue}
+              midValue={trendView.midValue}
+              topValue={trendView.topValue}
+              onBucketSelect={onBucketSelect}
+            />
+          </div>
+          <TrendDetailPanel
+            period={period}
+            selectedBucket={trendView.selectedBucket}
+            selectedTokens={trendView.selectedTokens}
+          />
+        </div>
+
+        <footer className="trend-expanded-footer">
+          <span>{trendRangeLabel(trendView.buckets)}</span>
+          <span>可见曲线 {trendView.activeSeries.length} 条</span>
+          <span>本地快照趋势数据</span>
+        </footer>
+      </section>
+    </div>
   );
 }
 
@@ -2013,6 +2246,9 @@ function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["led
 
 function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
   const [trendPeriod, setTrendPeriod] = useState<LedgerTrendPeriod>("week");
+  const [selectedTrendBucketKey, setSelectedTrendBucketKey] = useState<string | null>(null);
+  const [visibleTrendSeries, setVisibleTrendSeries] = useState(DEFAULT_TREND_SERIES_VISIBILITY);
+  const [isTrendExpanded, setIsTrendExpanded] = useState(false);
   const [insightPeriod, setInsightPeriod] = useState<LedgerAnalysisKey>("sevenDays");
   const [modelPeriod, setModelPeriod] = useState<LedgerAnalysisKey>("sevenDays");
   const [modelSort, setModelSort] = useState<ModelContributionSortState>({
@@ -2037,6 +2273,20 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
     setTrendPeriod(value);
   };
 
+  const handleTrendSeriesToggle = (seriesKey: LedgerTrendSeriesKey) => {
+    setVisibleTrendSeries((current) => {
+      const visibleCount = Object.values(current).filter(Boolean).length;
+      if (current[seriesKey] && visibleCount <= 1) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [seriesKey]: !current[seriesKey]
+      };
+    });
+  };
+
   return (
     <div className="ledger-layout">
       <div className="ledger-top-grid">
@@ -2044,6 +2294,11 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
           snapshot={snapshot}
           period={trendPeriod}
           onPeriodChange={handleTrendPeriodChange}
+          selectedBucketKey={selectedTrendBucketKey}
+          onBucketSelect={setSelectedTrendBucketKey}
+          visibleSeries={visibleTrendSeries}
+          onSeriesToggle={handleTrendSeriesToggle}
+          onExpand={() => setIsTrendExpanded(true)}
         />
         <PeriodInsightCard
           analysisKey={insightPeriod}
@@ -2064,6 +2319,19 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
       </div>
 
       <SessionAttributionCard sessions={snapshot.ledger.sessions} />
+
+      {isTrendExpanded ? (
+        <TokenTrendExpandedView
+          snapshot={snapshot}
+          period={trendPeriod}
+          onPeriodChange={handleTrendPeriodChange}
+          selectedBucketKey={selectedTrendBucketKey}
+          onBucketSelect={setSelectedTrendBucketKey}
+          visibleSeries={visibleTrendSeries}
+          onSeriesToggle={handleTrendSeriesToggle}
+          onClose={() => setIsTrendExpanded(false)}
+        />
+      ) : null}
     </div>
   );
 }

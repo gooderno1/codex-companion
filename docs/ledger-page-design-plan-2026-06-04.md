@@ -36,10 +36,11 @@
 
 - 更新时间：2026-06-29 20:44:49 +08:00
 - 追加版本基线：`v0.3.0-dev.1`
-- 本轮目标版本：`v0.3.0-dev.2`
+- 设计目标版本：`v0.3.0-dev.2`
+- 实现目标版本：`v0.3.0-dev.3`
 - 需求主题：先设计 `Token 走势拆解` 的平滑曲线和放大查看能力。
 - 影响页面：`Codex 账本` 第一行左侧 `Token 走势拆解`。
-- 本轮边界：只更新设计、合同和开发记录，不修改 `TokenTrendCard` 的运行时代码。
+- `v0.3.0-dev.2` 边界：只更新设计、合同和开发记录，不修改 `TokenTrendCard` 的运行时代码。
 
 ### 追加需求
 
@@ -83,6 +84,14 @@
 4. 把放大层与原卡片复用同一套 `trendPeriod / visibleSeries / selectedBucketKey`。
 5. 调整样式，分别检查 `1360 x 900` 与 `1080 x 720` 视口下图表、图例和表格不重叠。
 6. 更新 `npm run verify:ledger` 校验范围，执行 typecheck、构建、截图和 `git diff --check`。
+
+### v0.3.0-dev.3 实现状态
+
+- `TokenTrendCard` 已拆出 `TrendLineChart`、`TrendSeriesControls` 和 `TrendDetailPanel`。
+- 平滑曲线路径由 `smoothTrendPath` 生成，使用 Catmull-Rom 到 cubic Bezier，并对控制点做局部范围约束。
+- `LedgerPage` 持有 `trendPeriod / visibleTrendSeries / selectedTrendBucketKey / isTrendExpanded`，原卡片和放大层共享同一套状态。
+- `TokenTrendExpandedView` 已实现主内容区覆盖层，包含大尺寸趋势图、当前粒度表、关闭按钮和 `Esc` 关闭。
+- 放大层仍只读取 `snapshot.ledger.trend`，不新增统计口径，也不展示原始对话或完整工作目录路径。
 
 ## 当前结论
 

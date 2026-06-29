@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-29] v0.3.0-dev.3 feat: 实现趋势平滑曲线与放大查看
+
+- 开发原因：用户确认按上一轮规划实施，要求把 `Token 走势拆解` 的直线折线改为更自然的曲线，并增加可全截面看图的放大功能。
+- 实现方式：将项目版本从 `v0.3.0-dev.2` 提升到 `v0.3.0-dev.3`；把趋势交互状态上提到 `LedgerPage`，由原卡片和放大层共享 `trendPeriod / visibleTrendSeries / selectedTrendBucketKey`；新增受约束的 Catmull-Rom 到 cubic Bezier 平滑 SVG path，保留真实点位和命中区；新增 `放大查看` 图标按钮、主内容区覆盖层、大尺寸趋势图、右侧当前粒度表、关闭按钮和 `Esc` 关闭；同步更新图标、样式、账本校验脚本、设计计划、UI Contract、组件映射和页面设计规格。
+- 当前结果：`Token 走势拆解` 默认卡片已经使用平滑曲线；用户点击 `放大查看` 后可在主内容区覆盖层中查看大图和当前粒度表，切换粒度、显示 / 隐藏曲线、点击点位都会同步回原卡片；统计口径仍只来自 `snapshot.ledger.trend`。
+- 验证方式：执行 `npm run typecheck`；执行 `npm run verify:ledger`；执行 `npm run build`；生成并人工检查 `local_dev_work/ledger-1360x900-dev3.png`、`local_dev_work/ledger-1080x720-dev3.png` 和 `local_dev_work/ledger-expanded-1360x900-dev3.png`；执行 `git diff --check`。
+
 ## [2026-06-29] v0.3.0-dev.2 docs: 设计趋势平滑曲线与放大视图
 
 - 开发原因：用户反馈当前 `Token 走势拆解` 折线视觉生硬，并要求先设计放大功能，使曲线图能在更大截面中阅读当前粒度表和多曲线变化。

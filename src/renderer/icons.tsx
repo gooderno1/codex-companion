@@ -11,7 +11,9 @@ export type IconName =
   | "month"
   | "code"
   | "cost"
-  | "session";
+  | "session"
+  | "maximize"
+  | "close";
 
 export function Glyph({ name }: { name: IconName }) {
   const common = {
@@ -117,6 +119,19 @@ export function Glyph({ name }: { name: IconName }) {
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path {...common} d="M5 6h14v10H8l-3 3z" />
           <path {...common} d="M9 10h6M9 13h4" />
+        </svg>
+      );
+    case "maximize":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path {...common} d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4" />
+          <path {...common} d="M9 4 4 9M15 4l5 5M20 15l-5 5M4 15l5 5" />
+        </svg>
+      );
+    case "close":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path {...common} d="M6 6l12 12M18 6 6 18" />
         </svg>
       );
     default:
