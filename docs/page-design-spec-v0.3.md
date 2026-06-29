@@ -31,6 +31,7 @@
 - `v0.3.18`：临时收敛第二页 `Token 走势拆解` 的周期入口。数据层继续保留 `日 / 周 / 月` 趋势桶，但页面当前只开放 `周`；`日 / 月` 入口显示为禁用态，等后续重新确认横轴密度和月视角聚合方式后再恢复；同时给非零 token 分层设置最小可见高度，避免比例差距大时看不出堆叠效果。
 - `v0.3.19`：修正全局刷新体验与 Codex 会话采集性能。手动刷新、后台刷新和自动刷新都必须写入 `sourceHealth.refresh`，界面在顶栏下方展示阶段、耗时、新解析文件数和缓存复用数；Codex JSONL 采集改为基于 `size + mtimeMs` 的增量缓存，不再每次重复解析最近 60 天全部会话文件。
 - `v0.3.20`：确认 `Codex Companion` 继续作为独立项目，不作为 DevLedger 的桌面看板；总览页默认进入计费时间；刷新反馈条改为临时提示，完成或失败约 `5s` 后消失；设置页承载计费月起始日、刷新历史和数据边界；项目概览计费时间增加 `计费月`。
+- `v0.3.21`：重设第二页 `Token 走势拆解` 的展示方式。主图固定为 `周 / 日期 / 总 Token`，移除当前窗口内复杂度过高的横轴 / 纵轴选择器；`原始输入 / 缓存输入 / 输出 / 推理 Token` 下沉到选中日期明细与 tooltip，避免小比例分层挤在柱体内无法辨认。
 
 ## 0.1 当前生效范围
 
@@ -340,32 +341,21 @@ Constraints: the top four cards must stay the same under both natural-time and b
 - 左侧主卡：`Token 走势拆解`
   - 占 `68%` 宽度，高度 `356px`
   - `日 / 周 / 月` 视角切换放在模块头部，而不是页面顶部工具栏；当前只允许 `周`，`日 / 月` 暂不可用
-  - 卡片头部保留两个次级切换：
-    - `横轴`
-    - `纵轴`
-  - `横轴` 只显示当前视角可用选项；当前实现因只开放 `周`，实际固定为 `日期`
-    - `日`：`小时`
-    - `周`：`日期`
-    - `月`：`日期 / 周段`
-  - `纵轴` 固定支持：
-    - `总 Token`
-    - `输入总量`
-    - `缓存输入`
-    - `缓存输入占比`
-    - `输出`
-    - `推理 Token`
+  - 卡片头部不再展示横轴 / 纵轴选择器；当前实现固定为 `周视图 · 日期粒度`
+  - 主图固定使用 `总 Token` 单序列柱图，左轴单位只表达总量
+  - 默认选中当前窗口内 `总 Token` 最高的日期；用户选择其他日期后，右侧明细同步更新
   - 图形规则：
-    - `总 Token` 使用 `原始输入 + 缓存输入 + 输出` 三段堆叠，`推理 Token` 仅作为 `输出` 段内部子集标记
-    - `输入总量` 使用 `原始输入 + 缓存输入` 两段堆叠
-    - 单一 Token 指标切换后退化为单序列柱图
-    - `缓存输入占比` 切换后改为百分比柱图，纵轴固定 `0% - 100%`
-    - 非零分层允许设置最小可见高度，避免比例过小导致视觉上像未分层；真实值仍以 tooltip 为准
+    - 主柱只表达日期之间的总量走势，不再在每根柱体内堆叠构成比例
+    - 选中日期明细使用横向构成条展示 `原始输入 / 缓存输入 / 输出`
+    - `推理 Token` 仅作为 `输出` 的子集标记，不作为第四段独立总量
+    - 明细区固定展示 `输入总量 / 缓存输入占比 / 输出 / 推理 Token / 会话 / API 等价成本`
+    - 真实值仍以选中日期明细和 tooltip 为准，不改变统计口径
 - 右侧摘要卡：`周期洞察`
   - 占 `32%` 宽度，高度 `356px`
   - 右上角提供 `近7天 / 近30天 / 累计`
   - 不使用 `全部`
   - 只跟随自己的周期范围，不跟随左侧图表 `日 / 周 / 月`
-  - 不跟随纵轴漂移
+  - 不跟随左侧趋势卡的选中日期
   - 固定显示 6 个高价值摘要位：
     - `窗口累计`
     - `窗口均值`
@@ -450,8 +440,8 @@ Scene/backdrop: a local-first Codex quota and token ledger with production-like 
 Style/medium: high-fidelity desktop app mockup, restrained operational software, crisp typography, same visual family as the current overview implementation.
 Composition/framing: 1440x960 desktop app screenshot, same left navigation rail and top toolbar as the shipped overview page, top toolbar center stays minimal without day/week/month tabs, first row with a large token composition and intensity chart on the left plus a compact signal summary card on the right, second row with a weekly billing ledger table on the left and a real-model composition panel on the right, third row with a session attribution table.
 Color palette: off-white workspace, graphite text, blue/cyan/green accents, subtle borders, same tone and spacing as the actual overview screenshot.
-Text (verbatim): "Codex 账本", "构成强度、周期细账与会话归因", "Token 走势拆解", "周期洞察", "周额度账本", "模型贡献", "会话归因", "窗口累计", "窗口均值", "峰值位置", "峰值用量", "单次峰值", "缓存输入占比", "累计已用", "API 等价成本", "满额周折算", "事件数", "横轴", "纵轴", "近7天", "近30天", "累计"
-Constraints: reuse the overview shell, do not include repeated top quota cards, remaining token count, fixed monthly quota, user names, average response time, or completion status; place day/week/month only inside the trend chart header together with selectable x-axis and y-axis; the token chart uses only three stack segments for 原始输入 / 缓存输入 / 输出, and treats 推理 Token as a marker inside 输出 rather than a fourth stacked series; the summary card uses the six fixed metrics 窗口累计 / 窗口均值 / 峰值位置 / 峰值用量 / 单次峰值 / 缓存输入占比 and adds its own 近7天 / 近30天 / 累计 switch; the model contribution card also uses 近7天 / 近30天 / 累计 and clickable column headers for sorting instead of a separate button row; do not use the label 全部; display date ranges instead of labels like 上上周; use real model names such as GPT-5.5 and GPT-5.4 or gpt-5.5 / gpt-5.4 / gpt-5.3-codex-spark; no OpenAI logo, no official branding, no decorative hero, Chinese UI text, 8px card radius.
+Text (verbatim): "Codex 账本", "构成强度、周期细账与会话归因", "Token 走势拆解", "周视图 · 日期粒度", "周期洞察", "周额度账本", "模型贡献", "会话归因", "窗口累计", "窗口均值", "峰值位置", "峰值用量", "单次峰值", "缓存输入占比", "累计已用", "API 等价成本", "满额周折算", "事件数", "近7天", "近30天", "累计"
+Constraints: reuse the overview shell, do not include repeated top quota cards, remaining token count, fixed monthly quota, user names, average response time, or completion status; place day/week/month only inside the trend chart header, but do not draw x-axis or y-axis dropdown controls; the token trend chart uses a single total-token bar series for date-to-date comparison; selected-date details use a horizontal composition bar for 原始输入 / 缓存输入 / 输出, and treats 推理 Token as a marker inside 输出 rather than a fourth stacked series; the summary card uses the six fixed metrics 窗口累计 / 窗口均值 / 峰值位置 / 峰值用量 / 单次峰值 / 缓存输入占比 and adds its own 近7天 / 近30天 / 累计 switch; the model contribution card also uses 近7天 / 近30天 / 累计 and clickable column headers for sorting instead of a separate button row; do not use the label 全部; display date ranges instead of labels like 上上周; use real model names such as GPT-5.5 and GPT-5.4 or gpt-5.5 / gpt-5.4 / gpt-5.3-codex-spark; no OpenAI logo, no official branding, no decorative hero, Chinese UI text, 8px card radius.
 ```
 
 ## 4. 代码仓库页设计
@@ -905,8 +895,8 @@ Constraints: no OpenAI logo, no official branding, no marketing page, no oversiz
 - 左侧导航、顶部工具栏、右上状态/刷新/快照与第一页实际截图统一，不再沿用旧稿中不一致的壳层。
 - 顶部不再重复 `5H / 周 / 月额度` 三张主卡，首屏主叙事改为 `Token 走势拆解 + 周期洞察`。
 - 顶部工具栏中部不再承载 `日 / 周 / 月`；时间范围被收回到 `Token 走势拆解` 模块头部，只影响该图。
-- `Token 走势拆解` 主卡只允许三段堆叠：`原始输入 / 缓存输入 / 输出`；`推理 Token` 只作为 `输出` 内的子集标记出现，不再误画成第四段。
-- `周期洞察` 固定为 `窗口累计 / 窗口均值 / 峰值位置 / 峰值用量 / 单次峰值 / 缓存输入占比` 六项，不再混入会随纵轴漂移的临时指标名。
+- `Token 走势拆解` 主图固定为 `周 / 日期 / 总 Token` 单序列柱图；`原始输入 / 缓存输入 / 输出 / 推理 Token` 进入选中日期明细，不再挤在每根柱体内。
+- `周期洞察` 固定为 `窗口累计 / 窗口均值 / 峰值位置 / 峰值用量 / 单次峰值 / 缓存输入占比` 六项，不跟随左侧趋势卡的选中日期。
 - `周期洞察` 与 `模型贡献` 都已经在右上角补入 `近7天 / 近30天 / 累计`，且不使用 `全部`。
 - 中部左侧改为 `周额度账本`，按日期区间展示最近几周计费周期，不再出现 `上上上周` 这类相对命名。
 - `累计已用` 与 `满额周折算` 被提升为账本页核心字段，用来体现额度强度和 API 等价价值；但文案必须清楚说明其为折算值，不是官方套餐定价。
@@ -929,6 +919,13 @@ Constraints: no OpenAI logo, no official branding, no marketing page, no oversiz
 - `周` 视角横轴固定为日期，横轴控件不再承担当前可操作切换。
 - 堆叠柱图仍只使用 `原始输入 / 缓存输入 / 输出` 三段，`推理 Token` 仍作为 `输出` 子集标记。
 - 非零分层允许设置最小可见高度，用于解决真实比例差距太大时肉眼不可见的问题；tooltip 继续展示真实 token 数、占比和 API 等价成本。
+
+### 12.3 v0.3.21 当前修正说明
+
+- `Token 走势拆解` 移除横轴 / 纵轴选择器，头部只保留 `周` 周期状态和 `周视图 · 日期粒度` 口径提示。
+- 主图改为单序列总量柱图，优先回答最近 7 个自然日的总 Token 起伏。
+- 选中日期明细承接构成信息，用横向条展示 `原始输入 / 缓存输入 / 输出`，并把 `推理 Token` 作为输出子集标记。
+- `输入总量 / 缓存输入占比 / 输出 / 推理 Token / 会话 / API 等价成本` 进入明细区和 tooltip，真实数据口径不变。
 
 ## 13. 代码仓库页 v0.3.6 状态图
 

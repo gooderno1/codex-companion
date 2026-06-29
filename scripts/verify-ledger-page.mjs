@@ -58,7 +58,9 @@ const TEXT_ASSERTIONS = [
       "推理 Token",
       "LEDGER_ANALYSIS_TABS",
       "ModelSortHeader",
-      "trendBuckets(snapshot, period, effectiveXAxis)",
+      "trendBuckets(snapshot, period)",
+      "selectedBucketKey",
+      "周视图 · 日期粒度",
       "resolveLedgerAnalysis(snapshot, modelPeriod)"
     ]
   },
@@ -70,6 +72,8 @@ const TEXT_ASSERTIONS = [
       ".ledger-middle-grid",
       ".ledger-chart",
       ".ledger-bar-stack",
+      ".ledger-trend-detail",
+      ".trend-composition-bar",
       ".insight-grid",
       ".ledger-model-table",
       ".ledger-session-card"

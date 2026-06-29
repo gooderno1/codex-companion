@@ -69,14 +69,6 @@ type SortDirection = "asc" | "desc";
 type ProjectIconTone = "blue" | "teal" | "green" | "amber" | "rose";
 type QuotaTone = "blue" | "green";
 type LedgerTrendPeriod = "day" | "week" | "month";
-type LedgerXAxis = "date" | "week";
-type LedgerYAxis =
-  | "total"
-  | "input"
-  | "cachedInput"
-  | "cachedInputRatio"
-  | "output"
-  | "reasoningOutput";
 type LedgerAnalysisKey = "sevenDays" | "thirtyDays" | "cumulative";
 type ModelContributionSort = "model" | "share" | "token" | "cost" | "events";
 
@@ -1203,14 +1195,13 @@ const LEDGER_ANALYSIS_TABS: Array<{ value: LedgerAnalysisKey; label: string }> =
   { value: "cumulative", label: "累计" }
 ];
 
-const LEDGER_Y_AXIS_OPTIONS: Array<{ value: LedgerYAxis; label: string }> = [
-  { value: "total", label: "总 Token" },
-  { value: "input", label: "输入总量" },
-  { value: "cachedInput", label: "缓存输入" },
-  { value: "cachedInputRatio", label: "缓存输入占比" },
-  { value: "output", label: "输出" },
-  { value: "reasoningOutput", label: "推理 Token" }
-];
+const EMPTY_TOKEN_BREAKDOWN: TokenBreakdown = {
+  input: 0,
+  cachedInput: 0,
+  output: 0,
+  reasoningOutput: 0,
+  total: 0
+};
 
 function rawInputTokens(tokens: TokenBreakdown) {
   return Math.max(0, tokens.input - tokens.cachedInput);
@@ -1301,30 +1292,7 @@ function resolveLedgerAnalysis(
   return fallbackAnalysis(key, fallbackPeriod, snapshot.ledger.sessions, snapshot.ledger.models);
 }
 
-function metricValue(tokens: TokenBreakdown, axis: LedgerYAxis) {
-  if (axis === "input") {
-    return tokens.input;
-  }
-  if (axis === "cachedInput") {
-    return tokens.cachedInput;
-  }
-  if (axis === "cachedInputRatio") {
-    return cachedInputRatio(tokens);
-  }
-  if (axis === "output") {
-    return tokens.output;
-  }
-  if (axis === "reasoningOutput") {
-    return tokens.reasoningOutput;
-  }
-  return tokens.total;
-}
-
-function metricLabel(axis: LedgerYAxis) {
-  return LEDGER_Y_AXIS_OPTIONS.find((item) => item.value === axis)?.label ?? "总 Token";
-}
-
-function visualBarHeight(value: number, maxValue: number, minVisiblePercent = 3) {
+function trendBarHeight(value: number, maxValue: number, minVisiblePercent = 4) {
   if (value <= 0 || maxValue <= 0) {
     return "0%";
   }
@@ -1333,32 +1301,39 @@ function visualBarHeight(value: number, maxValue: number, minVisiblePercent = 3)
   return `${Math.max(minVisiblePercent, percent)}%`;
 }
 
-function trendBuckets(
-  snapshot: DashboardSnapshot,
-  period: LedgerTrendPeriod,
-  xAxis: LedgerXAxis
-) {
+function trendSegmentWidth(value: number, total: number) {
+  if (value <= 0 || total <= 0) {
+    return "0%";
+  }
+
+  return `${Math.max(1.5, (value / total) * 100)}%`;
+}
+
+function selectDefaultTrendBucket(buckets: LedgerTimeBucket[]) {
+  if (buckets.length === 0) {
+    return null;
+  }
+
+  return buckets.reduce((selected, bucket) =>
+    bucket.tokens.total > selected.tokens.total ? bucket : selected
+  );
+}
+
+function trendBuckets(snapshot: DashboardSnapshot, period: LedgerTrendPeriod) {
   const trend = snapshot.ledger.trend;
   if (period === "day") {
     return trend?.day ?? [periodToBucket(snapshot.overview.today)];
   }
   if (period === "month") {
-    return xAxis === "week"
-      ? trend?.monthByWeek ?? [periodToBucket(snapshot.overview.month)]
-      : trend?.monthByDate ?? [periodToBucket(snapshot.overview.month)];
+    return trend?.monthByWeek ?? trend?.monthByDate ?? [periodToBucket(snapshot.overview.month)];
   }
   return trend?.week ?? [periodToBucket(snapshot.overview.sevenDays)];
 }
 
-function bucketTooltip(bucket: LedgerTimeBucket, axis: LedgerYAxis) {
+function bucketTooltip(bucket: LedgerTimeBucket) {
   const tokens = bucket.tokens;
   return [
     `${formatFullDateRange(bucket.startAt, bucket.endAt)}`,
-    `${metricLabel(axis)}：${
-      axis === "cachedInputRatio"
-        ? formatPercent(cachedInputRatio(tokens))
-        : formatCompactToken(metricValue(tokens, axis))
-    }`,
     `总 Token：${formatCompactToken(tokens.total)}`,
     `输入总量：${formatCompactToken(tokens.input)}`,
     `原始输入：${formatCompactToken(rawInputTokens(tokens))}`,
@@ -1429,28 +1404,58 @@ function sortModels(models: ModelMetric[], sort: ModelContributionSortState) {
 function TokenTrendCard({
   snapshot,
   period,
-  onPeriodChange,
-  xAxis,
-  onXAxisChange,
-  yAxis,
-  onYAxisChange
+  onPeriodChange
 }: {
   snapshot: DashboardSnapshot;
   period: LedgerTrendPeriod;
   onPeriodChange: (value: LedgerTrendPeriod) => void;
-  xAxis: LedgerXAxis;
-  onXAxisChange: (value: LedgerXAxis) => void;
-  yAxis: LedgerYAxis;
-  onYAxisChange: (value: LedgerYAxis) => void;
 }) {
-  const effectiveXAxis = period === "month" ? xAxis : "date";
-  const buckets = trendBuckets(snapshot, period, effectiveXAxis);
-  const maxValue =
-    yAxis === "cachedInputRatio"
-      ? 100
-      : Math.max(1, ...buckets.map((bucket) => metricValue(bucket.tokens, yAxis)));
-  const midValue = yAxis === "cachedInputRatio" ? "50%" : formatCompactToken(maxValue / 2);
-  const topValue = yAxis === "cachedInputRatio" ? "100%" : formatCompactToken(maxValue);
+  const [selectedBucketKey, setSelectedBucketKey] = useState<string | null>(null);
+  const buckets = trendBuckets(snapshot, period);
+  const defaultBucket = selectDefaultTrendBucket(buckets);
+  const selectedBucket =
+    buckets.find((bucket) => bucket.key === selectedBucketKey) ?? defaultBucket;
+  const selectedTokens = selectedBucket?.tokens ?? EMPTY_TOKEN_BREAKDOWN;
+  const selectedRawInput = rawInputTokens(selectedTokens);
+  const selectedCompositionTotal = Math.max(
+    1,
+    selectedRawInput + selectedTokens.cachedInput + selectedTokens.output
+  );
+  const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.tokens.total));
+  const midValue = formatCompactToken(maxValue / 2);
+  const topValue = formatCompactToken(maxValue);
+  const reasoningWidth =
+    selectedTokens.output > 0 && selectedTokens.reasoningOutput > 0
+      ? trendSegmentWidth(selectedTokens.reasoningOutput, selectedTokens.output)
+      : "0%";
+  const compositionSegments = [
+    {
+      key: "raw",
+      label: "原始输入",
+      value: selectedRawInput,
+      width: trendSegmentWidth(selectedRawInput, selectedCompositionTotal)
+    },
+    {
+      key: "cached",
+      label: "缓存输入",
+      value: selectedTokens.cachedInput,
+      width: trendSegmentWidth(selectedTokens.cachedInput, selectedCompositionTotal)
+    },
+    {
+      key: "output",
+      label: "输出",
+      value: selectedTokens.output,
+      width: trendSegmentWidth(selectedTokens.output, selectedCompositionTotal)
+    }
+  ];
+  const detailMetrics = [
+    { label: "输入总量", value: formatCompactToken(selectedTokens.input) },
+    { label: "缓存占比", value: formatPercent(cachedInputRatio(selectedTokens)) },
+    { label: "输出", value: formatCompactToken(selectedTokens.output) },
+    { label: "推理 Token", value: formatCompactToken(selectedTokens.reasoningOutput) },
+    { label: "会话", value: String(selectedBucket?.sessions ?? 0) },
+    { label: "API 等价成本", value: formatUsd(selectedBucket?.apiCostUsd ?? 0) }
+  ];
 
   return (
     <SectionCard className="ledger-trend-card">
@@ -1459,115 +1464,95 @@ function TokenTrendCard({
           <h3>Token 走势拆解</h3>
           <TextTabs items={LEDGER_TREND_TABS} value={period} onChange={onPeriodChange} />
         </div>
-        <div className="ledger-controls">
-          <label className="ledger-select-label">
-            横轴
-            <select
-              className="ledger-select"
-              value={effectiveXAxis}
-              onChange={(event) => onXAxisChange(event.target.value as LedgerXAxis)}
-              disabled={period !== "month"}
-            >
-              <option value="date">{period === "day" ? "小时" : "日期"}</option>
-              {period === "month" ? <option value="week">周段</option> : null}
-            </select>
-          </label>
-          <label className="ledger-select-label">
-            纵轴
-            <select
-              className="ledger-select"
-              value={yAxis}
-              onChange={(event) => onYAxisChange(event.target.value as LedgerYAxis)}
-            >
-              {LEDGER_Y_AXIS_OPTIONS.map((item) => (
-                <option value={item.value} key={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <span className="ledger-trend-meta">周视图 · 日期粒度</span>
       </div>
 
-      <div className="ledger-chart-legend">
-        <span className="legend-raw">原始输入</span>
-        <span className="legend-cached">缓存输入</span>
-        <span className="legend-output">输出</span>
-        <span className="legend-reasoning">推理 Token</span>
-      </div>
+      <div className="ledger-trend-body">
+        <div className="ledger-chart">
+          <div className="ledger-y-axis">
+            <span>{topValue}</span>
+            <span>{midValue}</span>
+            <span>0</span>
+          </div>
+          <div className="ledger-bar-area">
+            {buckets.map((bucket) => {
+              const value = bucket.tokens.total;
+              const isSelected = selectedBucket?.key === bucket.key;
 
-      <div className="ledger-chart">
-        <div className="ledger-y-axis">
-          <span>{topValue}</span>
-          <span>{midValue}</span>
-          <span>0</span>
-        </div>
-        <div className="ledger-bar-area">
-          {buckets.map((bucket) => {
-            const tokens = bucket.tokens;
-            const rawInput = rawInputTokens(tokens);
-            const value = metricValue(tokens, yAxis);
-            const rawInputHeight = visualBarHeight(rawInput, maxValue);
-            const cachedInputHeight = visualBarHeight(tokens.cachedInput, maxValue);
-            const singleHeight = visualBarHeight(value, maxValue);
-            const outputHeight = visualBarHeight(tokens.output, maxValue);
-            const reasoningHeight =
-              tokens.output > 0 && tokens.reasoningOutput > 0
-                ? `${Math.max(16, Math.min(100, (tokens.reasoningOutput / tokens.output) * 100))}%`
-                : "0%";
-
-            return (
-              <div className="ledger-bar-column" key={bucket.key} title={bucketTooltip(bucket, yAxis)}>
-                <div className="ledger-bar-value">
-                  {value > 0
-                    ? yAxis === "cachedInputRatio"
-                      ? formatPercent(value, 0)
-                      : formatCompactToken(value)
-                    : ""}
-                </div>
-                <div className="ledger-bar-stack" aria-label={`${bucket.label} ${metricLabel(yAxis)}`}>
-                  {yAxis === "total" ? (
-                    <>
-                      <span
-                        className="ledger-segment segment-raw"
-                        style={{ height: rawInputHeight }}
-                      />
-                      <span
-                        className="ledger-segment segment-cached"
-                        style={{ height: cachedInputHeight }}
-                      />
-                      <span className="ledger-segment segment-output" style={{ height: outputHeight }}>
-                        {tokens.reasoningOutput > 0 ? (
-                          <span
-                            className="reasoning-marker"
-                            style={{ height: reasoningHeight, minHeight: "3px" }}
-                          />
-                        ) : null}
-                      </span>
-                    </>
-                  ) : yAxis === "input" ? (
-                    <>
-                      <span
-                        className="ledger-segment segment-raw"
-                        style={{ height: rawInputHeight }}
-                      />
-                      <span
-                        className="ledger-segment segment-cached"
-                        style={{ height: cachedInputHeight }}
-                      />
-                    </>
-                  ) : (
+              return (
+                <button
+                  type="button"
+                  className={`ledger-bar-column${isSelected ? " is-selected" : ""}`}
+                  key={bucket.key}
+                  title={bucketTooltip(bucket)}
+                  onClick={() => setSelectedBucketKey(bucket.key)}
+                  aria-label={`${bucket.label} 总 Token ${formatCompactToken(value)}`}
+                >
+                  <span className="ledger-bar-value">
+                    {value > 0 ? formatCompactToken(value) : ""}
+                  </span>
+                  <span className="ledger-bar-stack" aria-hidden="true">
                     <span
-                      className={`ledger-segment segment-single segment-${yAxis}`}
-                      style={{ height: singleHeight }}
+                      className="ledger-total-bar"
+                      style={{ height: trendBarHeight(value, maxValue) }}
                     />
-                  )}
-                </div>
-                <div className="ledger-bar-label">{bucket.label}</div>
-              </div>
-            );
-          })}
+                  </span>
+                  <span className="ledger-bar-label">{bucket.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        <aside className="ledger-trend-detail">
+          <div className="trend-detail-head">
+            <span>{selectedBucket?.label ?? "--"}</span>
+            <strong>{formatCompactToken(selectedTokens.total)}</strong>
+            <small>
+              {selectedBucket ? formatDateRange(selectedBucket.startAt, selectedBucket.endAt) : "--"}
+            </small>
+          </div>
+
+          <div className="trend-composition-block">
+            <div
+              className="trend-composition-bar"
+              title={selectedBucket ? bucketTooltip(selectedBucket) : undefined}
+            >
+              {compositionSegments.map((segment) =>
+                segment.value > 0 ? (
+                  <span
+                    className={`composition-segment composition-${segment.key}`}
+                    key={segment.key}
+                    style={{ width: segment.width }}
+                    title={`${segment.label}：${formatCompactToken(segment.value)}`}
+                  >
+                    {segment.key === "output" && selectedTokens.reasoningOutput > 0 ? (
+                      <span
+                        className="composition-reasoning-marker"
+                        style={{ width: reasoningWidth }}
+                      />
+                    ) : null}
+                  </span>
+                ) : null
+              )}
+            </div>
+            <div className="ledger-chart-legend ledger-chart-legend-compact">
+              <span className="legend-raw">原始输入</span>
+              <span className="legend-cached">缓存输入</span>
+              <span className="legend-output">输出</span>
+              <span className="legend-reasoning">推理</span>
+            </div>
+          </div>
+
+          <div className="trend-detail-grid">
+            {detailMetrics.map((metric) => (
+              <span className="trend-detail-metric" key={metric.label}>
+                <small>{metric.label}</small>
+                <strong>{metric.value}</strong>
+              </span>
+            ))}
+          </div>
+        </aside>
       </div>
     </SectionCard>
   );
@@ -1844,8 +1829,6 @@ function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["led
 
 function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
   const [trendPeriod, setTrendPeriod] = useState<LedgerTrendPeriod>("week");
-  const [xAxis, setXAxis] = useState<LedgerXAxis>("date");
-  const [yAxis, setYAxis] = useState<LedgerYAxis>("total");
   const [insightPeriod, setInsightPeriod] = useState<LedgerAnalysisKey>("sevenDays");
   const [modelPeriod, setModelPeriod] = useState<LedgerAnalysisKey>("sevenDays");
   const [modelSort, setModelSort] = useState<ModelContributionSortState>({
@@ -1879,10 +1862,6 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
           snapshot={snapshot}
           period={trendPeriod}
           onPeriodChange={handleTrendPeriodChange}
-          xAxis={xAxis}
-          onXAxisChange={setXAxis}
-          yAxis={yAxis}
-          onYAxisChange={setYAxis}
         />
         <PeriodInsightCard
           analysisKey={insightPeriod}
