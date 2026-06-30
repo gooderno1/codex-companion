@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.1-dev.2`
+- 当前适用版本：`v0.3.1-dev.3`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、设置页
 
 ## 总览页
@@ -18,6 +18,8 @@
 | 项目表头排序 | `ProjectSortHeader` | 页面级 | `name / token / cost / code / commits / sessions / recent`、`asc / desc` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
 | 刷新反馈条 | `refresh-feedback` | 全局复用 | `refreshing / done / error`、约 `5s` 自动隐藏 | `snapshot.sourceHealth.refresh` |
+| 首次加载检测 | `FirstLoadPanel` / `DataSourceStatusPanel` | 全局复用 | `generatedFrom=pending`、Codex 检测、Git 检测 | `snapshot.sourceHealth`、`snapshot.repositories.summary`、`preferences` |
+| 数据源手动提示 | `setup-banner` | 全局复用 | Codex 或 Git 未检测到时引导打开设置 | `snapshot.sourceHealth.sourceStatus`、`snapshot.repositories.summary.totalTracked` |
 | 页脚数据来源 | `FooterNote` / `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |

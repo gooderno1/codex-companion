@@ -984,6 +984,88 @@ function sameStringList(left: string[], right: string[]) {
   return left.every((item, index) => item === right[index]);
 }
 
+function codexDetected(snapshot: DashboardSnapshot | null) {
+  return Boolean(
+    snapshot &&
+      (snapshot.sourceHealth.sourceStatus === "observed" ||
+        snapshot.sourceHealth.sessionFilesScanned + snapshot.sourceHealth.archivedFilesScanned > 0)
+  );
+}
+
+function gitDetected(snapshot: DashboardSnapshot | null) {
+  return Boolean(snapshot && snapshot.repositories.summary.totalTracked > 0);
+}
+
+function detectionLabel(detected: boolean, pending: boolean) {
+  if (pending) {
+    return "检测中";
+  }
+
+  return detected ? "已检测到" : "未检测到";
+}
+
+function detectionClass(detected: boolean, pending: boolean) {
+  if (pending) {
+    return "is-pending";
+  }
+
+  return detected ? "is-ok" : "is-missing";
+}
+
+function DataSourceStatusPanel({
+  snapshot,
+  preferences
+}: {
+  snapshot: DashboardSnapshot | null;
+  preferences: AppPreferences | null;
+}) {
+  const pending = snapshot?.generatedFrom === "pending";
+  const isCodexDetected = codexDetected(snapshot);
+  const isGitDetected = gitDetected(snapshot);
+  const codexFileCount =
+    (snapshot?.sourceHealth.sessionFilesScanned ?? 0) +
+    (snapshot?.sourceHealth.archivedFilesScanned ?? 0);
+
+  return (
+    <div className="setup-status-grid">
+      <article className={`setup-status-item ${detectionClass(isCodexDetected, pending)}`}>
+        <div>
+          <span>Codex 数据目录</span>
+          <strong>{preferences?.codexHome ?? snapshot?.sourceHealth.codexHome ?? "等待检测"}</strong>
+        </div>
+        <em>{detectionLabel(isCodexDetected, pending)}</em>
+        <small>{isCodexDetected ? `已发现 ${formatNumber(codexFileCount)} 个会话文件` : "未命中时请手动选择 .codex 目录"}</small>
+      </article>
+      <article className={`setup-status-item ${detectionClass(isGitDetected, pending)}`}>
+        <div>
+          <span>Git 仓库根目录</span>
+          <strong>{(preferences?.repoRoots ?? snapshot?.sourceHealth.repoRoots ?? []).join("；") || "等待检测"}</strong>
+        </div>
+        <em>{detectionLabel(isGitDetected, pending)}</em>
+        <small>{isGitDetected ? `已发现 ${formatNumber(snapshot?.repositories.summary.totalTracked ?? 0)} 个仓库` : "未命中时请手动选择代码项目上级目录"}</small>
+      </article>
+    </div>
+  );
+}
+
+function FirstLoadPanel({
+  snapshot,
+  preferences
+}: {
+  snapshot: DashboardSnapshot | null;
+  preferences: AppPreferences | null;
+}) {
+  return (
+    <section className="first-load-panel">
+      <div className="first-load-copy">
+        <h3>正在首次自动检测本机数据源</h3>
+        <p>应用会先尝试默认 Codex 目录和常见代码目录。首次扫描需要解析 Codex 会话并遍历 Git 仓库，耗时可能明显长于后续刷新。</p>
+      </div>
+      <DataSourceStatusPanel snapshot={snapshot} preferences={preferences} />
+    </section>
+  );
+}
+
 function SettingsPage({
   snapshot,
   preferences,
@@ -999,9 +1081,8 @@ function SettingsPage({
 }) {
   const currentDay = preferences?.billingMonthStartDay ?? 1;
   const currentCodexHome = preferences?.codexHome ?? snapshot?.sourceHealth.codexHome ?? "";
-  const currentRepoRoots = useMemo(
-    () => normalizeRepoRootsList(preferences?.repoRoots ?? snapshot?.sourceHealth.repoRoots ?? []),
-    [preferences?.repoRoots, snapshot?.sourceHealth.repoRoots]
+  const currentRepoRoots = normalizeRepoRootsList(
+    preferences?.repoRoots ?? snapshot?.sourceHealth.repoRoots ?? []
   );
   const [draftDay, setDraftDay] = useState(currentDay);
   const [draftCodexHome, setDraftCodexHome] = useState(currentCodexHome);
@@ -1074,6 +1155,9 @@ function SettingsPage({
   const normalizedDraftRepoRoots = normalizeRepoRootsList(draftRepoRoots);
   const canSaveRepoRoots =
     !repoSaving && !sameStringList(normalizedDraftRepoRoots, currentRepoRoots);
+  const pendingDetection = snapshot?.generatedFrom === "pending";
+  const isCodexDetected = codexDetected(snapshot);
+  const isGitDetected = gitDetected(snapshot);
 
   return (
     <div className="page-stack settings-page">
@@ -1083,6 +1167,9 @@ function SettingsPage({
             <h3>Codex 数据目录</h3>
             <p>用于读取本机 Codex sessions、archived_sessions 和 rate_limits。</p>
           </div>
+          <span className={`detection-pill ${detectionClass(isCodexDetected, pendingDetection)}`}>
+            {detectionLabel(isCodexDetected, pendingDetection)}
+          </span>
         </div>
         <div className="repo-root-editor">
           <div className="repo-root-input-row">
@@ -1162,6 +1249,9 @@ function SettingsPage({
             <h3>仓库根目录</h3>
             <p>用于扫描本机 Git 仓库，并把 Codex 会话归因到具体项目。</p>
           </div>
+          <span className={`detection-pill ${detectionClass(isGitDetected, pendingDetection)}`}>
+            {detectionLabel(isGitDetected, pendingDetection)}
+          </span>
         </div>
         <div className="repo-root-editor">
           <div className="repo-root-input-row">
@@ -3157,11 +3247,18 @@ export default function App() {
     page === "overview" || page === "ledger" || page === "repositories" || page === "settings"
       ? page
       : "overview";
+  const isFirstLoadPending =
+    currentPage !== "settings" && snapshot?.generatedFrom === "pending";
   const needsDataSetup =
     currentPage !== "settings" &&
+    !isFirstLoadPending &&
     snapshot !== null &&
     (snapshot.sourceHealth.sourceStatus !== "observed" ||
       snapshot.repositories.summary.totalTracked === 0);
+  const setupMessage =
+    snapshot && !codexDetected(snapshot)
+      ? "未检测到 Codex 会话数据，请确认 Codex 数据目录是否指向本机 .codex。"
+      : "未检测到 Git 仓库，请确认仓库根目录是否包含本机代码项目。";
 
   return (
     <div className="app-shell">
@@ -3275,11 +3372,14 @@ export default function App() {
         {error ? <div className="error-banner">{error}</div> : null}
         {loading && !snapshot ? <div className="loading-card">正在读取本机 Codex 与 Git 数据…</div> : null}
         {isPending ? <div className="loading-hint">界面正在切换到最新快照…</div> : null}
+        {isFirstLoadPending ? (
+          <FirstLoadPanel snapshot={snapshot} preferences={preferences} />
+        ) : null}
         {needsDataSetup ? (
           <div className="setup-banner">
             <div>
-              <strong>请确认本机数据源</strong>
-              <span>换电脑或首次安装后，需要确认 Codex 数据目录和 Git 仓库根目录。</span>
+              <strong>需要手动确认本机数据源</strong>
+              <span>{setupMessage}</span>
             </div>
             <button
               type="button"

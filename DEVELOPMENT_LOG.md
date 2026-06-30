@@ -1,11 +1,19 @@
 # DEVELOPMENT LOG
 
+## [2026-06-30] v0.3.1-dev.3 feat: 增加首次加载自动检测流程
+
+- 开发原因：用户指出仅提供手动配置还不够，合理流程应先自动检测默认 Codex 数据目录和常见 Git 仓库目录；检测成功就直接使用默认配置，检测失败再提示手动选取。同时首次载入可能需要较长时间，应有明确的首次扫描流程说明。
+- 实现方式：将应用版本从 `v0.3.1-dev.2` 提升到 `v0.3.1-dev.3`；新增 `DataSourceStatusPanel` 和 `FirstLoadPanel`，在 pending 快照阶段展示 `正在首次自动检测本机数据源`，说明首次扫描会解析 Codex 会话并遍历 Git 仓库；设置页 Codex 数据目录和仓库根目录区新增 `检测中 / 已检测到 / 未检测到` 状态标签；主界面数据源提示改为区分 Codex 未检测到和 Git 仓库未检测到；更新 README、组件映射和接线方案文档，明确自动检测成功使用默认路径、失败后引导手动选择。
+- 当前结果：首次启动或无缓存启动时，用户能看到默认路径自动检测和首次扫描说明；后台采集完成后，默认路径命中则显示已检测到，未命中则提示打开设置手动选择对应目录；不会在 pending 阶段过早显示手动配置失败提示。
+- 验证方式：执行 `npm run build`；使用 `CODEX_COMPANION_CAPTURE_PAGE=settings` 和 `CODEX_COMPANION_CAPTURE_PATH=local_dev_work\settings-auto-detect-dev2.png` 启动 Electron 捕获设置页截图，确认检测状态标签显示正常；执行 `git diff --check`，仅出现 Windows 换行转换提示。
+- 遗留问题：还没有独立的全屏首次启动向导；当前先用自动检测面板、设置页状态标签和主界面提示完成轻量闭环。
+
 ## [2026-06-30] v0.3.1-dev.2 feat: 补齐换机数据源接线
 
 - 开发原因：内测安装后暴露出产品过度依赖当前开发者本机默认路径的问题；安装包没有携带个人 Codex 数据，但新电脑缺少明确的 Codex 数据目录和 Git 仓库目录接线方法，容易让用户误以为软件是为单台机器量身定做。
 - 实现方式：新增 `docs/setup-portability-solution-2026-06-30.md`，说明问题判断、目标、实施方案和后续首次启动向导建议；将应用版本从 `v0.3.1-dev.1` 提升到 `v0.3.1-dev.2`；`AppPreferences` 新增 `codexHome`，`SettingsStore` 默认使用 `CODEX_HOME || ~/.codex` 并自动迁移旧配置；`collectCodexData` 支持从偏好传入 Codex home；设置页新增 `Codex 数据目录` 配置区，支持手动输入、选择目录、恢复默认、保存并刷新；仓库根目录区补充恢复默认目录；主界面在 Codex 或 Git 数据未接通时显示数据源设置提示；后续 Windows 打包目标只保留 `nsis` 安装版，不再生成便携版。
 - 当前结果：换电脑或首次安装后，用户可以在应用内完成 Codex 数据目录和 Git 仓库根目录接线；路径配置只写入本机 Electron `userData/settings.json`，不随安装包分发，也不会上传；保存数据源后会立即刷新快照，便于确认是否接通。
-- 验证方式：执行 `npm run build`，通过 lint、TypeScript 类型检查、renderer build 和 main build；使用 `CODEX_COMPANION_CAPTURE_PAGE=settings` 和 `CODEX_COMPANION_CAPTURE_PATH=local_dev_work\settings-data-source-dev1-final.png` 启动 Electron 捕获设置页截图，确认 Codex 数据目录和仓库根目录配置区显示正常，按钮不重叠，路径不溢出；执行 `git diff --check`。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript 类型检查、renderer build 和 main build；使用 `CODEX_COMPANION_CAPTURE_PAGE=settings` 和 `CODEX_COMPANION_CAPTURE_PATH=local_dev_work\settings-auto-detect-dev2.png` 启动 Electron 捕获设置页截图，确认 Codex 数据目录和仓库根目录配置区显示正常，检测标签显示 `已检测到`，按钮不重叠，路径不溢出；执行 `npm run package:win`，确认只生成 `Codex Companion Setup 0.3.1-dev.2.exe` 安装版；执行 `git diff --check`。
 - 遗留问题：真正的首次启动向导、脱敏诊断摘要、打开数据目录、应用图标和代码签名仍需后续单独实现。
 
 ## [2026-06-30] v0.3.1-dev.1 fix: 识别稳定边界回看周重置
