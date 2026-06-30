@@ -340,14 +340,18 @@ Token 数字自动单位：
 - 如果当前周期暂时缺少 `quotaEvidence`，圆环才降级使用最近一次 Codex 原始 `rate_limits.<primary|secondary>.used_percent`，计算为 `100 - used_percent`。
 - 圆环弧线也必须使用同一个 `剩余百分比`，不能使用已用百分比；否则会出现中心显示 `94% 剩余` 但弧线只有已用部分的反向表达。
 - 右侧 `Token 用量 / API 等价成本 / 会话数 / Top 3 模型占比` 来自当前额度周期内的真实 token 增量。
-- 当前额度周期边界由最近一次 `rate_limits.<primary|secondary>.resets_at` 与 `window_minutes` 反推。
+- 当前 `5H` 与当前周额度周期边界使用 `PeriodMetric.startAt / endAt`；`LimitWindow.resetsAt` 必须等于当前 `PeriodMetric.endAt`。缺少周期证据时才降级使用最近一次 `rate_limits.<primary|secondary>.resets_at` 与 `window_minutes` 反推；周额度周期允许由已确认 reset 边界校准。
 - 如果本机同时存在多个 `rate_limits` 池，可见 `5H / 周额度` 优先使用主额度池 `limit_id=codex`；模型或实验额度池不能因为记录时间更新而覆盖主额度显示。
 - 当前周期的额度观测证据必须只聚合同一 `limit_id / limit_name` 的样本，不能混合不同额度池。
 - token 增量优先使用同一 session 内 `total_token_usage` 累计快照差值，不直接把所有 `total_token_usage` 相加。
 - 无 token 增量但携带 `rate_limits` 的记录仍作为额度观测点保留，用于判断周期与重置。
 - `代码行数` 来自同一额度周期边界内的本地 Git 活动。
 - `观测 N 次` 来自当前额度周期内有效 `rate_limits` 观测点数量；采集范围至少覆盖近 `60` 天，使前几周计费周期可用于比较。
-- `重置 N 次` 来自同一 session 相邻额度观测中符合高水位下降与 `resets_at` 后移条件的重置识别。
+- `重置 N 次` 来自已确认的额度重置事件：
+  - 候选条件：`resets_at` 后移超过 `60s`，且 `used_percent` 下降至少 `5` 个百分点。
+  - 证据条件：重置前 `used_percent >= 50`，或新窗口起点 `resets_at - window_minutes` 与观测时间相差不超过 `5min`。
+  - 确认条件：候选后等待 `30min`，并在 `6h` 确认窗口内看到同一窗口边界稳定观测；确认窗口内若边界漂移超过 `15min`，不计为重置。
+  - `5H` 默认比较同 session 相邻观测；`周额度` 按同一额度池全局时间线比较，以捕捉跨 session 的低用量周重置。
 - 套餐价值折算字段只作为数据层和挂件摘要使用时，必须用当前周期累计已用百分比，不使用最近一次原始百分比。
 - `可观测月额度` 与顶部 `本月 Token` 不是同一概念；即使计费月 Token 默认可按每月 1 日计算，月额度仍必须等待 Codex 原始 `rate_limits` 暴露月级窗口后才可展示。
 

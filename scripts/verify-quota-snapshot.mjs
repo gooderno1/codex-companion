@@ -153,6 +153,46 @@ function verifyWindow({
     report.assert(isNumber(evidence.usedPercent) && evidence.usedPercent >= 0, `${label}: quotaEvidence.usedPercent 必须是非负数。`);
     report.assert(numberInRange(evidence.maxObservedUsedPercent, 0, 100), `${label}: maxObservedUsedPercent 必须在 0-100。`);
     report.assert(parseIsoMs(evidence.lastObservedAt) !== null, `${label}: lastObservedAt 必须是有效 ISO 时间。`);
+    report.assert(
+      evidence.resetEvents.length === evidence.resetCount,
+      `${label}: resetEvents.length 必须等于 resetCount。`
+    );
+
+    for (const [index, event] of evidence.resetEvents.entries()) {
+      const eventLabel = `${label}: resetEvents[${index}]`;
+      report.assert(parseIsoMs(event.at) !== null, `${eventLabel}.at 必须是有效 ISO 时间。`);
+      report.assert(parseIsoMs(event.beforeObservedAt) !== null, `${eventLabel}.beforeObservedAt 必须是有效 ISO 时间。`);
+      report.assert(numberInRange(event.beforeUsedPercent, 0, 100), `${eventLabel}.beforeUsedPercent 必须在 0-100。`);
+      report.assert(numberInRange(event.afterUsedPercent, 0, 100), `${eventLabel}.afterUsedPercent 必须在 0-100。`);
+      report.assert(event.beforeUsedPercent - event.afterUsedPercent >= 5, `${eventLabel} 必须体现至少 5 个百分点的下降。`);
+      report.assert(parseIsoMs(event.afterWindowResetsAt) !== null, `${eventLabel}.afterWindowResetsAt 必须是有效 ISO 时间。`);
+      report.assert(event.evidence && typeof event.evidence === "object", `${eventLabel}.evidence 缺失。`);
+      if (event.evidence) {
+        report.assert(Array.isArray(event.evidence.evidenceTypes), `${eventLabel}.evidence.evidenceTypes 必须是数组。`);
+        report.assert(
+          event.evidence.highWaterEvidence === true || event.evidence.boundaryAlignedEvidence === true,
+          `${eventLabel} 必须具备高水位或边界贴近证据。`
+        );
+        report.assert(
+          parseIsoMs(event.evidence.afterBoundaryAt) !== null,
+          `${eventLabel}.evidence.afterBoundaryAt 必须是有效 ISO 时间。`
+        );
+      }
+
+      report.assert(event.confirmation && typeof event.confirmation === "object", `${eventLabel}.confirmation 缺失。`);
+      if (event.confirmation) {
+        report.assert(event.confirmation.status === "confirmed", `${eventLabel}.confirmation.status 必须为 confirmed。`);
+        report.assert(
+          event.confirmation.reason === "stable-window-boundary",
+          `${eventLabel}.confirmation.reason 必须为 stable-window-boundary。`
+        );
+        report.assert(
+          Number.isInteger(event.confirmation.stableObservationCount) &&
+            event.confirmation.stableObservationCount > 0,
+          `${eventLabel}.confirmation.stableObservationCount 必须大于 0。`
+        );
+      }
+    }
 
     if (isNumber(evidence.usedPercent)) {
       const expectedDisplayedUsedPercent = clampPercent(evidence.usedPercent);

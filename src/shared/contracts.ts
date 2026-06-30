@@ -27,6 +27,32 @@ export interface QuotaResetEvent {
   afterUsedPercent: number;
   beforeWindowResetsAt: string | null;
   afterWindowResetsAt: string | null;
+  sourceId?: string | null;
+  beforeSourceId?: string | null;
+  comparisonScope?: "session" | "timeline";
+  evidence?: {
+    highWaterEvidence: boolean;
+    boundaryAlignedEvidence: boolean;
+    evidenceTypes: string[];
+    afterBoundaryAt: string | null;
+    afterWindowMinutes: number | null;
+  };
+  confirmation?: {
+    status: "confirmed" | "rejected";
+    reason: string;
+    checkedObservationCount?: number;
+    stableObservationCount?: number;
+    firstStableObservedAt?: string;
+    lastStableObservedAt?: string;
+    stableBoundaryAt?: string | null;
+    firstDriftObservedAt?: string;
+    firstDriftBoundaryAt?: string | null;
+    confirmationAfterMs?: number;
+    confirmationWindowMs?: number;
+  };
+  boundaryAt?: string | null;
+  afterCycleStartAt?: string | null;
+  afterCycleEndAt?: string | null;
 }
 
 export interface QuotaUsageSegment {

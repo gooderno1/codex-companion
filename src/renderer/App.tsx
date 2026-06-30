@@ -2170,7 +2170,7 @@ function WeeklyLedgerCard({ periods }: { periods: PeriodMetric[] }) {
         </table>
       </div>
       <p className="ledger-table-note">
-        说明：累计已用超过 100% 表示周期内发生重置，Token 跨多个分段累加。满额周折算为 API 等价估计。
+        说明：周额度周期按稳定确认的重置边界切分；旧周期提前截止后不与新周期累加。满额周折算为 API 等价估计。
       </p>
     </SectionCard>
   );

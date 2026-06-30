@@ -56,8 +56,12 @@ function clampPercentage(value: number | null): number | null {
 
 const WEEKLY_RATE_LIMIT_WINDOW_MINUTES = 7 * 24 * 60;
 const QUOTA_RESET_DROP_THRESHOLD_PERCENT = 5;
-const QUOTA_RESET_MIN_SEGMENT_PERCENT = 50;
+const QUOTA_RESET_HIGH_WATER_PERCENT = 50;
 const QUOTA_RESET_DEDUPE_WINDOW_MS = 12 * 60 * 60 * 1000;
+const QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS = 5 * 60 * 1000;
+const QUOTA_RESET_CONFIRMATION_DELAY_MS = 30 * 60 * 1000;
+const QUOTA_RESET_CONFIRMATION_WINDOW_MS = 6 * 60 * 60 * 1000;
+const QUOTA_RESET_BOUNDARY_DRIFT_TOLERANCE_MS = 15 * 60 * 1000;
 const DAY_MINUTES = 24 * 60;
 
 interface CollectDashboardSnapshotOptions {
@@ -153,6 +157,7 @@ interface QuotaCycleObservation {
   observedAt: string;
   usedPercent: number;
   resetsAt: string | null;
+  windowMinutes: number | null;
   sourceId: string | null;
 }
 
@@ -178,6 +183,45 @@ interface QuotaWindowUsage {
   currentCycle: QuotaCycleMetric | null;
   cycles: QuotaCycleMetric[];
 }
+
+interface QuotaCycleBounds {
+  key: string;
+  startAt: string;
+  endAt: string;
+  scheduledEndAt?: string;
+  startedByResetAt?: string | null;
+  closedByReset?: boolean;
+  closedByResetAt?: string | null;
+  closingResetEvent?: QuotaResetEvent | null;
+}
+
+interface QuotaCycleBucket {
+  cycleKey: string;
+  startAt: string;
+  endAt: string;
+  tokens: ReturnType<typeof emptyTokens>;
+  apiCostUsd: number;
+  creditsEstimate: number;
+  sessionIds: Set<string>;
+  observations: QuotaCycleObservation[];
+  boundaryResetEvents: QuotaResetEvent[];
+  maxObservedUsedPercent: number | null;
+  lastObservedAt: string | null;
+  lastObservedUsedPercent: number | null;
+}
+
+type QuotaResetComparisonScope = "session" | "timeline";
+
+type QuotaResetCandidate = QuotaResetEvent & {
+  evidence: NonNullable<QuotaResetEvent["evidence"]>;
+  confirmation?: NonNullable<QuotaResetEvent["confirmation"]>;
+};
+
+type NormalizedQuotaResetEvent = QuotaResetEvent & {
+  boundaryAt: string;
+  afterCycleStartAt: string;
+  afterCycleEndAt: string;
+};
 
 function getObservedWindow(
   snapshot: LatestRateSnapshot | null,
@@ -225,7 +269,7 @@ function resolveQuotaCycleBounds(
   timestamp: string,
   anchorEndAt: string,
   windowMinutes: number
-) {
+): QuotaCycleBounds | null {
   const timestampMs = new Date(timestamp).getTime();
   const anchorEndMs = new Date(anchorEndAt).getTime();
   const windowMs = windowMinutes * 60 * 1000;
@@ -247,77 +291,268 @@ function resolveQuotaCycleBounds(
   };
 }
 
-function isQuotaResetObservation(
+function toIsoStringOrNull(value: number) {
+  return Number.isFinite(value) ? new Date(value).toISOString() : null;
+}
+
+function getQuotaObservationBoundaryMs(observation: QuotaCycleObservation) {
+  const resetMs = new Date(observation.resetsAt ?? 0).getTime();
+  const windowMinutes = Number(observation.windowMinutes);
+  const windowMs = windowMinutes * 60 * 1000;
+
+  if (!Number.isFinite(resetMs) || !Number.isFinite(windowMs) || windowMs <= 0) {
+    return Number.NaN;
+  }
+
+  return resetMs - windowMs;
+}
+
+function getQuotaResetObservationEvidence(
   previous: QuotaCycleObservation,
   current: QuotaCycleObservation
-) {
+): NonNullable<QuotaResetEvent["evidence"]> | null {
   const previousResetMs = new Date(previous.resetsAt ?? 0).getTime();
   const currentResetMs = new Date(current.resetsAt ?? 0).getTime();
+  const currentObservedMs = new Date(current.observedAt).getTime();
+  const afterBoundaryMs = getQuotaObservationBoundaryMs(current);
+
+  if (
+    !Number.isFinite(previous.usedPercent) ||
+    !Number.isFinite(current.usedPercent) ||
+    !Number.isFinite(previousResetMs) ||
+    !Number.isFinite(currentResetMs)
+  ) {
+    return null;
+  }
+
   const resetMovedForward = currentResetMs > previousResetMs + 60 * 1000;
   const droppedFromPrevious =
     previous.usedPercent - current.usedPercent >= QUOTA_RESET_DROP_THRESHOLD_PERCENT;
-  const startsFromMeaningfulUsage =
-    previous.usedPercent >= QUOTA_RESET_MIN_SEGMENT_PERCENT;
+  const highWaterEvidence = previous.usedPercent >= QUOTA_RESET_HIGH_WATER_PERCENT;
+  const boundaryAlignedEvidence =
+    Number.isFinite(currentObservedMs) &&
+    Number.isFinite(afterBoundaryMs) &&
+    Math.abs(currentObservedMs - afterBoundaryMs) <= QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS;
 
-  return (
-    Number.isFinite(previousResetMs) &&
-    Number.isFinite(currentResetMs) &&
-    resetMovedForward &&
-    droppedFromPrevious &&
-    startsFromMeaningfulUsage
-  );
+  if (!resetMovedForward || !droppedFromPrevious || (!highWaterEvidence && !boundaryAlignedEvidence)) {
+    return null;
+  }
+
+  return {
+    highWaterEvidence,
+    boundaryAlignedEvidence,
+    evidenceTypes: [
+      highWaterEvidence ? "high-water-drop" : null,
+      boundaryAlignedEvidence ? "boundary-aligned-drop" : null
+    ].filter((item): item is string => Boolean(item)),
+    afterBoundaryAt: toIsoStringOrNull(afterBoundaryMs),
+    afterWindowMinutes: Number(current.windowMinutes ?? previous.windowMinutes) || null
+  };
 }
 
-function analyzeQuotaObservations(observations: QuotaCycleObservation[]) {
-  const ordered = observations
-    .filter((item) => Number.isFinite(item.usedPercent))
+function prepareQuotaObservationTiming(observation: QuotaCycleObservation) {
+  return {
+    observation,
+    observedMs: new Date(observation.observedAt).getTime(),
+    boundaryMs: getQuotaObservationBoundaryMs(observation)
+  };
+}
+
+function findFirstTimedObservationIndex(
+  timedObservations: ReturnType<typeof prepareQuotaObservationTiming>[],
+  targetMs: number
+) {
+  let low = 0;
+  let high = timedObservations.length;
+
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    const observedMs = timedObservations[middle]?.observedMs;
+    if (!Number.isFinite(observedMs) || observedMs < targetMs) {
+      low = middle + 1;
+    } else {
+      high = middle;
+    }
+  }
+
+  return low;
+}
+
+function confirmQuotaResetCandidate(
+  candidate: QuotaResetCandidate,
+  timedObservations: ReturnType<typeof prepareQuotaObservationTiming>[],
+  options: {
+    confirmationDelayMs?: number;
+    confirmationWindowMs?: number;
+    boundaryToleranceMs?: number;
+    boundaryDriftToleranceMs?: number;
+  } = {}
+): NonNullable<QuotaResetEvent["confirmation"]> {
+  const confirmationDelayMs = Number(
+    options.confirmationDelayMs ?? QUOTA_RESET_CONFIRMATION_DELAY_MS
+  );
+  const confirmationWindowMs = Number(
+    options.confirmationWindowMs ?? QUOTA_RESET_CONFIRMATION_WINDOW_MS
+  );
+  const boundaryToleranceMs = Number(
+    options.boundaryToleranceMs ?? QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS
+  );
+  const boundaryDriftToleranceMs = Number(
+    options.boundaryDriftToleranceMs ?? QUOTA_RESET_BOUNDARY_DRIFT_TOLERANCE_MS
+  );
+  const candidateAtMs = new Date(candidate.at).getTime();
+  const candidateBoundaryMs = new Date(candidate.evidence.afterBoundaryAt ?? 0).getTime();
+
+  if (!Number.isFinite(candidateAtMs) || !Number.isFinite(candidateBoundaryMs)) {
+    return {
+      status: "rejected",
+      reason: "invalid-boundary"
+    };
+  }
+
+  const confirmationStartMs = candidateAtMs + confirmationDelayMs;
+  const confirmationEndMs = candidateAtMs + confirmationWindowMs;
+  const postCandidateObservations: ReturnType<typeof prepareQuotaObservationTiming>[] = [];
+  for (
+    let index = findFirstTimedObservationIndex(timedObservations, confirmationStartMs);
+    index < timedObservations.length;
+    index += 1
+  ) {
+    const item = timedObservations[index];
+    if (!Number.isFinite(item.observedMs) || !Number.isFinite(item.boundaryMs)) {
+      continue;
+    }
+
+    if (item.observedMs > confirmationEndMs) {
+      break;
+    }
+
+    postCandidateObservations.push(item);
+  }
+
+  const stableObservations = postCandidateObservations.filter(
+    (item) => Math.abs(item.boundaryMs - candidateBoundaryMs) <= boundaryToleranceMs
+  );
+  const driftObservations = postCandidateObservations.filter(
+    (item) => Math.abs(item.boundaryMs - candidateBoundaryMs) > boundaryDriftToleranceMs
+  );
+
+  if (stableObservations.length === 0) {
+    return {
+      status: "rejected",
+      reason: "missing-stable-window-confirmation",
+      checkedObservationCount: postCandidateObservations.length,
+      confirmationAfterMs: confirmationDelayMs,
+      confirmationWindowMs
+    };
+  }
+
+  if (driftObservations.length > 0) {
+    return {
+      status: "rejected",
+      reason: "window-boundary-drifted",
+      checkedObservationCount: postCandidateObservations.length,
+      stableObservationCount: stableObservations.length,
+      firstDriftObservedAt: driftObservations[0].observation.observedAt,
+      firstDriftBoundaryAt: toIsoStringOrNull(driftObservations[0].boundaryMs)
+    };
+  }
+
+  return {
+    status: "confirmed",
+    reason: "stable-window-boundary",
+    checkedObservationCount: postCandidateObservations.length,
+    stableObservationCount: stableObservations.length,
+    firstStableObservedAt: stableObservations[0].observation.observedAt,
+    lastStableObservedAt: stableObservations.at(-1)?.observation.observedAt,
+    stableBoundaryAt: toIsoStringOrNull(candidateBoundaryMs)
+  };
+}
+
+function sortQuotaResetObservationTimeline(observations: QuotaCycleObservation[]) {
+  return observations
+    .filter((item) => item.observedAt && Number.isFinite(item.usedPercent))
     .sort((left, right) => {
       const timeDiff = new Date(left.observedAt).getTime() - new Date(right.observedAt).getTime();
       if (timeDiff !== 0) {
         return timeDiff;
       }
 
-      return right.usedPercent - left.usedPercent;
-    });
-
-  const sourceGroups = new Map<string, QuotaCycleObservation[]>();
-  for (const observation of ordered) {
-    const sourceId = observation.sourceId ?? "__unknown__";
-    const group = sourceGroups.get(sourceId) ?? [];
-    group.push(observation);
-    sourceGroups.set(sourceId, group);
-  }
-
-  const resetCandidates: Array<{
-    at: string;
-    beforeObservedAt: string;
-    beforeUsedPercent: number;
-    afterUsedPercent: number;
-    beforeWindowResetsAt: string | null;
-    afterWindowResetsAt: string | null;
-  }> = [];
-
-  for (const group of sourceGroups.values()) {
-    for (let index = 1; index < group.length; index += 1) {
-      const previous = group[index - 1];
-      const current = group[index];
-      if (!isQuotaResetObservation(previous, current)) {
-        continue;
+      const resetDiff = new Date(left.resetsAt ?? 0).getTime() - new Date(right.resetsAt ?? 0).getTime();
+      if (resetDiff !== 0) {
+        return resetDiff;
       }
 
-      resetCandidates.push({
-        at: current.observedAt,
-        beforeObservedAt: previous.observedAt,
-        beforeUsedPercent: previous.usedPercent,
-        afterUsedPercent: current.usedPercent,
-        beforeWindowResetsAt: previous.resetsAt,
-        afterWindowResetsAt: current.resetsAt
-      });
+      return right.usedPercent - left.usedPercent;
+    });
+}
+
+function addQuotaResetCandidates(
+  resetCandidates: QuotaResetCandidate[],
+  observations: QuotaCycleObservation[],
+  comparisonScope: QuotaResetComparisonScope
+) {
+  const sourceOrdered = sortQuotaResetObservationTimeline(observations);
+
+  for (let index = 1; index < sourceOrdered.length; index += 1) {
+    const previous = sourceOrdered[index - 1];
+    const current = sourceOrdered[index];
+    const evidence = getQuotaResetObservationEvidence(previous, current);
+    if (!evidence) {
+      continue;
+    }
+
+    resetCandidates.push({
+      at: current.observedAt,
+      beforeObservedAt: previous.observedAt,
+      beforeUsedPercent: previous.usedPercent,
+      afterUsedPercent: current.usedPercent,
+      beforeWindowResetsAt: previous.resetsAt,
+      afterWindowResetsAt: current.resetsAt,
+      sourceId: current.sourceId,
+      beforeSourceId: previous.sourceId,
+      comparisonScope,
+      evidence
+    });
+  }
+}
+
+function analyzeQuotaObservations(
+  observations: QuotaCycleObservation[],
+  options: {
+    comparisonScope?: QuotaResetComparisonScope;
+  } = {}
+) {
+  const comparisonScope = options.comparisonScope ?? "session";
+  const ordered = sortQuotaResetObservationTimeline(observations);
+  const orderedTimings = ordered.map((observation) => prepareQuotaObservationTiming(observation));
+  const resetCandidates: QuotaResetCandidate[] = [];
+
+  if (comparisonScope === "timeline") {
+    addQuotaResetCandidates(resetCandidates, ordered, "timeline");
+  } else {
+    const sourceGroups = new Map<string, QuotaCycleObservation[]>();
+    for (const observation of ordered) {
+      const sourceId = observation.sourceId ?? "__unknown__";
+      const group = sourceGroups.get(sourceId) ?? [];
+      group.push(observation);
+      sourceGroups.set(sourceId, group);
+    }
+
+    for (const group of sourceGroups.values()) {
+      addQuotaResetCandidates(resetCandidates, group, "session");
     }
   }
 
-  const resetEvents: typeof resetCandidates = [];
-  for (const candidate of resetCandidates.sort(
+  const confirmedCandidates = resetCandidates
+    .map((candidate) => ({
+      ...candidate,
+      confirmation: confirmQuotaResetCandidate(candidate, orderedTimings)
+    }))
+    .filter((candidate) => candidate.confirmation.status === "confirmed");
+
+  const resetEvents: QuotaResetEvent[] = [];
+  for (const candidate of confirmedCandidates.sort(
     (left, right) => new Date(left.at).getTime() - new Date(right.at).getTime()
   )) {
     const candidateAtMs = new Date(candidate.at).getTime();
@@ -410,12 +645,185 @@ function analyzeQuotaObservations(observations: QuotaCycleObservation[]) {
   };
 }
 
+function normalizeQuotaResetBoundary(
+  event: QuotaResetEvent,
+  windowMinutes: number,
+  currentWindow: ObservedLimitWindow
+): NormalizedQuotaResetEvent | null {
+  const windowMs = Number(windowMinutes) * 60 * 1000;
+  const afterWindowEndMs = new Date(event.afterWindowResetsAt ?? 0).getTime();
+  const currentWindowEndMs = new Date(currentWindow.resetsAt ?? 0).getTime();
+  const currentWindowStartMs = currentWindowEndMs - windowMs;
+  const fallbackBoundaryMs = new Date(event.at).getTime();
+  let boundaryMs =
+    Number.isFinite(afterWindowEndMs) && windowMs > 0
+      ? afterWindowEndMs - windowMs
+      : fallbackBoundaryMs;
+  let afterCycleEndMs =
+    Number.isFinite(afterWindowEndMs) && windowMs > 0
+      ? afterWindowEndMs
+      : boundaryMs + windowMs;
+
+  if (
+    Number.isFinite(currentWindowStartMs) &&
+    Number.isFinite(boundaryMs) &&
+    Math.abs(boundaryMs - currentWindowStartMs) <= QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS
+  ) {
+    boundaryMs = currentWindowStartMs;
+    afterCycleEndMs = currentWindowEndMs;
+  }
+
+  const boundaryAt = toIsoStringOrNull(boundaryMs);
+  const afterCycleEndAt =
+    toIsoStringOrNull(afterCycleEndMs) ?? event.afterWindowResetsAt ?? null;
+
+  if (!boundaryAt || !afterCycleEndAt) {
+    return null;
+  }
+
+  return {
+    ...event,
+    boundaryAt,
+    afterCycleStartAt: boundaryAt,
+    afterCycleEndAt
+  };
+}
+
+function normalizeQuotaResetBoundaries(
+  resetEvents: QuotaResetEvent[],
+  windowMinutes: number,
+  currentWindow: ObservedLimitWindow
+) {
+  const normalizedEvents = resetEvents
+    .map((event) => normalizeQuotaResetBoundary(event, windowMinutes, currentWindow))
+    .filter((event): event is NormalizedQuotaResetEvent => Boolean(event))
+    .sort((left, right) => new Date(left.boundaryAt).getTime() - new Date(right.boundaryAt).getTime());
+
+  const merged: NormalizedQuotaResetEvent[] = [];
+  for (const event of normalizedEvents) {
+    const duplicateIndex = merged.findIndex((item) => item.boundaryAt === event.boundaryAt);
+    if (duplicateIndex < 0) {
+      merged.push(event);
+      continue;
+    }
+
+    const previous = merged[duplicateIndex];
+    const shouldReplace =
+      event.beforeUsedPercent > previous.beforeUsedPercent ||
+      (event.beforeUsedPercent === previous.beforeUsedPercent &&
+        new Date(event.at).getTime() < new Date(previous.at).getTime());
+
+    if (shouldReplace) {
+      merged[duplicateIndex] = event;
+    }
+  }
+
+  return merged;
+}
+
+function resolveResetAwareQuotaCycleBounds(
+  timestamp: string,
+  currentWindow: ObservedLimitWindow,
+  resetEvents: NormalizedQuotaResetEvent[]
+): QuotaCycleBounds | null {
+  const timestampMs = new Date(timestamp).getTime();
+  const windowMinutes = Number(currentWindow.windowMinutes ?? 0);
+  const windowMs = windowMinutes * 60 * 1000;
+
+  if (!Number.isFinite(timestampMs) || !Number.isFinite(windowMs) || windowMs <= 0) {
+    return null;
+  }
+
+  const normalizedResetEvents = resetEvents
+    .map((event) => ({
+      ...event,
+      boundaryMs: new Date(event.boundaryAt).getTime(),
+      afterCycleEndMs: new Date(event.afterCycleEndAt).getTime()
+    }))
+    .filter((event) => Number.isFinite(event.boundaryMs) && Number.isFinite(event.afterCycleEndMs))
+    .sort((left, right) => left.boundaryMs - right.boundaryMs);
+
+  if (normalizedResetEvents.length === 0) {
+    return resolveQuotaCycleBounds(
+      timestamp,
+      currentWindow.resetsAt as string,
+      currentWindow.windowMinutes as number
+    );
+  }
+
+  let baseBounds: QuotaCycleBounds | null;
+  let previousResetIndex = -1;
+  for (let index = 0; index < normalizedResetEvents.length; index += 1) {
+    if (normalizedResetEvents[index].boundaryMs <= timestampMs) {
+      previousResetIndex = index;
+    } else {
+      break;
+    }
+  }
+
+  if (previousResetIndex >= 0) {
+    const previousReset = normalizedResetEvents[previousResetIndex];
+    if (timestampMs < previousReset.afterCycleEndMs) {
+      baseBounds = {
+        key: `${previousReset.boundaryAt}/${previousReset.afterCycleEndAt}`,
+        startAt: previousReset.boundaryAt,
+        endAt: previousReset.afterCycleEndAt,
+        scheduledEndAt: previousReset.afterCycleEndAt,
+        startedByResetAt: previousReset.at
+      };
+    } else {
+      baseBounds = resolveQuotaCycleBounds(
+        timestamp,
+        previousReset.afterCycleEndAt,
+        windowMinutes
+      );
+    }
+  } else {
+    const firstReset = normalizedResetEvents[0];
+    baseBounds = resolveQuotaCycleBounds(
+      timestamp,
+      firstReset.beforeWindowResetsAt ?? currentWindow.resetsAt ?? "",
+      windowMinutes
+    );
+  }
+
+  if (!baseBounds) {
+    return null;
+  }
+
+  const startMs = new Date(baseBounds.startAt).getTime();
+  const endMs = new Date(baseBounds.endAt).getTime();
+  const closingReset = normalizedResetEvents.find(
+    (event) => event.boundaryMs > startMs + 1000 && event.boundaryMs < endMs - 1000
+  );
+
+  if (!closingReset) {
+    return {
+      ...baseBounds,
+      scheduledEndAt: baseBounds.scheduledEndAt ?? baseBounds.endAt,
+      closingResetEvent: null
+    };
+  }
+
+  const endAt = closingReset.boundaryAt;
+  return {
+    ...baseBounds,
+    key: `${baseBounds.startAt}/${endAt}`,
+    endAt,
+    scheduledEndAt: baseBounds.endAt,
+    closedByReset: true,
+    closedByResetAt: closingReset.at,
+    closingResetEvent: closingReset
+  };
+}
+
 function buildQuotaWindowUsage(args: {
   latestRateSnapshot: LatestRateSnapshot | null;
   events: CodexTokenEvent[];
   quotaObservations: QuotaObservation[];
   windowKey: "primary" | "secondary";
   expectedWindowMinutes?: number | null;
+  resetAwareTimeline?: boolean;
 }): QuotaWindowUsage {
   const currentWindow = getObservedWindow(args.latestRateSnapshot, args.windowKey);
   if (!isUsableQuotaWindow(currentWindow, args.expectedWindowMinutes ?? null)) {
@@ -429,25 +837,50 @@ function buildQuotaWindowUsage(args: {
     return { currentCycle: null, cycles: [] };
   }
 
-  const buckets = new Map<
-    string,
-    {
-      cycleKey: string;
-      startAt: string;
-      endAt: string;
-      tokens: ReturnType<typeof emptyTokens>;
-      apiCostUsd: number;
-      creditsEstimate: number;
-      sessionIds: Set<string>;
-      observations: QuotaCycleObservation[];
-      maxObservedUsedPercent: number | null;
-      lastObservedAt: string | null;
-      lastObservedUsedPercent: number | null;
+  const quotaObservationEntries: QuotaCycleObservation[] = [];
+  for (const observation of args.quotaObservations) {
+    if (!isSameQuotaPool(observation.rateLimits, args.latestRateSnapshot)) {
+      continue;
     }
-  >();
+
+    const windowInfo = getObservedWindow(observation.rateLimits, args.windowKey);
+    if (!isUsableQuotaWindow(windowInfo, args.expectedWindowMinutes ?? null)) {
+      continue;
+    }
+
+    const usedPercent = clampPercentage(windowInfo?.usedPercent ?? null);
+    if (usedPercent === null) {
+      continue;
+    }
+
+    quotaObservationEntries.push({
+      observedAt: observation.timestamp,
+      usedPercent,
+      resetsAt: windowInfo?.resetsAt ?? null,
+      windowMinutes: windowInfo?.windowMinutes ?? null,
+      sourceId: observation.sessionId
+    });
+  }
+
+  const boundaryResetEvents = args.resetAwareTimeline
+    ? normalizeQuotaResetBoundaries(
+        analyzeQuotaObservations(quotaObservationEntries, {
+          comparisonScope: "timeline"
+        }).resetEvents,
+        windowMinutes,
+        usableWindow
+      )
+    : [];
+
+  const buckets = new Map<string, QuotaCycleBucket>();
 
   const getBucket = (timestamp: string) => {
-    const bounds = resolveQuotaCycleBounds(timestamp, anchorEndAt, windowMinutes);
+    const bounds = args.resetAwareTimeline
+      ? resolveResetAwareQuotaCycleBounds(timestamp, usableWindow, boundaryResetEvents)
+      : (() => {
+          const plainBounds = resolveQuotaCycleBounds(timestamp, anchorEndAt, windowMinutes);
+          return plainBounds ? { ...plainBounds, closingResetEvent: null } : null;
+        })();
     if (!bounds) {
       return null;
     }
@@ -457,7 +890,7 @@ function buildQuotaWindowUsage(args: {
       return existing;
     }
 
-    const bucket = {
+    const bucket: QuotaCycleBucket = {
       cycleKey: bounds.key,
       startAt: bounds.startAt,
       endAt: bounds.endAt,
@@ -466,6 +899,7 @@ function buildQuotaWindowUsage(args: {
       creditsEstimate: 0,
       sessionIds: new Set<string>(),
       observations: [],
+      boundaryResetEvents: bounds.closingResetEvent ? [bounds.closingResetEvent] : [],
       maxObservedUsedPercent: null,
       lastObservedAt: null,
       lastObservedUsedPercent: null
@@ -486,53 +920,38 @@ function buildQuotaWindowUsage(args: {
     bucket.sessionIds.add(event.sessionId);
   }
 
-  for (const observation of args.quotaObservations) {
-    if (!isSameQuotaPool(observation.rateLimits, args.latestRateSnapshot)) {
-      continue;
-    }
-
-    const windowInfo = getObservedWindow(observation.rateLimits, args.windowKey);
-    if (!isUsableQuotaWindow(windowInfo, args.expectedWindowMinutes ?? null)) {
-      continue;
-    }
-
-    const usedPercent = clampPercentage(windowInfo?.usedPercent ?? null);
-    if (usedPercent === null) {
-      continue;
-    }
-
-    const bucket = getBucket(observation.timestamp);
+  for (const observation of quotaObservationEntries) {
+    const bucket = getBucket(observation.observedAt);
     if (!bucket) {
       continue;
     }
 
-    bucket.observations.push({
-      observedAt: observation.timestamp,
-      usedPercent,
-      resetsAt: windowInfo?.resetsAt ?? null,
-      sourceId: observation.sessionId
-    });
+    bucket.observations.push(observation);
     bucket.maxObservedUsedPercent =
       bucket.maxObservedUsedPercent === null
-        ? usedPercent
-        : Math.max(bucket.maxObservedUsedPercent, usedPercent);
+        ? observation.usedPercent
+        : Math.max(bucket.maxObservedUsedPercent, observation.usedPercent);
     if (
       !bucket.lastObservedAt ||
-      new Date(observation.timestamp).getTime() >= new Date(bucket.lastObservedAt).getTime()
+      new Date(observation.observedAt).getTime() >= new Date(bucket.lastObservedAt).getTime()
     ) {
-      bucket.lastObservedAt = observation.timestamp;
-      bucket.lastObservedUsedPercent = usedPercent;
+      bucket.lastObservedAt = observation.observedAt;
+      bucket.lastObservedUsedPercent = observation.usedPercent;
     }
   }
+
+  let currentCycleKey: string | null = null;
 
   if (args.latestRateSnapshot) {
     const latestUsedPercent = clampPercentage(usableWindow.usedPercent);
     const currentBucket = getBucket(args.latestRateSnapshot.observedAt);
+    currentCycleKey = currentBucket?.cycleKey ?? null;
     if (currentBucket && latestUsedPercent !== null) {
       currentBucket.observations.push({
         observedAt: args.latestRateSnapshot.observedAt,
         usedPercent: latestUsedPercent,
         resetsAt: usableWindow.resetsAt,
+        windowMinutes: usableWindow.windowMinutes,
         sourceId: "current"
       });
       currentBucket.maxObservedUsedPercent =
@@ -548,8 +967,11 @@ function buildQuotaWindowUsage(args: {
     .sort((left, right) => new Date(left.startAt).getTime() - new Date(right.startAt).getTime())
     .map((bucket): QuotaCycleMetric => {
       const analysis = analyzeQuotaObservations(bucket.observations);
+      const resetEvents = args.resetAwareTimeline
+        ? bucket.boundaryResetEvents
+        : analysis.resetEvents;
       const usedPercent =
-        analysis.cumulativeUsedPercent ??
+        (args.resetAwareTimeline ? null : analysis.cumulativeUsedPercent) ??
         bucket.maxObservedUsedPercent ??
         bucket.lastObservedUsedPercent;
 
@@ -566,20 +988,12 @@ function buildQuotaWindowUsage(args: {
           usedPercent === null ? null : clampPercentage(100 - usedPercent),
         maxObservedUsedPercent: bucket.maxObservedUsedPercent,
         lastObservedAt: bucket.lastObservedAt,
-        resetCount: analysis.resetCount,
+        resetCount: resetEvents.length,
         observations: bucket.observations.length,
-        resetEvents: analysis.resetEvents,
+        resetEvents,
         usageSegments: analysis.usageSegments
       };
     });
-
-  const currentCycleKey = args.latestRateSnapshot
-    ? resolveQuotaCycleBounds(
-        args.latestRateSnapshot.observedAt,
-        anchorEndAt,
-        windowMinutes
-      )?.key ?? null
-    : null;
 
   return {
     currentCycle:
@@ -757,9 +1171,11 @@ function buildDisplayedQuotaWindow(
     cycleUsedPercent === null
       ? rawWindow.remainingPercent
       : Math.max(0, 100 - cycleUsedPercent);
+  const displayedResetsAt = period.quotaEvidence ? period.endAt : rawWindow.resetsAt;
 
   return {
     ...rawWindow,
+    resetsAt: displayedResetsAt,
     usedPercent: displayedUsedPercent,
     remainingPercent: displayedRemainingPercent
   };
@@ -1339,7 +1755,8 @@ async function collectDashboardSnapshot(
     events: codex.events,
     quotaObservations: codex.quotaObservations,
     windowKey: "secondary",
-    expectedWindowMinutes: WEEKLY_RATE_LIMIT_WINDOW_MINUTES
+    expectedWindowMinutes: WEEKLY_RATE_LIMIT_WINDOW_MINUTES,
+    resetAwareTimeline: true
   });
   const primaryWindowRange = primaryQuotaUsage.currentCycle
     ? {

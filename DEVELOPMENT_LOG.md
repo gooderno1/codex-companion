@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-30] v0.3.0-dev.9 fix: 对齐周额度重置确认规则
+
+- 开发原因：用户要求参考 `dev-ledger` 最新实现，完善 Codex 额度重置规则和检测标准；旧实现主要按同 session 高水位下降识别，可能漏掉跨 session 的低用量周重置，也可能把低用量滑动窗口误判为重置。
+- 实现方式：将项目版本从 `v0.3.0-dev.8` 提升到 `v0.3.0-dev.9`；`5 小时额度` 保持同 session 普通窗口分段累计；`周额度` 改为同一额度池全局时间线比较，并在 `resets_at` 后移超过 `60s`、`used_percent` 下降至少 `5` 个百分点后，要求具备 `used_percent >= 50` 高水位证据或新窗口起点贴近观测时间 `5min` 内的边界证据；候选必须等待 `30min`，并在 `6h` 确认窗口内看到同一边界稳定观测，若边界漂移超过 `15min` 则排除；确认后的周 reset 会作为新计费周边界，旧周期提前截止，新周期从 `afterWindowResetsAt - windowMinutes` 开始。
+- 当前结果：`QuotaResetEvent` 增加 `evidence / confirmation / boundaryAt` 等证据字段；`dashboardCollector` 对周额度启用重置感知分桶，防止把确认重置前后的周额度百分比累加进同一个计费周；`LimitWindow.resetsAt` 跟随当前 `PeriodMetric.endAt`，避免原始滑动窗口漂移导致重置时间和周期范围不一致；`verify:quota` 在快照存在 `resetEvents[]` 时会校验证据、确认状态和至少 `5` 个百分点下降；账本页周额度说明、数据契约、总览 UI Contract、账本 UI Contract、组件映射和开发规划已同步口径。
+- 验证方式：执行 `npm run typecheck`；执行 `npm run build`；调用编译后的 `DashboardService.getSnapshot(true, "manual")` 在 `local_dev_work/live-check-dev9` 生成临时 live 快照，确认 `limitWindows[1].resetsAt` 与当前周 `PeriodMetric.endAt` 同为 `2026-07-06T01:01:36.000Z`；执行 `npm run verify:quota -- --snapshot local_dev_work\live-check-dev9\snapshot.json`；执行 `npm run verify:quota`；执行 `npm run verify:ledger`；执行 `git diff --check`，仅有 Windows 换行提示。参考样例来自 `dev-ledger`：`2026-06-29` 的 `10% -> 0%` 低用量跨 session 周重置通过 `stable-window-boundary` 确认；`2026-06-24` 的多次低用量滑动窗口因确认窗口内边界漂移超过 `15min` 被排除。
+
 ## [2026-06-30] v0.3.0-dev.8 fix: 美化趋势放大态明细带
 
 - 开发原因：用户反馈 `Token 走势拆解` 放大态虽然已按上下结构落地，但上方明细带与设计图仍有差距，主要是字体大小、日期位置和右侧表格视觉密度不协调。
