@@ -33,9 +33,12 @@ export interface QuotaResetEvent {
   evidence?: {
     highWaterEvidence: boolean;
     boundaryAlignedEvidence: boolean;
+    stabilizedBoundaryEvidence?: boolean;
     evidenceTypes: string[];
     afterBoundaryAt: string | null;
     afterWindowMinutes: number | null;
+    lookbackWindowMs?: number;
+    lookbackObservedAt?: string;
   };
   confirmation?: {
     status: "confirmed" | "rejected";

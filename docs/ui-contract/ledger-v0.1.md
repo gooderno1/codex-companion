@@ -202,8 +202,9 @@
 
 - `DashboardSnapshot.ledger.weeklyPeriods` 提供最近多周计费周期数组。
 - 周周期 `累计已用` 来自 `period.quotaEvidence.usedPercent`。
-- 周额度周期按同一额度池全局时间线识别 reset：`resets_at` 后移超过 `60s`、`used_percent` 下降至少 `5` 个百分点，并满足 `used_percent >= 50` 高水位证据或新窗口起点贴近观测时间 `5min` 内的边界证据。
-- 周 reset 候选必须在 `30min` 后、`6h` 内通过稳定窗口边界确认；确认窗口内若新窗口边界漂移超过 `15min`，应排除为低用量滚动恢复。
+- 周额度周期按同一额度池全局时间线识别 reset：相邻候选要求 `resets_at` 后移超过 `60s`、`used_percent` 下降至少 `5` 个百分点，并满足 `used_percent >= 50` 高水位证据或新窗口起点贴近观测时间 `5min` 内的边界证据。
+- 周额度额外支持稳定边界回看候选：在当前观测前 `24h` 内寻找旧窗口最高有效 `used_percent`；旧高点比当前观测高至少 `5` 个百分点，且新窗口起点比旧窗口起点后移超过 `15min` 时，可作为 `stabilized-boundary-drop` 候选；该规则不用于 `5H`。
+- 周 reset 候选必须在 `30min` 后、`6h` 内通过稳定窗口边界确认；确认窗口内若新窗口边界漂移超过 `15min`，应排除为低用量滚动恢复；同一新窗口起点在 `15min` 容差内只保留最早确认事件。
 - 已确认周 reset 会把旧周期提前截止并从新窗口起点开启新计费周；账本页不把 reset 前后的周额度百分比合并为同一周超过 `100%` 的累计。
 - `满额周 API 等价折算` 在渲染层由 `apiCostUsd / (usedPercent / 100)` 推导，只作为 API 等价估计，不是官方套餐定价。
 - `DashboardSnapshot.ledger.trend` 提供 `日 / 周 / 月` 趋势桶；当前渲染层已开放 `日 / 周 / 月` 曲线视图。

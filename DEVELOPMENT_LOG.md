@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-06-30] v0.3.1-dev.1 fix: 识别稳定边界回看周重置
+
+- 开发原因：用户要求跟进 `dev-ledger` 最新额度重置规则；旧规则依赖相邻观测直接下降或新窗口起点贴近当前观测，可能漏掉相邻观测同为 `0%`、但 `24h` 内旧窗口存在更高水位的新稳定周窗口。
+- 实现方式：将应用版本从 `v0.3.0` 提升到 `v0.3.1-dev.1`；周额度 `comparisonScope=timeline` 新增 `24h` 稳定边界回看候选，旧窗口高点比当前观测高至少 `5` 个百分点且新窗口起点比旧窗口起点后移超过 `15min` 时，生成 `stabilized-boundary-drop` 证据；候选仍必须等待 `30min` 并在后续 `6h` 内看到同一边界稳定观测，确认窗口内边界漂移超过 `15min` 时排除；同一新窗口起点在 `15min` 容差内只保留最早确认事件；`QuotaResetEvent.evidence` 新增 `stabilizedBoundaryEvidence / lookbackWindowMs / lookbackObservedAt`，校验脚本接受高水位、边界贴近或稳定边界回看三类证据。
+- 当前结果：本项目可识别 `2026-06-30T03:56:42.332Z` 这类稳定边界回看周重置；本机 live 快照中当前周已切到 `2026-06-30T03:22:09.000Z - 2026-07-07T03:22:09.000Z`，账本上一周期保留 `stabilized-boundary-drop` 事件，旧高点 `15%`、新点 `0%`、回看高点观测时间 `2026-06-29T18:16:43.673Z`、稳定确认观测 `173` 次；数据契约、总览 UI Contract、账本 UI Contract、组件映射和额度快照校验规则已同步。
+- 验证方式：执行 `npm run typecheck`；执行 `npm run build`；调用编译后的 `DashboardService.getSnapshot(true, "manual")` 在 `local_dev_work/live-check-dev13` 生成临时 live 快照，确认 `overview.windowPeriods.weekLimit.startAt=2026-06-30T03:22:09.000Z`、`endAt=2026-07-07T03:22:09.000Z`；读取 `ledger.weeklyPeriods`，确认上一周期包含 `stabilized-boundary-drop` reset event；执行 `npm run verify:quota -- --snapshot local_dev_work\live-check-dev13\snapshot.json`；执行 `npm run verify:quota`；执行 `npm run verify:ledger`。
+
 ## [2026-06-30] v0.3.0 release: 内部正式版
 
 - 开发原因：用户确认先在 private 仓库内部发布正式版并创建 GitHub Release，用于内测 Windows 安装包、便携包和主要产品链路，再决定公开发布节奏。

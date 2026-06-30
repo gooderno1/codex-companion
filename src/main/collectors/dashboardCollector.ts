@@ -57,6 +57,7 @@ function clampPercentage(value: number | null): number | null {
 const WEEKLY_RATE_LIMIT_WINDOW_MINUTES = 7 * 24 * 60;
 const QUOTA_RESET_DROP_THRESHOLD_PERCENT = 5;
 const QUOTA_RESET_HIGH_WATER_PERCENT = 50;
+const QUOTA_RESET_LOOKBACK_WINDOW_MS = 24 * 60 * 60 * 1000;
 const QUOTA_RESET_DEDUPE_WINDOW_MS = 12 * 60 * 60 * 1000;
 const QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS = 5 * 60 * 1000;
 const QUOTA_RESET_CONFIRMATION_DELAY_MS = 30 * 60 * 1000;
@@ -296,7 +297,11 @@ function toIsoStringOrNull(value: number) {
 }
 
 function getQuotaObservationBoundaryMs(observation: QuotaCycleObservation) {
-  const resetMs = new Date(observation.resetsAt ?? 0).getTime();
+  if (!observation.resetsAt) {
+    return Number.NaN;
+  }
+
+  const resetMs = new Date(observation.resetsAt).getTime();
   const windowMinutes = Number(observation.windowMinutes);
   const windowMs = windowMinutes * 60 * 1000;
 
@@ -311,8 +316,8 @@ function getQuotaResetObservationEvidence(
   previous: QuotaCycleObservation,
   current: QuotaCycleObservation
 ): NonNullable<QuotaResetEvent["evidence"]> | null {
-  const previousResetMs = new Date(previous.resetsAt ?? 0).getTime();
-  const currentResetMs = new Date(current.resetsAt ?? 0).getTime();
+  const previousResetMs = previous.resetsAt ? new Date(previous.resetsAt).getTime() : Number.NaN;
+  const currentResetMs = current.resetsAt ? new Date(current.resetsAt).getTime() : Number.NaN;
   const currentObservedMs = new Date(current.observedAt).getTime();
   const afterBoundaryMs = getQuotaObservationBoundaryMs(current);
 
@@ -401,7 +406,9 @@ function confirmQuotaResetCandidate(
     options.boundaryDriftToleranceMs ?? QUOTA_RESET_BOUNDARY_DRIFT_TOLERANCE_MS
   );
   const candidateAtMs = new Date(candidate.at).getTime();
-  const candidateBoundaryMs = new Date(candidate.evidence.afterBoundaryAt ?? 0).getTime();
+  const candidateBoundaryMs = candidate.evidence.afterBoundaryAt
+    ? new Date(candidate.evidence.afterBoundaryAt).getTime()
+    : Number.NaN;
 
   if (!Number.isFinite(candidateAtMs) || !Number.isFinite(candidateBoundaryMs)) {
     return {
@@ -487,6 +494,26 @@ function sortQuotaResetObservationTimeline(observations: QuotaCycleObservation[]
     });
 }
 
+function createQuotaResetCandidate(
+  previous: QuotaCycleObservation,
+  current: QuotaCycleObservation,
+  evidence: NonNullable<QuotaResetEvent["evidence"]>,
+  comparisonScope: QuotaResetComparisonScope
+): QuotaResetCandidate {
+  return {
+    at: current.observedAt,
+    beforeObservedAt: previous.observedAt,
+    beforeUsedPercent: previous.usedPercent,
+    afterUsedPercent: current.usedPercent,
+    beforeWindowResetsAt: previous.resetsAt,
+    afterWindowResetsAt: current.resetsAt,
+    sourceId: current.sourceId,
+    beforeSourceId: previous.sourceId,
+    comparisonScope,
+    evidence
+  };
+}
+
 function addQuotaResetCandidates(
   resetCandidates: QuotaResetCandidate[],
   observations: QuotaCycleObservation[],
@@ -502,18 +529,92 @@ function addQuotaResetCandidates(
       continue;
     }
 
-    resetCandidates.push({
-      at: current.observedAt,
-      beforeObservedAt: previous.observedAt,
-      beforeUsedPercent: previous.usedPercent,
-      afterUsedPercent: current.usedPercent,
-      beforeWindowResetsAt: previous.resetsAt,
-      afterWindowResetsAt: current.resetsAt,
-      sourceId: current.sourceId,
-      beforeSourceId: previous.sourceId,
-      comparisonScope,
-      evidence
-    });
+    resetCandidates.push(createQuotaResetCandidate(previous, current, evidence, comparisonScope));
+  }
+}
+
+function addStabilizedBoundaryResetCandidates(
+  resetCandidates: QuotaResetCandidate[],
+  observations: QuotaCycleObservation[],
+  comparisonScope: QuotaResetComparisonScope
+) {
+  const sourceOrdered = sortQuotaResetObservationTimeline(observations);
+
+  for (let index = 1; index < sourceOrdered.length; index += 1) {
+    const current = sourceOrdered[index];
+    const currentObservedMs = new Date(current.observedAt).getTime();
+    const currentResetMs = current.resetsAt ? new Date(current.resetsAt).getTime() : Number.NaN;
+    const currentBoundaryMs = getQuotaObservationBoundaryMs(current);
+
+    if (
+      !Number.isFinite(current.usedPercent) ||
+      !Number.isFinite(currentObservedMs) ||
+      !Number.isFinite(currentResetMs) ||
+      !Number.isFinite(currentBoundaryMs)
+    ) {
+      continue;
+    }
+
+    const lookbackStartMs = currentObservedMs - QUOTA_RESET_LOOKBACK_WINDOW_MS;
+    let bestPrevious: QuotaCycleObservation | null = null;
+
+    for (let previousIndex = index - 1; previousIndex >= 0; previousIndex -= 1) {
+      const previous = sourceOrdered[previousIndex];
+      const previousObservedMs = new Date(previous.observedAt).getTime();
+      if (!Number.isFinite(previousObservedMs)) {
+        continue;
+      }
+
+      if (previousObservedMs < lookbackStartMs) {
+        break;
+      }
+
+      const previousResetMs = previous.resetsAt ? new Date(previous.resetsAt).getTime() : Number.NaN;
+      const previousBoundaryMs = getQuotaObservationBoundaryMs(previous);
+      if (
+        !Number.isFinite(previous.usedPercent) ||
+        !Number.isFinite(previousResetMs) ||
+        !Number.isFinite(previousBoundaryMs)
+      ) {
+        continue;
+      }
+
+      const resetMovedForward = currentResetMs > previousResetMs + 60 * 1000;
+      const boundaryMovedForward =
+        currentBoundaryMs > previousBoundaryMs + QUOTA_RESET_BOUNDARY_DRIFT_TOLERANCE_MS;
+      if (!resetMovedForward || !boundaryMovedForward) {
+        continue;
+      }
+
+      if (previous.usedPercent > (bestPrevious?.usedPercent ?? -1)) {
+        bestPrevious = previous;
+      }
+    }
+
+    if (
+      !bestPrevious ||
+      bestPrevious.usedPercent - current.usedPercent < QUOTA_RESET_DROP_THRESHOLD_PERCENT
+    ) {
+      continue;
+    }
+
+    resetCandidates.push(
+      createQuotaResetCandidate(
+        bestPrevious,
+        current,
+        {
+          highWaterEvidence: bestPrevious.usedPercent >= QUOTA_RESET_HIGH_WATER_PERCENT,
+          boundaryAlignedEvidence: false,
+          stabilizedBoundaryEvidence: true,
+          evidenceTypes: ["stabilized-boundary-drop"],
+          afterBoundaryAt: toIsoStringOrNull(currentBoundaryMs),
+          afterWindowMinutes: Number(current.windowMinutes ?? bestPrevious.windowMinutes) || null,
+          lookbackWindowMs: QUOTA_RESET_LOOKBACK_WINDOW_MS,
+          lookbackObservedAt: bestPrevious.observedAt
+        },
+        comparisonScope
+      )
+    );
   }
 }
 
@@ -530,6 +631,7 @@ function analyzeQuotaObservations(
 
   if (comparisonScope === "timeline") {
     addQuotaResetCandidates(resetCandidates, ordered, "timeline");
+    addStabilizedBoundaryResetCandidates(resetCandidates, ordered, "timeline");
   } else {
     const sourceGroups = new Map<string, QuotaCycleObservation[]>();
     for (const observation of ordered) {
@@ -558,8 +660,23 @@ function analyzeQuotaObservations(
     const candidateAtMs = new Date(candidate.at).getTime();
     const duplicate = resetEvents.some((event) => {
       const eventAtMs = new Date(event.at).getTime();
+      const eventBoundaryMs = event.evidence?.afterBoundaryAt
+        ? new Date(event.evidence.afterBoundaryAt).getTime()
+        : Number.NaN;
+      const candidateBoundaryMs = candidate.evidence?.afterBoundaryAt
+        ? new Date(candidate.evidence.afterBoundaryAt).getTime()
+        : Number.NaN;
       const eventAfterResetMs = new Date(event.afterWindowResetsAt ?? 0).getTime();
       const candidateAfterResetMs = new Date(candidate.afterWindowResetsAt ?? 0).getTime();
+      const sameWindowBoundary =
+        Number.isFinite(eventBoundaryMs) &&
+        Number.isFinite(candidateBoundaryMs) &&
+        Math.abs(candidateBoundaryMs - eventBoundaryMs) <= QUOTA_RESET_BOUNDARY_DRIFT_TOLERANCE_MS;
+
+      if (sameWindowBoundary) {
+        return true;
+      }
+
       return (
         Number.isFinite(candidateAtMs) &&
         Number.isFinite(eventAtMs) &&

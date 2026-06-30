@@ -170,8 +170,10 @@ function verifyWindow({
       if (event.evidence) {
         report.assert(Array.isArray(event.evidence.evidenceTypes), `${eventLabel}.evidence.evidenceTypes 必须是数组。`);
         report.assert(
-          event.evidence.highWaterEvidence === true || event.evidence.boundaryAlignedEvidence === true,
-          `${eventLabel} 必须具备高水位或边界贴近证据。`
+          event.evidence.highWaterEvidence === true ||
+            event.evidence.boundaryAlignedEvidence === true ||
+            event.evidence.stabilizedBoundaryEvidence === true,
+          `${eventLabel} 必须具备高水位、边界贴近或稳定边界回看证据。`
         );
         report.assert(
           parseIsoMs(event.evidence.afterBoundaryAt) !== null,

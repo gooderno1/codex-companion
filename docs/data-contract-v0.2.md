@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.3.0-dev.10`
+- 对应开发版本：`v0.3.1-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -69,17 +69,22 @@
 - 重置候选触发条件：
   - `resets_at` 必须向后移动超过 `60s`。
   - `used_percent` 必须下降至少 `5` 个百分点。
+  - `周额度` 额外支持稳定边界回看候选：在当前观测前 `24h` 内查找旧窗口最高有效 `used_percent`；若旧高点比当前观测高至少 `5` 个百分点，且新窗口起点比旧窗口起点后移超过 `15min`，可生成 `stabilized-boundary-drop` 候选。
+  - 稳定边界回看只用于 `周额度 comparisonScope=timeline`；`5 小时额度` 不启用该回看规则。
 - 重置候选证据条件，满足任一项即可：
   - 高水位证据：重置前 `used_percent >= 50`。
   - 边界贴近证据：重置后的新窗口起点 `resets_at - window_minutes` 与当前观测时间相差不超过 `5min`。
+  - 稳定边界回看证据：`24h` 回看旧窗口高点下降满足阈值，并且新窗口边界已实质后移。
 - 重置确认条件：
   - 候选产生后至少等待 `30min` 再确认。
   - 候选后 `6h` 内必须出现同一新窗口边界的稳定观测，边界误差不超过 `5min`。
   - 如果同一确认窗口内出现新窗口边界漂移超过 `15min` 的观测，则判定为低用量滚动恢复，不作为充值 / 重置事件。
+  - 同一新窗口起点在 `15min` 容差内只保留最早确认事件，避免相邻候选和回看候选重复计数。
 - 重置排除条件：
   - 缺少可解析 `used_percent / resets_at / window_minutes` 的观测。
   - 下降不足 `5` 个百分点。
-  - 既没有 `>=50` 高水位证据，也没有 `5min` 内的新窗口边界贴近证据。
+  - 既没有 `>=50` 高水位证据，也没有 `5min` 内的新窗口边界贴近证据，且不满足 `24h` 稳定边界回看证据。
+  - 稳定边界回看中，新窗口起点相对旧窗口起点后移不超过 `15min`。
   - 候选后缺少稳定窗口确认，或确认窗口内发生 `>15min` 边界漂移。
 - 重置后的累计口径：
   - `5 小时额度` 在同一普通周期内仍按 reset 前后观测高点累计。
@@ -88,6 +93,7 @@
   - `observations`：周期内有效 `rate_limits` 观测次数
   - `resetCount`：周期内按上述规则确认的额度重置次数
   - `resetEvents`：周期内识别到的重置事件摘要，只包含观测时间、重置前后百分比、窗口恢复时间、候选证据 `evidence` 和确认结果 `confirmation`，不包含原始会话正文
+  - `resetEvents[].evidence.evidenceTypes` 可包含 `high-water-drop / boundary-aligned-drop / stabilized-boundary-drop`；当使用稳定边界回看时，同步记录 `stabilizedBoundaryEvidence=true / lookbackWindowMs / lookbackObservedAt`
   - `usageSegments`：周期内用于累计额度用量的分段摘要，只包含时间范围、分段最高百分比和最高点观测时间
   - `maxObservedUsedPercent`：周期内原始观测最高已用百分比
   - `usedPercent / remainingPercent`：考虑重置段后的周期累计已用百分比和余量百分比
@@ -97,7 +103,10 @@
 - `LimitWindow.resetsAt` 是页面显示字段，必须与当前 `PeriodMetric.endAt` 保持一致；最近一次原始 `rate_limits.resets_at` 只作为缺少周期证据时的降级来源，避免低用量滑动窗口漂移导致“重置时间”和“周期范围”不一致。
 - `LimitWindow.estimatedFullValueUsd / estimatedRemainingValueUsd` 是套餐价值折算字段，也必须使用当前额度周期的累计已用百分比作为分母，优先取 `PeriodMetric.quotaEvidence.usedPercent`，不能使用最近一次原始 `rate_limits.used_percent`。
 - 为了支持前几周计费周对比，Codex session 采集窗口至少覆盖最近 `60` 天；该口径对齐 `dev-ledger` 已验证的周周期历史记录，避免只扫描当前月/周导致上一计费周样本缺失。
-- 本轮参考验证样例：`dev-ledger` 中 `2026-06-29` 的周额度从旧窗口 `used_percent=10 / resets_at=2026-07-02 13:11` 切换到新窗口 `used_percent=0 / resets_at=2026-07-06 09:01`。该事件虽低于 `50%` 高水位，但新窗口起点与观测时间贴近，并通过 `stable-window-boundary` 稳定确认；`2026-06-24` 的多次低用量滑动窗口因确认窗口内边界漂移超过 `15min` 被排除。
+- 参考验证样例：
+  - `dev-ledger` 中 `2026-06-29` 的周额度从旧窗口 `used_percent=10 / resets_at=2026-07-02 13:11` 切换到新窗口 `used_percent=0 / resets_at=2026-07-06 09:01`。该事件虽低于 `50%` 高水位，但新窗口起点与观测时间贴近，并通过 `stable-window-boundary` 稳定确认。
+  - `dev-ledger` 中 `2026-06-30T03:56:42.332Z` 的周额度相邻观测都是 `0%`，但 `24h` 回看旧窗口高点为 `15%`，旧高点观测时间为 `2026-06-29T18:16:43.673Z`；新窗口边界为 `2026-06-30T03:22:09Z`，后续 `84` 个稳定观测确认同一边界，因此识别为 `stabilized-boundary-drop` 周重置，当前周切到 `2026-06-30T03:22:09Z - 2026-07-07T03:22:09Z`。
+  - `2026-06-24` 的多次低用量滑动窗口因确认窗口内边界漂移超过 `15min` 被排除。
 
 ### 2.3 成本与价值
 
@@ -173,6 +182,6 @@ npm run verify:quota
 - 圆环余量必须等于当前周期 `quotaEvidence.remainingPercent`；缺少周期证据时才允许降级为 `100 - 最近 usedPercent`。
 - 当前 `5H` 与当前周额度 `LimitWindow.resetsAt` 必须等于对应 `PeriodMetric.endAt`；周额度周期允许由已确认 reset 边界校准，不能强制回退到最新原始 `rate_limits.resets_at`。
 - 当前周期必须包含 `quotaEvidence` 观测证据。
-- 如快照内存在 `resetEvents[]`，每个事件必须包含 `evidence` 和 `confirmation.status=confirmed`，且确认原因必须为 `stable-window-boundary`。
+- 如快照内存在 `resetEvents[]`，每个事件必须包含 `evidence` 和 `confirmation.status=confirmed`，且确认原因必须为 `stable-window-boundary`；事件证据必须至少具备高水位、边界贴近或稳定边界回看中的一种。
 - `estimatedValueBasisUsedPercent` 必须使用周期累计 `quotaEvidence.usedPercent`，不得回退到最近一次原始 `usedPercent`。
 - `estimatedFullValueUsd` 必须按 `estimatedSpentUsd / 周期累计已用百分比` 计算。
