@@ -1,27 +1,66 @@
 # RELEASE NOTES
 
-当前尚无正式稳定 Release。
+## [2026-06-30] v0.3.0 release: 内部正式版
 
-## 预发布准备
+### Release 范围
 
-### `v0.3.0-dev.10`
+本次 Release 作为 private 仓库内部正式版，用于内测验证，不等同于公开发布。
 
-- 新增公开开源完善规划，明确普通用户、贡献者和维护者的发布前目标。
-- README 改为面向普通用户和开发者的完整入口，补充安装、首次配置、排障、隐私边界和挂件当前状态。
-- 设置页新增仓库根目录配置，支持手动输入、系统目录选择、移除、保存并刷新。
-- 新增 GitHub CI workflow、Windows 打包 workflow、PR 模板、安全策略和行为准则。
-- 更新贡献指南、Roadmap、Release notes 和开发记录。
+包含开发版本：
 
-### 预计首个公开版本
+- `v0.1.0-dev.1`
+- `v0.2.0-dev.1`
+- `v0.2.1-dev.1`
+- `v0.2.2-dev.1` 至 `v0.2.2-dev.79`
+- `v0.3.0-dev.1` 至 `v0.3.0-dev.10`
 
-建议下一个公开版本使用 `v0.3.0-beta.1` 或 `v0.3.0`：
+未排除开发版本：无。
 
-- 包含 `v0.3.0-dev.1` 至 `v0.3.0-dev.10` 的账本页、仓库页、设置页、额度重置和公开项目基础设施改动。
-- 不包含桌面挂件公开能力；挂件当前仍保持禁用，后续单独排期。
-- 发布前必须通过 `npm run build`、`npm run package:win` 和基础人工冒烟检查。
+### 主要变更
 
-## 升级注意事项
+- 完成 Electron 桌面壳、总览页、Codex 账本页、代码仓库页和设置页。
+- 接入本机 Codex `sessions` / `archived_sessions` JSONL 解析。
+- 支持 `token_count`、模型、API 等价成本、Codex credits 估算和 `rate_limits` 额度快照。
+- 支持 5 小时额度窗口、周额度窗口、计费月 Token 和可观测月额度状态。
+- 支持账本页多曲线 Token 走势、点位明细、放大查看、周额度账本、模型贡献和会话归因。
+- 支持 Codex session 增量缓存，复用未变化 JSONL 解析结果。
+- 支持本机 Git 仓库扫描、代码改动统计、仓库归因和仓库详情页。
+- 设置页支持计费月起始日、仓库根目录、刷新历史和数据边界查看。
+- 补齐 README、隐私说明、贡献指南、公开开源完善规划、CI、Windows 打包 workflow、PR 模板、安全策略和行为准则。
 
+### 修复内容
+
+- 修正刷新完成但最近无新 token 事件时误显示 `数据过期` 的问题。
+- 修正周额度重置识别规则，避免低用量滑动窗口被误判为周重置。
+- 修正周额度周期边界和重置时间展示不一致的问题。
+- 修正总览页、账本页和仓库页多轮设计对齐中的文字溢出、布局密度和状态表达问题。
+- 修正 README 中桌面挂件状态说明，当前内部正式版仍禁用挂件公开入口。
+
+### 验证结果
+
+- `npm run build`：通过，覆盖 lint、TypeScript 类型检查、renderer build 和 main build。
+- `git diff --check`：通过，仅出现 Windows 换行转换提示。
+- 设置页 Electron 截图检查：已验证仓库根目录配置区正常显示，路径文本不溢出，按钮不重叠。
+- Release 打包命令：本次发布前执行 `npm run package:win`，确认 Windows 安装包与便携包可生成。
+
+### Release 资产校验
+
+- `Codex Companion 0.3.0.exe`：`SHA256 952367D606DB43E7D39F317087843CB5341DB7142961988A7EAD7CDAF6FA8382`
+- `Codex Companion Setup 0.3.0.exe`：`SHA256 5378481B308C3126C31BFB35C2D9FB66D5CF662D1F465FB8552C95A9F2A01FF9`
+
+### 升级注意事项
+
+- 应用版本号从开发版 `0.3.0-dev.10` 切换为正式版 `0.3.0`。
 - 仓库根目录现在可以在设置页维护；保存后会写入 Electron `userData/settings.json`。
 - 如果用户清空仓库根目录列表并保存，应用会回退到默认自动发现路径。
 - API 等价成本和 Codex credits 仍为估算，不代表官方账单。
+- 月额度仍依赖 Codex 原始 `rate_limits` 是否暴露月级字段；没有字段时会显示未观测。
+
+### 已知边界
+
+- 当前 GitHub 仓库仍为 private，Release 资产只对有仓库读权限的成员可见。
+- Windows 包尚未配置代码签名，内测安装时可能出现系统安全提示。
+- 为规避本地 Windows 权限无法解压 `winCodeSign` 符号链接的问题，内部版暂时关闭 Windows exe 资源编辑与签名，因此仍使用默认 Electron 图标。
+- 桌面挂件代码仍保留，但公开入口暂时禁用，后续单独验证后再开放。
+- 暂未提供自动更新。
+- collector 层自动化测试和脱敏 sample data 仍待补齐。

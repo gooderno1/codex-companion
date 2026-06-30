@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-06-30] v0.3.0 release: 内部正式版
+
+- 开发原因：用户确认先在 private 仓库内部发布正式版并创建 GitHub Release，用于内测 Windows 安装包、便携包和主要产品链路，再决定公开发布节奏。
+- 实现方式：将应用版本从 `v0.3.0-dev.10` 收敛为正式版 `v0.3.0`；更新 `package.json`、`package-lock.json`、README、Roadmap 和 Release notes；Release notes 明确本次包含 `v0.1.0-dev.1`、`v0.2.0-dev.1`、`v0.2.1-dev.1`、`v0.2.2-dev.1` 至 `v0.2.2-dev.79`、`v0.3.0-dev.1` 至 `v0.3.0-dev.10`，且没有排除开发版本；保留 private 内测、未签名、无自动更新和挂件暂未开放等边界说明；由于本地 Windows 权限无法解压 `winCodeSign` 中的符号链接，内部版临时设置 `win.signAndEditExecutable=false`，避免打包阶段依赖 exe 资源编辑和签名工具。
+- 当前结果：项目已具备 `v0.3.0` 内部正式版发布资料；后续通过 `npm run package:win` 生成 Windows 安装包和便携包，并用 Git tag `v0.3.0` 创建 private GitHub Release。
+- 验证方式：执行 `npm run build`；执行 `npm run package:win`；执行 `git diff --check`；检查 `release/` 产物，确认生成 `Codex Companion 0.3.0.exe` 和 `Codex Companion Setup 0.3.0.exe`；计算 SHA256：便携版 `952367D606DB43E7D39F317087843CB5341DB7142961988A7EAD7CDAF6FA8382`，安装版 `5378481B308C3126C31BFB35C2D9FB66D5CF662D1F465FB8552C95A9F2A01FF9`；最后用 GitHub Release 上传。
+- 遗留问题：GitHub 仓库仍为 private，Release 资产只对有读权限的成员可见；Windows 包尚未代码签名且暂未编辑 exe 图标资源；公开发布前仍需补公开仓库元信息、截图、校验信息和更多自动化测试。
+
 ## [2026-06-30] v0.3.0-dev.10 feat: 完善公开开源使用闭环
 
 - 开发原因：用户要求先整理详细的项目完善规划文档，再按文档推进公开开源前的可用性完善；当前项目功能和界面较完整，但 README、Release、CI、协作文件和仓库根目录配置仍不足以支撑外部用户直接使用。

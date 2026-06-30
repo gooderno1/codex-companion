@@ -7,12 +7,13 @@
 - `v0.2.2-dev.*`：持续完成总览页、设置页、刷新历史、设计 token、UI Contract、增量缓存和仓库页视觉收敛。
 - `v0.3.0-dev.1` 至 `v0.3.0-dev.9`：升级账本页趋势图、放大查看、额度重置确认规则和周额度分桶口径。
 - `v0.3.0-dev.10`：面向公开开源补齐 README、公开完善规划、仓库根目录设置、CI、Windows 打包 workflow、PR 模板、安全策略和贡献说明。
+- `v0.3.0`：private 仓库内部正式版，用于内测验证 Windows 安装包、便携包、设置页仓库根目录配置和主要数据链路。
 
 ## 发布前优先级
 
-1. 产出 `v0.3.0-beta.1` 或 `v0.3.0` GitHub Release，上传 Windows 安装包和便携包。
+1. 内测 `v0.3.0` Windows 安装包和便携包，确认首次启动、刷新、设置页仓库根目录配置、三页主流程都可用。
 2. 切换 GitHub 仓库为公开可见，并补充 description、topics、homepage 和截图。
-3. 使用 GitHub Actions 验证 `package:win` 产物，并记录 SHA256 校验信息。
+3. 使用 GitHub Actions 验证后续 `package:win` 产物，并记录 SHA256 校验信息。
 4. 补充 README 截图，确认截图不包含真实用户名、私有路径、私有仓库名或 session 内容。
 5. 增加 collector 层测试，优先覆盖 JSONL 解析、`rate_limits` 缺失、仓库归因和计费窗口。
 
