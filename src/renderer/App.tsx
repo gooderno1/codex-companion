@@ -960,18 +960,51 @@ function RefreshHistoryTable({
   );
 }
 
+function normalizeRepoRootsList(values: string[]) {
+  const normalized: string[] = [];
+  for (const value of values) {
+    const trimmed = value.trim();
+    if (trimmed && !normalized.includes(trimmed)) {
+      normalized.push(trimmed);
+    }
+  }
+
+  return normalized;
+}
+
+function parseRepoRootsInput(value: string) {
+  return normalizeRepoRootsList(value.split(/[;\n]/));
+}
+
+function sameStringList(left: string[], right: string[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((item, index) => item === right[index]);
+}
+
 function SettingsPage({
   snapshot,
   preferences,
-  onSaveBillingMonthStartDay
+  onSaveBillingMonthStartDay,
+  onSaveRepoRoots
 }: {
   snapshot: DashboardSnapshot | null;
   preferences: AppPreferences | null;
   onSaveBillingMonthStartDay: (day: number) => Promise<void>;
+  onSaveRepoRoots: (roots: string[]) => Promise<void>;
 }) {
   const currentDay = preferences?.billingMonthStartDay ?? 1;
+  const currentRepoRoots = useMemo(
+    () => normalizeRepoRootsList(preferences?.repoRoots ?? snapshot?.sourceHealth.repoRoots ?? []),
+    [preferences?.repoRoots, snapshot?.sourceHealth.repoRoots]
+  );
   const [draftDay, setDraftDay] = useState(currentDay);
+  const [draftRepoRoots, setDraftRepoRoots] = useState(currentRepoRoots);
+  const [draftRepoRootInput, setDraftRepoRootInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [repoSaving, setRepoSaving] = useState(false);
 
   async function saveBillingDay() {
     setSaving(true);
@@ -982,9 +1015,42 @@ function SettingsPage({
     }
   }
 
+  function addDraftRepoRoots(nextRoots: string[]) {
+    setDraftRepoRoots((current) => normalizeRepoRootsList([...current, ...nextRoots]));
+  }
+
+  function addDraftRepoRootInput() {
+    const parsed = parseRepoRootsInput(draftRepoRootInput);
+    if (parsed.length === 0) {
+      return;
+    }
+
+    addDraftRepoRoots(parsed);
+    setDraftRepoRootInput("");
+  }
+
+  async function chooseRepoRoot() {
+    const selected = await window.codexCompanion.selectDirectory();
+    if (selected) {
+      addDraftRepoRoots([selected]);
+    }
+  }
+
+  async function saveRepoRoots() {
+    setRepoSaving(true);
+    try {
+      await onSaveRepoRoots(normalizeRepoRootsList(draftRepoRoots));
+    } finally {
+      setRepoSaving(false);
+    }
+  }
+
   const safeDraftDay = Number.isFinite(draftDay) ? draftDay : currentDay;
   const normalizedDraftDay = Math.max(1, Math.min(31, Math.trunc(safeDraftDay)));
   const canSave = normalizedDraftDay !== currentDay && !saving;
+  const normalizedDraftRepoRoots = normalizeRepoRootsList(draftRepoRoots);
+  const canSaveRepoRoots =
+    !repoSaving && !sameStringList(normalizedDraftRepoRoots, currentRepoRoots);
 
   return (
     <div className="page-stack settings-page">
@@ -1016,6 +1082,79 @@ function SettingsPage({
         </div>
         <p className="settings-note">
           当前为每月第 {currentDay} 天 00:00 起算；如果某月没有该日期，会由系统日期规则自然回落到可表示日期。
+        </p>
+      </SectionCard>
+
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>仓库根目录</h3>
+            <p>用于扫描本机 Git 仓库，并把 Codex 会话归因到具体项目。</p>
+          </div>
+        </div>
+        <div className="repo-root-editor">
+          <div className="repo-root-input-row">
+            <input
+              type="text"
+              value={draftRepoRootInput}
+              placeholder="输入目录路径；多个路径可用分号或换行分隔"
+              onChange={(event) => setDraftRepoRootInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addDraftRepoRootInput();
+                }
+              }}
+            />
+            <button type="button" className="action-button" onClick={addDraftRepoRootInput}>
+              添加
+            </button>
+            <button type="button" className="secondary-button" onClick={() => void chooseRepoRoot()}>
+              选择目录
+            </button>
+          </div>
+
+          <div className="repo-root-list">
+            {normalizedDraftRepoRoots.length > 0 ? (
+              normalizedDraftRepoRoots.map((root) => (
+                <div className="repo-root-item" key={root}>
+                  <strong>{root}</strong>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDraftRepoRoots((current) => current.filter((item) => item !== root))
+                    }
+                  >
+                    移除
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="repo-root-empty">当前列表为空；保存后会回到自动发现路径。</div>
+            )}
+          </div>
+
+          <div className="settings-action-row">
+            <button
+              type="button"
+              className="action-button"
+              disabled={!canSaveRepoRoots}
+              onClick={() => void saveRepoRoots()}
+            >
+              {repoSaving ? "保存中" : "保存并刷新仓库"}
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={repoSaving || sameStringList(normalizedDraftRepoRoots, currentRepoRoots)}
+              onClick={() => setDraftRepoRoots(currentRepoRoots)}
+            >
+              撤销修改
+            </button>
+          </div>
+        </div>
+        <p className="settings-note">
+          建议选择包含多个 Git 项目的上级目录；路径只保存在本机 Electron userData 配置中。
         </p>
       </SectionCard>
 
@@ -2863,6 +3002,39 @@ export default function App() {
     }
   }
 
+  async function saveRepoRoots(roots: string[]) {
+    try {
+      setLoading(true);
+      showRefreshFeedback({
+        phase: "refreshing",
+        title: "正在保存仓库目录",
+        detail: "保存后将重新扫描本机 Git 仓库，并更新代码仓库页"
+      });
+      const nextPreferences = await window.codexCompanion.updatePreferences({
+        repoRoots: roots
+      });
+      setPreferences(nextPreferences);
+      const nextSnapshot = await window.codexCompanion.refreshDashboard();
+      startTransition(() => setSnapshot(nextSnapshot));
+      setError(null);
+      showRefreshFeedback({
+        phase: "done",
+        title: "仓库目录已更新",
+        detail: refreshTelemetryDetail(nextSnapshot)
+      }, true);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "保存仓库目录失败";
+      setError(message);
+      showRefreshFeedback({
+        phase: "error",
+        title: "保存仓库目录失败",
+        detail: message
+      }, true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   if (page === "widget") {
     return <WidgetView snapshot={snapshot} preferences={preferences} />;
   }
@@ -2995,10 +3167,11 @@ export default function App() {
             {currentPage === "repositories" ? <RepositoriesPage snapshot={snapshot} /> : null}
             {currentPage === "settings" ? (
               <SettingsPage
-                key={preferences?.billingMonthStartDay ?? "settings"}
+                key={`${preferences?.billingMonthStartDay ?? "settings"}:${preferences?.repoRoots.join("|") ?? ""}`}
                 snapshot={snapshot}
                 preferences={preferences}
                 onSaveBillingMonthStartDay={saveBillingMonthStartDay}
+                onSaveRepoRoots={saveRepoRoots}
               />
             ) : null}
 

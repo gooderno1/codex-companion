@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   Menu,
   nativeImage,
@@ -590,6 +591,23 @@ function registerIpcHandlers() {
   );
   ipcMain.handle("app:open-page", async (_event, page: AppPage) => {
     await openPage(page);
+  });
+  ipcMain.handle("app:select-directory", async () => {
+    const options = {
+      title: "选择 Git 仓库根目录",
+      properties: ["openDirectory", "createDirectory"]
+    } satisfies Electron.OpenDialogOptions;
+    const result = (mainWindow
+      ? await dialog.showOpenDialog(mainWindow, options)
+      : await dialog.showOpenDialog(options)) as
+      | string[]
+      | { canceled: boolean; filePaths: string[] };
+
+    if (Array.isArray(result)) {
+      return result[0] ?? null;
+    }
+
+    return result.canceled ? null : result.filePaths[0] ?? null;
   });
   ipcMain.handle("widget:show", async () => {
     if (WIDGET_DISABLED) {

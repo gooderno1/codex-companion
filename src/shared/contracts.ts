@@ -363,6 +363,7 @@ export interface CodexCompanionApi {
     listener: (snapshot: DashboardSnapshot) => void
   ): () => void;
   openPage(page: AppPage): Promise<void>;
+  selectDirectory(): Promise<string | null>;
   showWidget(): Promise<void>;
   hideWidget(): Promise<void>;
 }

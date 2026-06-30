@@ -3,7 +3,14 @@
 `Codex Companion`（中文名：`Codex 伴侣`）是一个面向 Codex 重度用户的非官方开源桌面伴侣，用于在本机查看 Codex 额度、Token、API 等价成本和本地 Git 代码活动。
 
 > 本项目是非官方工具，不隶属于 OpenAI，也不代表 OpenAI 或 Codex 官方产品。
-> 本项目作为独立桌面应用维护，不读取或依赖 DevLedger 的运行结果。
+> 本项目采用 local-first 设计，首版不上传原始 Codex session 文件，也不读取 GitHub 云端元数据。
+
+## 当前状态
+
+- 当前版本：`v0.3.0-dev.10`
+- 当前定位：公开预览准备阶段，尚未发布正式稳定版。
+- 当前平台：优先支持 Windows 桌面应用；源码开发可在具备 Electron 环境的系统上尝试运行。
+- 桌面挂件：相关代码已保留，但公开预览版暂时禁用，后续单独验证后再开放。
 
 ## 当前能力
 
@@ -13,22 +20,98 @@
 - 展示 5 小时额度窗口、周额度窗口和可观测月额度状态。
 - 按模型聚合自然月 Token 与 API 等价成本。
 - 按 Git 仓库归因 Codex 会话，并展示仓库提交、增删行与近期提交。
+- 设置页支持计费月起始日、仓库根目录、刷新历史和本机数据边界查看。
 - 刷新时展示采集阶段、耗时、新解析文件数与缓存复用数。
 - 使用本地增量缓存复用未变化的 Codex JSONL 解析结果，减少重复刷新耗时。
-- 设置页支持计费月起始日和刷新历史查看。
-- 提供桌面挂件，支持顶部信号条与极简胶囊两种预设。
 
-## 技术栈
+## 普通用户快速开始
 
-- Electron
-- React + TypeScript + Vite
-- 本地 JSON 快照存储
-- 本机 Git 命令与 Codex session JSONL 解析
+正式公开后，推荐从 GitHub Releases 下载最新 Windows 安装包或便携包。
 
-## 快速开始
+1. 打开 [Releases](https://github.com/gooderno1/codex-companion/releases)。
+2. 下载最新版本中的 Windows 安装包或 portable 包。
+3. 启动应用，确认左侧显示 `非官方 Codex 本机仪表盘` 和 `本机读取 · 无上传`。
+4. 进入 `设置`，确认 Codex 数据目录和仓库根目录。
+5. 点击 `刷新`，等待应用完成 Codex session 与 Git 仓库采集。
+
+当前仓库尚未发布正式 Release 时，可先按“开发者本地运行”从源码启动。
+
+## 首次配置
+
+### Codex 数据目录
+
+应用默认读取：
+
+- Windows：`%USERPROFILE%\.codex\sessions`
+- Windows：`%USERPROFILE%\.codex\archived_sessions`
+
+如果你的 Codex 数据位于自定义目录，可在启动应用前设置 `CODEX_HOME` 环境变量。
+
+### Git 仓库根目录
+
+应用会自动尝试发现常见目录，例如：
+
+- `%USERPROFILE%\Documents\Codex`
+- `%USERPROFILE%\Documents\Projects`
+- `%USERPROFILE%\source`
+- `%USERPROFILE%\projects`
+- `%USERPROFILE%\code`
+- `%USERPROFILE%\Code`
+
+如果代码仓库不在这些目录，进入 `设置 -> 仓库根目录`：
+
+- 可手动输入目录路径，多个路径用分号或换行分隔。
+- 可点击 `选择目录` 使用系统目录选择器。
+- 保存后会立即重新扫描 Git 仓库并刷新代码仓库页。
+
+## 数据来源
+
+- Codex 本地会话：`sessions` 与 `archived_sessions` 中的 JSONL 文件。
+- Codex 额度快照：JSONL 中的 `rate_limits`。
+- Git 仓库：会话 `cwd` 反推仓库根目录，以及用户配置的本地仓库根目录。
+- 本地配置与快照：Electron `userData` 目录，例如 Windows 下通常位于 `%APPDATA%\codex-companion`。
+
+## 隐私边界
+
+- 不上传原始 Codex session 文件。
+- 不上传仓库源码。
+- 不上传仓库名、路径、模型明细或成本数据到云端。
+- 首版不请求 GitHub token。
+- 增量缓存只保存 JSONL 文件路径、`size`、`mtimeMs` 和解析后的聚合统计结果，不保存用户输入正文或模型输出正文。
+
+完整说明见 [PRIVACY.md](./PRIVACY.md)。
+
+## 估算边界
+
+- API 等价成本基于公开 API 定价估算，不代表真实扣费。
+- Codex credits 估算基于公开 rate card，仅用于价值折算与趋势感知。
+- 可观测月额度依赖 Codex 本地快照是否暴露月级别字段；当前若无字段则明确标记为未观测。
+- Git 代码活动基于本地 Git 历史和当前工作区 diff，不读取 GitHub 远端元数据。
+
+## 常见排障
+
+### 页面显示未观测
+
+- 确认本机存在 Codex 会话文件。
+- 确认最近 60 天内的 JSONL 文件包含 `token_count` 记录。
+- 点击右上角 `刷新`，查看刷新反馈中的新解析文件数和复用文件数。
+
+### 代码仓库页为空
+
+- 进入 `设置 -> 仓库根目录` 添加包含 Git 仓库的上级目录。
+- 确认目标目录下存在 `.git`。
+- 确认本机可以执行 `git` 命令。
+
+### 周额度或月额度显示异常
+
+- 周额度来自 Codex 本地 `rate_limits` 的可观测快照和重置证据。
+- 月额度只有在 Codex 原始数据暴露稳定月级窗口时才会显示为已观测。
+- 自然月 Token 或计费月 Token 不等同于官方月额度。
+
+## 开发者本地运行
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -45,22 +128,30 @@ Windows 打包：
 npm run package:win
 ```
 
-## 数据来源
+提交前至少执行：
 
-- Codex 本地会话：`%USERPROFILE%\\.codex\\sessions` 与 `archived_sessions`
-- Codex 额度快照：JSONL 中的 `rate_limits`
-- Git 仓库：会话 `cwd` 反推仓库根目录，以及配置的本地仓库根目录
+```bash
+npm run build
+git diff --check
+```
 
-## 开发说明
+## 技术栈
 
-- 协作规范见 [AGENTS.md](./AGENTS.md)
-- 当前规划见 [docs/project-development-plan-2026-06-02.md](./docs/project-development-plan-2026-06-02.md)
-- 数据契约见 [docs/data-contract-v0.2.md](./docs/data-contract-v0.2.md)
-- 隐私边界见 [PRIVACY.md](./PRIVACY.md)
-- 版本进展见 [DEVELOPMENT_LOG.md](./DEVELOPMENT_LOG.md)
+- Electron
+- React + TypeScript + Vite
+- 本地 JSON 快照存储
+- 本机 Git 命令与 Codex session JSONL 解析
 
-## 已知边界
+## 项目资料
 
-- 可观测月额度依赖 Codex 本地快照是否暴露月级别字段；当前若无字段则明确标记为未观测。
-- Git 代码活动首版基于本地 Git 历史和当前工作区 diff，不读取 GitHub 远端元数据。
-- API 等价成本与 Codex credits 估算依赖当前公开定价表，后续如官方价格调整需同步更新。
+- 协作规范：[AGENTS.md](./AGENTS.md)
+- 公开开源完善规划：[docs/open-source-readiness-plan-2026-06-30.md](./docs/open-source-readiness-plan-2026-06-30.md)
+- 当前规划：[docs/project-development-plan-2026-06-02.md](./docs/project-development-plan-2026-06-02.md)
+- 数据契约：[docs/data-contract-v0.2.md](./docs/data-contract-v0.2.md)
+- 隐私说明：[PRIVACY.md](./PRIVACY.md)
+- 版本进展：[DEVELOPMENT_LOG.md](./DEVELOPMENT_LOG.md)
+- 贡献说明：[CONTRIBUTING.md](./CONTRIBUTING.md)
+
+## License
+
+MIT

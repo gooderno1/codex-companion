@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.3.0-dev.9`
+- 对应开发版本：`v0.3.0-dev.10`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -26,6 +26,8 @@
 
 - 会话 `cwd` 向上查找 `.git`
 - 配置的本地仓库根目录递归扫描
+- 仓库根目录可在设置页维护，也可通过 `CODEX_COMPANION_REPO_ROOTS` 作为首次默认候选；保存后写入 Electron `userData/settings.json`
+- 如果用户在设置页清空仓库根目录并保存，应用回退到默认自动发现路径；不会保存一个导致仓库扫描永久为空的配置
 - 重点命令：
   - `git rev-list --count --since=... HEAD`
   - `git log --numstat --format=tformat:`

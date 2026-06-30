@@ -47,6 +47,50 @@ async function resolveDefaultRepoRoots(): Promise<string[]> {
   return resolved;
 }
 
+function normalizeRepoRoots(
+  repoRoots: unknown,
+  fallback: string[]
+): string[] {
+  if (!Array.isArray(repoRoots)) {
+    return fallback;
+  }
+
+  const resolved: string[] = [];
+  for (const item of repoRoots) {
+    if (typeof item !== "string") {
+      continue;
+    }
+
+    const trimmed = item.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const normalized = path.resolve(trimmed);
+    if (!resolved.includes(normalized)) {
+      resolved.push(normalized);
+    }
+  }
+
+  return resolved.length > 0 ? resolved : fallback;
+}
+
+function normalizeBillingMonthStartDay(value: unknown, fallback: number) {
+  return typeof value === "number"
+    ? Math.max(1, Math.min(31, Math.trunc(value)))
+    : fallback;
+}
+
+function normalizeWidgetPreferences(
+  value: unknown,
+  fallback: WidgetPreferences
+): WidgetPreferences {
+  return {
+    ...fallback,
+    ...(value && typeof value === "object" ? value : {})
+  };
+}
+
 export class SettingsStore {
   private readonly settingsPath: string;
 
@@ -68,17 +112,12 @@ export class SettingsStore {
     }
 
     const merged: AppPreferences = {
-      repoRoots:
-        stored.repoRoots?.filter((item): item is string => Boolean(item)) ??
-        fallback.repoRoots,
-      billingMonthStartDay:
-        typeof stored.billingMonthStartDay === "number"
-          ? Math.max(1, Math.min(31, Math.trunc(stored.billingMonthStartDay)))
-          : fallback.billingMonthStartDay,
-      widget: {
-        ...fallback.widget,
-        ...stored.widget
-      }
+      repoRoots: normalizeRepoRoots(stored.repoRoots, fallback.repoRoots),
+      billingMonthStartDay: normalizeBillingMonthStartDay(
+        stored.billingMonthStartDay,
+        fallback.billingMonthStartDay
+      ),
+      widget: normalizeWidgetPreferences(stored.widget, fallback.widget)
     };
 
     await writeJsonFile(this.settingsPath, merged);
@@ -89,8 +128,21 @@ export class SettingsStore {
     updater: (current: AppPreferences) => AppPreferences
   ): Promise<AppPreferences> {
     const current = await this.read();
+    const defaults: AppPreferences = {
+      repoRoots: await resolveDefaultRepoRoots(),
+      billingMonthStartDay: DEFAULT_BILLING_MONTH_START_DAY,
+      widget: defaultWidgetPreferences()
+    };
     const next = updater(current);
-    await writeJsonFile(this.settingsPath, next);
-    return next;
+    const normalized: AppPreferences = {
+      repoRoots: normalizeRepoRoots(next.repoRoots, defaults.repoRoots),
+      billingMonthStartDay: normalizeBillingMonthStartDay(
+        next.billingMonthStartDay,
+        current.billingMonthStartDay
+      ),
+      widget: normalizeWidgetPreferences(next.widget, current.widget)
+    };
+    await writeJsonFile(this.settingsPath, normalized);
+    return normalized;
   }
 }

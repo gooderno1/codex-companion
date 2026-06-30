@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-06-30] v0.3.0-dev.10 feat: 完善公开开源使用闭环
+
+- 开发原因：用户要求先整理详细的项目完善规划文档，再按文档推进公开开源前的可用性完善；当前项目功能和界面较完整，但 README、Release、CI、协作文件和仓库根目录配置仍不足以支撑外部用户直接使用。
+- 实现方式：将项目版本从 `v0.3.0-dev.9` 提升到 `v0.3.0-dev.10`；新增 `docs/open-source-readiness-plan-2026-06-30.md`，明确普通用户、贡献者、维护者的完善目标、实施顺序、发布前检查清单和后续路线；重写 README，补充下载入口、首次配置、排障路径、隐私边界和挂件暂未开放状态；新增 GitHub CI、Windows 打包 workflow、PR 模板、`SECURITY.md` 和 `CODE_OF_CONDUCT.md`；更新贡献指南、Roadmap、Release notes、隐私说明、数据契约和组件映射；设置页新增仓库根目录配置区，主进程通过受控 IPC 调用系统目录选择器，`SettingsStore` 对仓库根目录执行去空、去重和空列表回退默认发现路径。
+- 当前结果：公开项目信息入口、贡献流程、自动化构建和 Windows 打包骨架已经齐备；普通用户可在设置页维护 Git 仓库根目录，保存后立即刷新仓库扫描；README 与实现保持一致，不再把当前被禁用的桌面挂件描述成公开可用能力；仓库路径配置仍只保存在本机 Electron `userData/settings.json`，不改变本项目 local-first 隐私边界。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript 类型检查、renderer build 和 main build；执行 `git diff --check`，通过，仅出现 Windows 换行转换提示；使用 `CODEX_COMPANION_CAPTURE_PAGE=settings` 和 `CODEX_COMPANION_CAPTURE_PATH=local_dev_work\settings-open-source-dev10.png` 启动 Electron 捕获设置页截图，确认新增仓库根目录区加载正常、路径文本不溢出、按钮不重叠。
+- 遗留问题：GitHub 仓库公开可见性、正式 Release 资产、代码签名、自动更新和桌面挂件重新开放仍需维护者后续单独确认；collector 层自动化测试和脱敏 sample data 仍待补齐。
+
 ## [2026-06-30] v0.3.0-dev.9 fix: 对齐周额度重置确认规则
 
 - 开发原因：用户要求参考 `dev-ledger` 最新实现，完善 Codex 额度重置规则和检测标准；旧实现主要按同 session 高水位下降识别，可能漏掉跨 session 的低用量周重置，也可能把低用量滑动窗口误判为重置。
