@@ -346,6 +346,7 @@ export interface WidgetPreferences {
 }
 
 export interface AppPreferences {
+  codexHome: string;
   repoRoots: string[];
   billingMonthStartDay: number;
   widget: WidgetPreferences;

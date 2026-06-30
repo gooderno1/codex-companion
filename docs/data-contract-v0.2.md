@@ -1,15 +1,17 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.3.1-dev.1`
+- 对应开发版本：`v0.3.1-dev.2`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
 
 ### 1.1 Codex
 
-- `~/.codex/sessions/**/*.jsonl`
-- `~/.codex/archived_sessions/*.jsonl`
+- 默认读取 `~/.codex/sessions/**/*.jsonl`
+- 默认读取 `~/.codex/archived_sessions/*.jsonl`
+- Codex home 可在设置页维护，也可通过 `CODEX_HOME` 作为首次默认路径；保存后写入 Electron `userData/settings.json`
+- 如果用户在设置页恢复默认 Codex 数据目录，应用回退到 `CODEX_HOME || ~/.codex`
 - 派生增量缓存：`%APPDATA%/codex-companion/codex-session-cache.json`
   - 缓存只保存每个会话文件的路径、`size`、`mtimeMs` 和解析后的聚合结果
   - 缓存不保存原始 JSONL 行、用户输入正文或模型输出正文

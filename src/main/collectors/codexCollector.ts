@@ -102,6 +102,7 @@ export interface CodexCollectionCacheStats {
 
 interface CollectCodexDataOptions {
   sessionCacheStore?: CodexSessionCacheStoreLike;
+  codexHome?: string;
 }
 
 interface SessionFileInfo {
@@ -110,8 +111,10 @@ interface SessionFileInfo {
   mtimeMs: number;
 }
 
-function resolveCodexHome(): string {
-  return process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
+function resolveCodexHome(configuredCodexHome?: string): string {
+  return path.resolve(
+    configuredCodexHome?.trim() || process.env.CODEX_HOME || path.join(os.homedir(), ".codex")
+  );
 }
 
 function parseTokenBreakdown(payload: Record<string, unknown> | undefined): TokenBreakdown {
@@ -497,7 +500,7 @@ export async function collectCodexData(
   now = new Date(),
   options: CollectCodexDataOptions = {}
 ): Promise<CollectedCodexData> {
-  const codexHome = resolveCodexHome();
+  const codexHome = resolveCodexHome(options.codexHome);
   const sessionsRoot = path.join(codexHome, "sessions");
   const archivedRoot = path.join(codexHome, "archived_sessions");
   const cutoff = subtractDays(now, CODEX_HISTORY_LOOKBACK_DAYS);

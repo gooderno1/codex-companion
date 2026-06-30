@@ -7,8 +7,8 @@
 
 ## 当前状态
 
-- 当前版本：`v0.3.0`
-- 当前定位：私有仓库内部正式版，用于内测验证；公开发布前仍需补公开可见仓库信息、截图和签名策略。
+- 当前版本：`v0.3.1-dev.2`
+- 当前定位：内部正式版后的开发修复线，重点补齐换电脑后的 Codex 数据目录和 Git 仓库目录接线能力。
 - 当前平台：优先支持 Windows 桌面应用；源码开发可在具备 Electron 环境的系统上尝试运行。
 - 桌面挂件：相关代码已保留，但公开预览版暂时禁用，后续单独验证后再开放。
 
@@ -20,16 +20,16 @@
 - 展示 5 小时额度窗口、周额度窗口和可观测月额度状态。
 - 按模型聚合自然月 Token 与 API 等价成本。
 - 按 Git 仓库归因 Codex 会话，并展示仓库提交、增删行与近期提交。
-- 设置页支持计费月起始日、仓库根目录、刷新历史和本机数据边界查看。
+- 设置页支持 Codex 数据目录、计费月起始日、仓库根目录、刷新历史和本机数据边界查看。
 - 刷新时展示采集阶段、耗时、新解析文件数与缓存复用数。
 - 使用本地增量缓存复用未变化的 Codex JSONL 解析结果，减少重复刷新耗时。
 
 ## 普通用户快速开始
 
-正式公开后，推荐从 GitHub Releases 下载最新 Windows 安装包或便携包。
+正式公开后，推荐从 GitHub Releases 下载最新 Windows 安装包。
 
 1. 打开 [Releases](https://github.com/gooderno1/codex-companion/releases)。
-2. 下载最新版本中的 Windows 安装包或 portable 包。
+2. 下载最新版本中的 Windows 安装包。
 3. 启动应用，确认左侧显示 `非官方 Codex 本机仪表盘` 和 `本机读取 · 无上传`。
 4. 进入 `设置`，确认 Codex 数据目录和仓库根目录。
 5. 点击 `刷新`，等待应用完成 Codex session 与 Git 仓库采集。
@@ -40,12 +40,19 @@
 
 ### Codex 数据目录
 
-应用默认读取：
+安装包不会携带任何开发者本机 Codex 数据。应用默认读取：
 
 - Windows：`%USERPROFILE%\.codex\sessions`
 - Windows：`%USERPROFILE%\.codex\archived_sessions`
 
-如果你的 Codex 数据位于自定义目录，可在启动应用前设置 `CODEX_HOME` 环境变量。
+如果你的 Codex 数据位于自定义目录，进入 `设置 -> Codex 数据目录`：
+
+- 可手动输入 `.codex` 目录路径。
+- 可点击 `选择目录` 使用系统目录选择器。
+- 可点击 `恢复默认路径` 回到 `CODEX_HOME` 或当前用户目录下的 `.codex`。
+- 保存后会立即重新读取 Codex sessions、archived_sessions 和 rate_limits。
+
+也可以在启动应用前设置 `CODEX_HOME` 环境变量，作为首次默认路径。
 
 ### Git 仓库根目录
 
@@ -122,7 +129,7 @@ npm run build
 npm start
 ```
 
-Windows 打包：
+Windows 打包安装版：
 
 ```bash
 npm run package:win

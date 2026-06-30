@@ -1739,7 +1739,7 @@ function buildPendingDashboardSnapshot(
     generatedAt: now.toISOString(),
     generatedFrom: "pending",
     sourceHealth: {
-      codexHome: "",
+      codexHome: preferences.codexHome,
       repoRoots: preferences.repoRoots,
       sessionFilesScanned: 0,
       archivedFilesScanned: 0,
@@ -1858,6 +1858,7 @@ async function collectDashboardSnapshot(
   const refreshStartedMs = Date.now();
   const codexStartedMs = Date.now();
   const codex = await collectCodexData(now, {
+    codexHome: preferences.codexHome,
     sessionCacheStore: options.codexSessionCacheStore
   });
   const codexDurationMs = Date.now() - codexStartedMs;

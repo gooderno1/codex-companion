@@ -528,6 +528,32 @@ svg {
   text-overflow: ellipsis;
 }
 
+.setup-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: var(--space-3);
+  padding: 12px 14px;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  border-radius: var(--radius-card);
+  background: rgba(255, 251, 235, 0.78);
+}
+
+.setup-banner div {
+  display: grid;
+  gap: 3px;
+}
+
+.setup-banner strong {
+  font-size: 13px;
+}
+
+.setup-banner span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
 .refresh-feedback-loading,
 .refresh-feedback-refreshing {
   box-shadow: inset 0 0 0 1px rgba(11, 111, 242, 0.16);
@@ -2896,7 +2922,8 @@ svg {
   }
 
   .repo-root-input-row,
-  .settings-action-row {
+  .settings-action-row,
+  .setup-banner {
     align-items: stretch;
     flex-direction: column;
   }

@@ -7,6 +7,10 @@ import { pathExists, readJsonFile, writeJsonFile } from "../utils/fs";
 const SETTINGS_FILE_NAME = "settings.json";
 const DEFAULT_BILLING_MONTH_START_DAY = 1;
 
+function resolveDefaultCodexHome(): string {
+  return path.resolve(process.env.CODEX_HOME || path.join(os.homedir(), ".codex"));
+}
+
 function defaultWidgetPreferences(): WidgetPreferences {
   return {
     preset: "signal-bar",
@@ -45,6 +49,14 @@ async function resolveDefaultRepoRoots(): Promise<string[]> {
   }
 
   return resolved;
+}
+
+function normalizeDirectoryPath(value: unknown, fallback: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    return fallback;
+  }
+
+  return path.resolve(value.trim());
 }
 
 function normalizeRepoRoots(
@@ -100,6 +112,7 @@ export class SettingsStore {
 
   public async read(): Promise<AppPreferences> {
     const fallback: AppPreferences = {
+      codexHome: resolveDefaultCodexHome(),
       repoRoots: await resolveDefaultRepoRoots(),
       billingMonthStartDay: DEFAULT_BILLING_MONTH_START_DAY,
       widget: defaultWidgetPreferences()
@@ -112,6 +125,7 @@ export class SettingsStore {
     }
 
     const merged: AppPreferences = {
+      codexHome: normalizeDirectoryPath(stored.codexHome, fallback.codexHome),
       repoRoots: normalizeRepoRoots(stored.repoRoots, fallback.repoRoots),
       billingMonthStartDay: normalizeBillingMonthStartDay(
         stored.billingMonthStartDay,
@@ -129,12 +143,14 @@ export class SettingsStore {
   ): Promise<AppPreferences> {
     const current = await this.read();
     const defaults: AppPreferences = {
+      codexHome: resolveDefaultCodexHome(),
       repoRoots: await resolveDefaultRepoRoots(),
       billingMonthStartDay: DEFAULT_BILLING_MONTH_START_DAY,
       widget: defaultWidgetPreferences()
     };
     const next = updater(current);
     const normalized: AppPreferences = {
+      codexHome: normalizeDirectoryPath(next.codexHome, defaults.codexHome),
       repoRoots: normalizeRepoRoots(next.repoRoots, defaults.repoRoots),
       billingMonthStartDay: normalizeBillingMonthStartDay(
         next.billingMonthStartDay,

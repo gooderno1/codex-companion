@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-06-30] v0.3.1-dev.2 feat: 补齐换机数据源接线
+
+- 开发原因：内测安装后暴露出产品过度依赖当前开发者本机默认路径的问题；安装包没有携带个人 Codex 数据，但新电脑缺少明确的 Codex 数据目录和 Git 仓库目录接线方法，容易让用户误以为软件是为单台机器量身定做。
+- 实现方式：新增 `docs/setup-portability-solution-2026-06-30.md`，说明问题判断、目标、实施方案和后续首次启动向导建议；将应用版本从 `v0.3.1-dev.1` 提升到 `v0.3.1-dev.2`；`AppPreferences` 新增 `codexHome`，`SettingsStore` 默认使用 `CODEX_HOME || ~/.codex` 并自动迁移旧配置；`collectCodexData` 支持从偏好传入 Codex home；设置页新增 `Codex 数据目录` 配置区，支持手动输入、选择目录、恢复默认、保存并刷新；仓库根目录区补充恢复默认目录；主界面在 Codex 或 Git 数据未接通时显示数据源设置提示；后续 Windows 打包目标只保留 `nsis` 安装版，不再生成便携版。
+- 当前结果：换电脑或首次安装后，用户可以在应用内完成 Codex 数据目录和 Git 仓库根目录接线；路径配置只写入本机 Electron `userData/settings.json`，不随安装包分发，也不会上传；保存数据源后会立即刷新快照，便于确认是否接通。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript 类型检查、renderer build 和 main build；使用 `CODEX_COMPANION_CAPTURE_PAGE=settings` 和 `CODEX_COMPANION_CAPTURE_PATH=local_dev_work\settings-data-source-dev1-final.png` 启动 Electron 捕获设置页截图，确认 Codex 数据目录和仓库根目录配置区显示正常，按钮不重叠，路径不溢出；执行 `git diff --check`。
+- 遗留问题：真正的首次启动向导、脱敏诊断摘要、打开数据目录、应用图标和代码签名仍需后续单独实现。
+
 ## [2026-06-30] v0.3.1-dev.1 fix: 识别稳定边界回看周重置
 
 - 开发原因：用户要求跟进 `dev-ledger` 最新额度重置规则；旧规则依赖相邻观测直接下降或新窗口起点贴近当前观测，可能漏掉相邻观测同为 `0%`、但 `24h` 内旧窗口存在更高水位的新稳定周窗口。

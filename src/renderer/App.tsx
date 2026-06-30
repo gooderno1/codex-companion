@@ -988,22 +988,27 @@ function SettingsPage({
   snapshot,
   preferences,
   onSaveBillingMonthStartDay,
+  onSaveCodexHome,
   onSaveRepoRoots
 }: {
   snapshot: DashboardSnapshot | null;
   preferences: AppPreferences | null;
   onSaveBillingMonthStartDay: (day: number) => Promise<void>;
+  onSaveCodexHome: (codexHome: string) => Promise<void>;
   onSaveRepoRoots: (roots: string[]) => Promise<void>;
 }) {
   const currentDay = preferences?.billingMonthStartDay ?? 1;
+  const currentCodexHome = preferences?.codexHome ?? snapshot?.sourceHealth.codexHome ?? "";
   const currentRepoRoots = useMemo(
     () => normalizeRepoRootsList(preferences?.repoRoots ?? snapshot?.sourceHealth.repoRoots ?? []),
     [preferences?.repoRoots, snapshot?.sourceHealth.repoRoots]
   );
   const [draftDay, setDraftDay] = useState(currentDay);
+  const [draftCodexHome, setDraftCodexHome] = useState(currentCodexHome);
   const [draftRepoRoots, setDraftRepoRoots] = useState(currentRepoRoots);
   const [draftRepoRootInput, setDraftRepoRootInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [codexSaving, setCodexSaving] = useState(false);
   const [repoSaving, setRepoSaving] = useState(false);
 
   async function saveBillingDay() {
@@ -1017,6 +1022,22 @@ function SettingsPage({
 
   function addDraftRepoRoots(nextRoots: string[]) {
     setDraftRepoRoots((current) => normalizeRepoRootsList([...current, ...nextRoots]));
+  }
+
+  async function chooseCodexHome() {
+    const selected = await window.codexCompanion.selectDirectory();
+    if (selected) {
+      setDraftCodexHome(selected);
+    }
+  }
+
+  async function saveCodexHome(codexHome = draftCodexHome) {
+    setCodexSaving(true);
+    try {
+      await onSaveCodexHome(codexHome.trim());
+    } finally {
+      setCodexSaving(false);
+    }
   }
 
   function addDraftRepoRootInput() {
@@ -1048,12 +1069,62 @@ function SettingsPage({
   const safeDraftDay = Number.isFinite(draftDay) ? draftDay : currentDay;
   const normalizedDraftDay = Math.max(1, Math.min(31, Math.trunc(safeDraftDay)));
   const canSave = normalizedDraftDay !== currentDay && !saving;
+  const canSaveCodexHome =
+    !codexSaving && draftCodexHome.trim() !== currentCodexHome;
   const normalizedDraftRepoRoots = normalizeRepoRootsList(draftRepoRoots);
   const canSaveRepoRoots =
     !repoSaving && !sameStringList(normalizedDraftRepoRoots, currentRepoRoots);
 
   return (
     <div className="page-stack settings-page">
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>Codex 数据目录</h3>
+            <p>用于读取本机 Codex sessions、archived_sessions 和 rate_limits。</p>
+          </div>
+        </div>
+        <div className="repo-root-editor">
+          <div className="repo-root-input-row">
+            <input
+              type="text"
+              value={draftCodexHome}
+              placeholder="选择或输入 .codex 目录"
+              onChange={(event) => setDraftCodexHome(event.target.value)}
+            />
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void chooseCodexHome()}
+            >
+              选择目录
+            </button>
+          </div>
+
+          <div className="settings-action-row">
+            <button
+              type="button"
+              className="action-button"
+              disabled={!canSaveCodexHome}
+              onClick={() => void saveCodexHome()}
+            >
+              {codexSaving ? "保存中" : "保存并刷新 Codex"}
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={codexSaving}
+              onClick={() => void saveCodexHome("")}
+            >
+              恢复默认路径
+            </button>
+          </div>
+        </div>
+        <p className="settings-note">
+          默认路径来自 `CODEX_HOME` 或当前用户目录下的 `.codex`；配置只保存在本机。
+        </p>
+      </SectionCard>
+
       <SectionCard className="settings-panel">
         <div className="section-toolbar">
           <div>
@@ -1150,6 +1221,14 @@ function SettingsPage({
               onClick={() => setDraftRepoRoots(currentRepoRoots)}
             >
               撤销修改
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={repoSaving}
+              onClick={() => setDraftRepoRoots([])}
+            >
+              恢复默认目录
             </button>
           </div>
         </div>
@@ -3002,6 +3081,41 @@ export default function App() {
     }
   }
 
+  async function saveCodexHome(codexHome: string) {
+    try {
+      setLoading(true);
+      showRefreshFeedback({
+        phase: "refreshing",
+        title: "正在保存 Codex 数据目录",
+        detail: codexHome
+          ? "保存后将重新读取本机 Codex sessions 与额度快照"
+          : "将恢复默认 Codex 数据目录，并重新读取本机 sessions"
+      });
+      const nextPreferences = await window.codexCompanion.updatePreferences({
+        codexHome
+      });
+      setPreferences(nextPreferences);
+      const nextSnapshot = await window.codexCompanion.refreshDashboard();
+      startTransition(() => setSnapshot(nextSnapshot));
+      setError(null);
+      showRefreshFeedback({
+        phase: "done",
+        title: "Codex 数据目录已更新",
+        detail: refreshTelemetryDetail(nextSnapshot)
+      }, true);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "保存 Codex 数据目录失败";
+      setError(message);
+      showRefreshFeedback({
+        phase: "error",
+        title: "保存 Codex 数据目录失败",
+        detail: message
+      }, true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function saveRepoRoots(roots: string[]) {
     try {
       setLoading(true);
@@ -3043,6 +3157,11 @@ export default function App() {
     page === "overview" || page === "ledger" || page === "repositories" || page === "settings"
       ? page
       : "overview";
+  const needsDataSetup =
+    currentPage !== "settings" &&
+    snapshot !== null &&
+    (snapshot.sourceHealth.sourceStatus !== "observed" ||
+      snapshot.repositories.summary.totalTracked === 0);
 
   return (
     <div className="app-shell">
@@ -3156,6 +3275,23 @@ export default function App() {
         {error ? <div className="error-banner">{error}</div> : null}
         {loading && !snapshot ? <div className="loading-card">正在读取本机 Codex 与 Git 数据…</div> : null}
         {isPending ? <div className="loading-hint">界面正在切换到最新快照…</div> : null}
+        {needsDataSetup ? (
+          <div className="setup-banner">
+            <div>
+              <strong>请确认本机数据源</strong>
+              <span>换电脑或首次安装后，需要确认 Codex 数据目录和 Git 仓库根目录。</span>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                window.location.hash = "#/settings";
+              }}
+            >
+              打开设置
+            </button>
+          </div>
+        ) : null}
 
         <div className="page-viewport">
           {snapshot ? (
@@ -3167,10 +3303,11 @@ export default function App() {
             {currentPage === "repositories" ? <RepositoriesPage snapshot={snapshot} /> : null}
             {currentPage === "settings" ? (
               <SettingsPage
-                key={`${preferences?.billingMonthStartDay ?? "settings"}:${preferences?.repoRoots.join("|") ?? ""}`}
+                key={`${preferences?.billingMonthStartDay ?? "settings"}:${preferences?.codexHome ?? ""}:${preferences?.repoRoots.join("|") ?? ""}`}
                 snapshot={snapshot}
                 preferences={preferences}
                 onSaveBillingMonthStartDay={saveBillingMonthStartDay}
+                onSaveCodexHome={saveCodexHome}
                 onSaveRepoRoots={saveRepoRoots}
               />
             ) : null}
