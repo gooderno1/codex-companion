@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.1 release: 内部正式版
+
+- 开发原因：用户询问 `codex-companion` 是否已经发布，核查 GitHub Release 后确认 `v0.3.1` 尚未发布，需要把 `v0.3.1-dev.1` 至 `v0.3.1-dev.10` 收敛为内部正式版。
+- 实现方式：将应用版本从 `0.3.1-dev.10` 调整为 `0.3.1`；更新 README、Roadmap、数据契约、组件映射和 Release notes；本次 release 明确包含换机数据源接线、首次自动检测、共享 `codex-usage-core@0.1.0-dev.5`、稳定 reset 规则、重置命名纠正和赠送重置次数展示。
+- 当前结果：发布资料已更新；`release/Codex Companion Setup 0.3.1.exe` 已生成，SHA256 为 `3225464BF7BF1EA650AD71F6EFFBAF663DEA99F6728C4E33E546B2400EE2853C`；待创建 Git tag 和 GitHub Release。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `31%`、周额度余量 `76%` 且 5H 额度识别 `1` 次 reset；执行 `npm run verify:ledger`，确认账本页一致性通过；调用编译后的 `DashboardService.getSnapshot(true, "manual")`，确认 `bankedResetCredits.sourceStatus=observed`、`availableCount=2`、`activeCreditCount=2`；执行 `npm run package:win`，确认生成 `Codex Companion Setup 0.3.1.exe`；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-07-01] v0.3.1-dev.10 feat: 展示赠送重置逐个明细
 
 - 开发原因：用户确认需要在 `codex-companion` 中展示每个赠送重置次数的获取时间和预期过期时间，并要求总览页放在顶部四卡与 `5H / 周额度` 圆环之间；普通态只显示一行状态，点击后展开逐个明细。
