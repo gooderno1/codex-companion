@@ -4,8 +4,8 @@
 
 - 开发原因：用户询问 `codex-companion` 是否已经发布，核查 GitHub Release 后确认 `v0.3.1` 尚未发布，需要把 `v0.3.1-dev.1` 至 `v0.3.1-dev.10` 收敛为内部正式版。
 - 实现方式：将应用版本从 `0.3.1-dev.10` 调整为 `0.3.1`；更新 README、Roadmap、数据契约、组件映射和 Release notes；本次 release 明确包含换机数据源接线、首次自动检测、共享 `codex-usage-core@0.1.0-dev.5`、稳定 reset 规则、重置命名纠正和赠送重置次数展示。
-- 当前结果：发布资料已更新；`release/Codex Companion Setup 0.3.1.exe` 已生成，SHA256 为 `3225464BF7BF1EA650AD71F6EFFBAF663DEA99F6728C4E33E546B2400EE2853C`；待创建 Git tag 和 GitHub Release。
-- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `31%`、周额度余量 `76%` 且 5H 额度识别 `1` 次 reset；执行 `npm run verify:ledger`，确认账本页一致性通过；调用编译后的 `DashboardService.getSnapshot(true, "manual")`，确认 `bankedResetCredits.sourceStatus=observed`、`availableCount=2`、`activeCreditCount=2`；执行 `npm run package:win`，确认生成 `Codex Companion Setup 0.3.1.exe`；执行 `git diff --check`，仅有 Windows 换行提示。
+- 当前结果：发布资料已更新；`release/Codex Companion Setup 0.3.1.exe` 已生成，SHA256 为 `3225464BF7BF1EA650AD71F6EFFBAF663DEA99F6728C4E33E546B2400EE2853C`；已创建 Git tag `v0.3.1` 和 GitHub Release `https://github.com/gooderno1/codex-companion/releases/tag/v0.3.1`，上传资产名为 `Codex.Companion.Setup.0.3.1.exe`。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `31%`、周额度余量 `76%` 且 5H 额度识别 `1` 次 reset；执行 `npm run verify:ledger`，确认账本页一致性通过；调用编译后的 `DashboardService.getSnapshot(true, "manual")`，确认 `bankedResetCredits.sourceStatus=observed`、`availableCount=2`、`activeCreditCount=2`；执行 `npm run package:win`，确认生成 `Codex Companion Setup 0.3.1.exe`；执行 `git diff --check`，仅有 Windows 换行提示；执行 `gh release view v0.3.1`，确认 release 资产已上传且 digest 与本地 SHA256 一致。
 
 ## [2026-07-01] v0.3.1-dev.10 feat: 展示赠送重置逐个明细
 
