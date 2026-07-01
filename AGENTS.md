@@ -26,10 +26,10 @@
 ### 2.1 Codex 用量核心包依赖
 
 - 本项目依赖 `@lifeinhand/codex-usage-core` 维护 Codex 用量、额度周期和 reset 检测共享逻辑。
-- 修改 Codex session 解析、token 增量、`rate_limits`、额度周期、reset 检测、`quotaEvidence` 或相关校验脚本前，必须先检查 `D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\codex-usage-core` 是否已有更新。
+- 修改 Codex session 解析、token 增量、`rate_limits`、额度周期、reset 检测、`quotaEvidence` 或相关校验脚本前，必须先检查远程核心包 [gooderno1/codex-usage-core](https://github.com/gooderno1/codex-usage-core) 是否已有更新或新 tag。
 - 如果规则属于共享核心职责，必须优先修改 `codex-usage-core`，再升级本项目依赖；不要在本项目内长期维护分叉版 reset engine。
 - 本项目只保留 Electron 设置、缓存、快照存储、UI 映射和页面展示逻辑。
-- 涉及核心包依赖升级时，开发记录必须写明当前使用的 `codex-usage-core` 版本和本项目验证命令。
+- 涉及核心包依赖升级时，必须使用远程 Git tag 或正式包版本，不使用本地 `file:` 依赖；开发记录必须写明当前使用的 `codex-usage-core` 版本和本项目验证命令。
 
 ### 2.2 规划阶段工作流程
 

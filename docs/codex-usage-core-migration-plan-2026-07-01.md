@@ -105,10 +105,10 @@ codex-usage-core/
     token-usage.test.ts
 ```
 
-依赖方式建议分两阶段：
+依赖方式统一使用远程可同步来源：
 
-1. 本地开发期：两个项目使用 `file:../codex-usage-core` 或 workspace 方式依赖，便于快速联调。
-2. 稳定期：核心包使用 Git tag 或私有 npm 包发布，两个项目锁定明确版本，避免隐式漂移。
+1. 当前阶段：两个项目使用 `git+https://github.com/gooderno1/codex-usage-core.git#v0.1.0-dev.1` 依赖，锁定明确 Git tag，避免换设备后依赖相邻本地目录。
+2. 后续稳定期：核心包可切换为正式 npm 包版本；两个项目仍需锁定明确版本，避免隐式漂移。
 
 ## 5. AGENTS 协作规则改造
 

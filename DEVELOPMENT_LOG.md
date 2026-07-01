@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-01] v0.3.1-dev.6 chore: 改用远程 Codex 用量核心包
+
+- 开发原因：用户要求下游项目不要使用本地 `file:../codex-usage-core` 依赖，避免换设备后无法同步开发。
+- 实现方式：将应用版本从 `v0.3.1-dev.5` 提升到 `v0.3.1-dev.6`；把 `@lifeinhand/codex-usage-core` 依赖切换为远程 Git tag：`git+https://github.com/gooderno1/codex-usage-core.git#v0.1.0-dev.1`；更新 `AGENTS.md`、数据契约和组件映射，明确后续使用远程 tag 或正式包版本，不使用本地 `file:` 依赖。
+- 当前结果：其他设备执行 `npm install` 时会从 GitHub 拉取 `codex-usage-core` 对应 tag，不依赖相邻本地目录。
+- 验证方式：执行 `npm run build`，包含 lint、typecheck、renderer build 和 main build；执行 `npm run verify:quota`，确认 5H 与周额度快照校验通过；执行 `npm run verify:ledger`，确认账本页一致性校验通过；执行 `git diff --check`，仅有 Windows 换行提示，无空白错误。
+
 ## [2026-07-01] v0.3.1-dev.5 refactor: 接入 Codex 用量核心包
 
 - 开发原因：按 `codex-usage-core` 迁移规划推进实施，避免 `codex-companion` 与 `dev-ledger` 各自维护分叉版 Codex 额度 reset 检测规则。
