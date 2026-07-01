@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-01] v0.3.1-dev.5 refactor: 接入 Codex 用量核心包
+
+- 开发原因：按 `codex-usage-core` 迁移规划推进实施，避免 `codex-companion` 与 `dev-ledger` 各自维护分叉版 Codex 额度 reset 检测规则。
+- 实现方式：将应用版本从 `v0.3.1-dev.4` 提升到 `v0.3.1-dev.5`；新增本地依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.1`；`dashboardCollector` 删除本地 reset 候选、稳定确认、漂移排除和去重实现，改为调用核心包 `analyzeQuotaObservations`，本项目继续保留周期边界归一化、快照存储和 UI 映射；`AGENTS.md` 增加核心包最新性检查和共享规则优先落核心包的要求；数据契约和组件映射记录当前核心包版本。
+- 当前结果：Codex 周额度 reset 规则由共享核心包提供；本项目仍输出原有 `quotaEvidence.resetEvents / usageSegments` 快照结构，页面展示口径不变。
+- 验证方式：执行 `npm run typecheck`；执行 `npm run build`；调用编译后的 `DashboardService.getSnapshot(true, "manual")` 在 `local_dev_work/live-check-core-dev5` 生成临时 live 快照，确认当前周仍为 `2026-06-30T03:22:09.000Z - 2026-07-07T03:22:09.000Z`，上一周期保留 `stabilized-boundary-drop` reset event；执行 `npm run verify:quota -- --snapshot local_dev_work\live-check-core-dev5\snapshot.json`；执行 `npm run verify:quota`；执行 `npm run verify:ledger`。
+
 ## [2026-07-01] v0.3.1-dev.4 docs: 规划 Codex 用量核心包迁移
 
 - 开发原因：用户希望 `codex-companion` 与 `dev-ledger` 不再分别维护 Codex 用量、额度周期和 reset 检测逻辑，而是通过共享核心包同步规则更新。

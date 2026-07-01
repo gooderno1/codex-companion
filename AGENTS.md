@@ -23,7 +23,15 @@
 - 如果改动影响主要交互流程，应启动本地应用或页面做人工检查。
 - 每次完成有效修改后都要进行 Git 同步，至少包括：检查变更、更新开发记录、提交 commit；如远端可用，再执行 push。
 
-### 2.1 规划阶段工作流程
+### 2.1 Codex 用量核心包依赖
+
+- 本项目依赖 `@lifeinhand/codex-usage-core` 维护 Codex 用量、额度周期和 reset 检测共享逻辑。
+- 修改 Codex session 解析、token 增量、`rate_limits`、额度周期、reset 检测、`quotaEvidence` 或相关校验脚本前，必须先检查 `D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\codex-usage-core` 是否已有更新。
+- 如果规则属于共享核心职责，必须优先修改 `codex-usage-core`，再升级本项目依赖；不要在本项目内长期维护分叉版 reset engine。
+- 本项目只保留 Electron 设置、缓存、快照存储、UI 映射和页面展示逻辑。
+- 涉及核心包依赖升级时，开发记录必须写明当前使用的 `codex-usage-core` 版本和本项目验证命令。
+
+### 2.2 规划阶段工作流程
 
 - 当用户明确表示“先规划”“先不要写代码”或“后续会有一系列修改”时，先创建或更新正式规划文档。
 - 收集阶段每收到一条新需求，只补充计划，不提前改应用实现。

@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.3.1-dev.3`
+- 对应开发版本：`v0.3.1-dev.5`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -50,6 +50,7 @@
 
 ### 2.2 额度
 
+- Codex 用量、额度周期和 reset 检测共享逻辑来自 `@lifeinhand/codex-usage-core@0.1.0-dev.1`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。
 - `5 小时额度` 使用 `rate_limits.primary`
 - `周额度` 使用 `rate_limits.secondary`
 - 如果同一台机器同时观测到多个 Codex `rate_limits` 池，页面可见的 `5 小时额度 / 周额度` 必须优先选择主额度池 `rate_limits.limit_id = codex`；模型或实验池，例如 `codex_bengalfox`，不能因为观测时间更新而覆盖主额度显示。
