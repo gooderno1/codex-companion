@@ -107,7 +107,7 @@ codex-usage-core/
 
 依赖方式统一使用远程可同步来源：
 
-1. 当前阶段：两个项目使用 `git+https://github.com/gooderno1/codex-usage-core.git#v0.1.0-dev.3` 依赖，锁定明确 Git tag，避免换设备后依赖相邻本地目录。
+1. 当前阶段：两个项目使用 `git+https://github.com/gooderno1/codex-usage-core.git#v0.1.0-dev.4` 依赖，锁定明确 Git tag，避免换设备后依赖相邻本地目录。
 2. 后续稳定期：核心包可切换为正式 npm 包版本；两个项目仍需锁定明确版本，避免隐式漂移。
 
 ## 5. AGENTS 协作规则改造

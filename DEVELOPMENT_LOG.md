@@ -1,5 +1,14 @@
 # DEVELOPMENT LOG
 
+## [2026-07-01] v0.3.1-dev.9 docs: 规划 banked reset 展示
+
+- 开发原因：`codex-usage-core v0.1.0-dev.4` 已能通过 Codex app-server 只读读取 `rateLimitResetCredits.availableCount`，桌面端需要跟进依赖版本；但用户要求两个下游项目的参数显示方式先写文档确认，再分别修改 UI。
+- 实现方式：将应用版本从 `v0.3.1-dev.8` 提升到 `v0.3.1-dev.9`；把 `@lifeinhand/codex-usage-core` 升级为远程 Git tag：`git+https://github.com/gooderno1/codex-usage-core.git#v0.1.0-dev.4`；新增 `docs/banked-reset-display-plan-2026-07-01.md`，规划总览页和账本页展示 `availableCount`、推断获得/使用/过期候选和估算过期时间；同步更新数据合同、组件映射和迁移规划中的核心包版本。
+- 适用范围：本轮只做依赖升级和展示方案文档，不修改 `DashboardSnapshot` 合同、采集器、IPC、React 页面或校验脚本。
+- 显示边界：后续 UI 不应把 banked reset credit 与普通 `quotaEvidence.resetCount` 混用；`estimatedExpiresAt` 只能显示为估算过期时间；不得展示账号 ID、邮箱、原始 app-server 响应、余额字段或 token。
+- 当前结果：项目依赖已锁定到 `codex-usage-core v0.1.0-dev.4`；展示方案等待用户确认后再实施。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认 5H 额度和周额度仍按现有 reset 字段校验；执行 `npm run verify:ledger`，确认账本页一致性通过；待最终提交前执行 `git diff --check`。
+
 ## [2026-07-01] v0.3.1-dev.8 fix: 纠正额度重置命名
 
 - 开发原因：上一轮“充值次数”来自用户笔误，Codex 本地数据中没有独立官方充值次数字段；桌面端继续展示 `rechargeCount / rechargeEvents` 会误导为真实充值数据。
