@@ -1,10 +1,10 @@
 # Codex banked reset 展示实施方案
 
-本文档记录 `codex-companion v0.3.1-dev.10` 对 `codex-usage-core v0.1.0-dev.5` banked reset credit 字段的实际接入方式。
+本文档记录 `codex-companion v0.3.2-dev.1` 对 `codex-usage-core v0.1.0-dev.6` banked reset credit 字段的实际接入方式。
 
 ## 数据来源
 
-- 核心包：`@lifeinhand/codex-usage-core@v0.1.0-dev.5`
+- 核心包：`@lifeinhand/codex-usage-core@v0.1.0-dev.6`
 - 只读方法：`readCodexAccountRateLimits()`
 - Codex 本地接口：`account/rateLimits/read`
 - 主字段：`rateLimitResetCredits.availableCount`
@@ -30,7 +30,7 @@ interface BankedResetCreditsSummary {
     firstObservedAt: string;
     estimatedExpiresAt: string | null;
     safeEstimatedExpiresAt: string | null;
-    estimateBasis: "observed-grant" | "existing-at-first-observation";
+    estimateBasis: "observed-grant" | "public-grant" | "existing-at-first-observation";
   }>;
   events: Array<{ kind: "grant" | "use" | "expiration" | "decrease-unknown"; at: string; count: number }>;
   observations: BankedResetCreditObservation[];
@@ -46,11 +46,11 @@ interface BankedResetCreditsSummary {
 - 交互：点击整行展开。
 - 展开态：逐个显示每次可用 credit：
   - 编号：`赠送重置 #1`
-  - 获取时间：`acquiredAt`；如果是首次观测前已有，则显示 `早于 firstObservedAt`
+- 获取时间：`acquiredAt`；如果是 `public-grant`，显示为公开发放估算；如果是首次观测前已有且未匹配公开 seed，则显示 `早于 firstObservedAt`
   - 预计过期：`estimatedExpiresAt`
   - 保守提醒时间：`safeEstimatedExpiresAt`
 
-过期提醒优先使用 `safeEstimatedExpiresAt`，默认比 `estimatedExpiresAt` 早 `1` 天。首次采样前已经存在的 credit 无法反推真实获取和过期时间，页面显示为“建议尽快使用”。
+过期提醒优先使用 `safeEstimatedExpiresAt`，默认比 `estimatedExpiresAt` 早 `1` 天。核心包默认使用两个公开 seed：`2026-06-11` Codex banking 上线 free reset，预计 `2026-07-11` 过期、`2026-07-10` 前保守使用；`2026-06-30` 异常消耗修复补偿 reset，预计 `2026-07-30` 过期、`2026-07-29` 前保守使用。首次采样前已经存在且未匹配公开 seed 的 credit 无法反推真实获取和过期时间，页面显示为“建议尽快使用”。
 
 ## 边界
 

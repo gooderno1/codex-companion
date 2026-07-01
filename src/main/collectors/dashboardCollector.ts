@@ -174,7 +174,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.3.1-dev.10"
+      clientVersion: "0.3.2-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -210,7 +210,7 @@ async function collectBankedResetCreditsSummary(
       note:
         analysis.activeCredits.some((credit) => credit.estimateBasis === "existing-at-first-observation")
           ? "首次观测前已有的赠送重置无法反推获取时间，已按尽快使用处理。"
-          : "过期时间按获得观测时间加 30 天估算，并提前 1 天提醒。"
+          : "过期时间按公开发放时间或获得观测时间加 30 天估算，并提前 1 天提醒。"
     };
   } catch (error) {
     if (history.length > 0) {

@@ -112,7 +112,7 @@ export interface LimitWindow {
 }
 
 export type BankedResetCreditEventKind = "grant" | "use" | "expiration" | "decrease-unknown";
-export type BankedResetCreditEstimateBasis = "observed-grant" | "existing-at-first-observation";
+export type BankedResetCreditEstimateBasis = "observed-grant" | "public-grant" | "existing-at-first-observation";
 
 export interface BankedResetCreditActiveCredit {
   id: string;

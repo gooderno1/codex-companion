@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.2-dev.1 feat: 用公开发放时间展示赠送重置
+
+- 开发原因：用户指出 banked reset credit 的过期时间可以按公开 `30` 天有效期推断，当前本机可用的 `2` 次也可先对应公开发放事件；总览页不应把这两次都展示为无法反推。
+- 实现方式：将应用版本从 `v0.3.1` 提升到 `v0.3.2-dev.1`；把 `@lifeinhand/codex-usage-core` 升级到远程 Git tag `v0.1.0-dev.6`；共享快照合同新增 `estimateBasis=public-grant`；总览页获取时间对 `public-grant` 标注“公开发放估算”，预计过期时间标注“按公开发放时间 + 30 天估算”；文档同步记录两个默认 seed：`2026-06-11` Codex banking 上线 free reset 和 `2026-06-30` 异常消耗修复补偿 reset。
+- 适用范围：仅适用于核心包从 Codex app-server 只读 `rateLimitResetCredits.availableCount` 推断出的 banked reset credit；本项目仍不调用 `account/rateLimitResetCredit/consume`，不会消耗赠送重置。
+- 触发条件：首次观测已有库存且核心包匹配到仍在有效期内的公开 seed 时，页面展示公开发放获取时间、预计过期时间和提前 `1d` 的保守提醒；后续可用次数增加仍按本地观测时间推断。
+- 排除条件：未匹配公开 seed 的首次已有库存继续展示为“早于首次观测获得 / 建议尽快使用”；页面不展示账号、邮箱、余额、原始 app-server 响应、token 或私有路径。
+- 当前结果：总览页会把当前 `availableCount=2` 的两条赠送重置显示为公开发放估算：`2026-06-11 -> 2026-07-11`、`2026-06-30 -> 2026-07-30`，并分别提前到 `2026-07-10`、`2026-07-29` 作为保守使用提醒。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认额度快照校验通过；执行 `npm run verify:ledger`，确认账本页一致性通过；调用编译后的 `DashboardService.getSnapshot(true, "manual")`，确认 `bankedResetCredits.availableCount=2` 且两条 `activeCredits[].estimateBasis` 均为 `public-grant`，获取时间分别为 `2026-06-11T00:00:00.000Z` 和 `2026-06-30T00:00:00.000Z`；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-07-02] v0.3.1 release: 内部正式版
 
 - 开发原因：用户询问 `codex-companion` 是否已经发布，核查 GitHub Release 后确认 `v0.3.1` 尚未发布，需要把 `v0.3.1-dev.1` 至 `v0.3.1-dev.10` 收敛为内部正式版。
