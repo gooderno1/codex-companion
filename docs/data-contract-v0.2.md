@@ -50,7 +50,7 @@
 
 ### 2.2 额度
 
-- Codex 用量、额度周期、reset 检测和充值事件跟踪共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.2`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.2`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。
+- Codex 用量、额度周期和 reset 检测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.3`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.3`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。
 - `5 小时额度` 使用 `rate_limits.primary`
 - `周额度` 使用 `rate_limits.secondary`
 - 如果同一台机器同时观测到多个 Codex `rate_limits` 池，页面可见的 `5 小时额度 / 周额度` 必须优先选择主额度池 `rate_limits.limit_id = codex`；模型或实验池，例如 `codex_bengalfox`，不能因为观测时间更新而覆盖主额度显示。
@@ -81,7 +81,7 @@
 - 重置确认条件：
   - 候选产生后至少等待 `30min` 再确认。
   - 候选后 `6h` 内必须出现同一新窗口边界的稳定观测，边界误差不超过 `5min`。
-  - 如果同一确认窗口内出现新窗口边界漂移超过 `15min` 的观测，则判定为低用量滚动恢复，不作为充值 / 重置事件。
+  - 如果同一确认窗口内出现新窗口边界漂移超过 `15min` 的观测，则判定为低用量滚动恢复，不作为重置事件。
   - 同一新窗口起点在 `15min` 容差内只保留最早确认事件，避免相邻候选和回看候选重复计数。
 - 重置排除条件：
   - 缺少可解析 `used_percent / resets_at / window_minutes` 的观测。
@@ -95,15 +95,13 @@
 - `PeriodMetric.quotaEvidence` 暴露当前额度周期的可见证据：
   - `observations`：周期内有效 `rate_limits` 观测次数
   - `resetCount`：周期内按上述规则确认的额度重置次数
-  - `rechargeCount`：周期内按上述规则确认的额度充值次数，当前等价于稳定确认后的 reset 次数
   - `resetEvents`：周期内识别到的重置事件摘要，只包含观测时间、重置前后百分比、窗口恢复时间、候选证据 `evidence` 和确认结果 `confirmation`，不包含原始会话正文
-  - `rechargeEvents`：由核心包从 `resetEvents` 映射得到的充值事件摘要，包含 `windowStartedAt`、`expiresAt`、`previousUsageStartedAt`、`previousUsageEndedAt` 和 `previousUsedPercent`
   - `resetEvents[].evidence.evidenceTypes` 可包含 `high-water-drop / boundary-aligned-drop / stabilized-boundary-drop`；当使用稳定边界回看时，同步记录 `stabilizedBoundaryEvidence=true / lookbackWindowMs / lookbackObservedAt`
-  - `usageSegments`：周期内用于累计额度用量的分段摘要，只包含时间范围、分段最高百分比、最高点观测时间、窗口起点、窗口过期时间和充值开启/截止时间
+  - `usageSegments`：周期内用于累计额度用量的分段摘要，只包含时间范围、分段最高百分比、最高点观测时间、窗口起点、窗口过期时间和 reset 开启/截止时间
   - `maxObservedUsedPercent`：周期内原始观测最高已用百分比
   - `usedPercent / remainingPercent`：考虑重置段后的周期累计已用百分比和余量百分比
   - `lastObservedAt`：周期内最近一次额度观测时间
-- 总览页额度卡圆环中心和弧线都显示当前额度周期累计余量；圆环下方将重置时间和当前额度周期起止合并为一行，用于解释右侧 token / 成本为什么可能小于自然日累计；底部短注记只说明 `圆环=周期累计余量；右侧=当前周期累计`，并以 `观测 N 次 · 充值 N 次` 展示 `observations / rechargeCount`，不在总览页展开历史充值明细。
+- 总览页额度卡圆环中心和弧线都显示当前额度周期累计余量；圆环下方将重置时间和当前额度周期起止合并为一行，用于解释右侧 token / 成本为什么可能小于自然日累计；底部短注记只说明 `圆环=周期累计余量；右侧=当前周期累计`，并以 `观测 N 次 · 重置 N 次` 展示 `observations / resetCount`，不在总览页展开历史重置明细。
 - `LimitWindow.usedPercent / remainingPercent` 是页面显示字段，必须优先使用当前额度周期的累计已用百分比和余量百分比；最近一次原始 `rate_limits.used_percent` 只作为缺少周期证据时的降级来源。原因是最近一次百分比可能在同周期内回落到低水位，不能代表本周期已消耗额度。
 - `LimitWindow.resetsAt` 是页面显示字段，必须与当前 `PeriodMetric.endAt` 保持一致；最近一次原始 `rate_limits.resets_at` 只作为缺少周期证据时的降级来源，避免低用量滑动窗口漂移导致“重置时间”和“周期范围”不一致。
 - `LimitWindow.estimatedFullValueUsd / estimatedRemainingValueUsd` 是套餐价值折算字段，也必须使用当前额度周期的累计已用百分比作为分母，优先取 `PeriodMetric.quotaEvidence.usedPercent`，不能使用最近一次原始 `rate_limits.used_percent`。

@@ -1,5 +1,16 @@
 # DEVELOPMENT LOG
 
+## [2026-07-01] v0.3.1-dev.8 fix: 纠正额度重置命名
+
+- 开发原因：上一轮“充值次数”来自用户笔误，Codex 本地数据中没有独立官方充值次数字段；桌面端继续展示 `rechargeCount / rechargeEvents` 会误导为真实充值数据。
+- 实现方式：将应用版本从 `v0.3.1-dev.7` 提升到 `v0.3.1-dev.8`；把 `@lifeinhand/codex-usage-core` 升级为远程 Git tag：`git+https://github.com/gooderno1/codex-usage-core.git#v0.1.0-dev.3`；删除共享快照契约中的 `QuotaRechargeEvent`、`quotaEvidence.rechargeCount / rechargeEvents`；保留 `resetCount / resetEvents / usageSegments`，其中 `usageSegments` 继续承载窗口起点、过期时间和 reset 前后使用区间；总览和账本可见文案改回“重置次数”。
+- 适用范围：仅适用于本地 Codex `rate_limits` 已观测到的 5H / 周额度窗口 reset；不推断未暴露的月额度、账户余额或真实充值记录。
+- 触发条件：重置事件沿用核心包稳定确认口径，即 `resets_at` 后移、`used_percent` 下降不少于默认 `5%`，并通过高水位、边界贴近或稳定边界回看证据及后续稳定窗口确认。
+- 排除条件：低用量滑动窗口漂移、缺少稳定确认、时间或窗口字段不可解析时，核心包不会输出 `resetEvents`。
+- 关键字段：`quotaEvidence.resetCount` 表示稳定确认的重置次数；`resetEvents[].afterWindowResetsAt` 表示重置后窗口过期时间；`usageSegments[].startedByResetAt / closedByResetAt` 表示用量段由哪次 reset 开启或截止。
+- 当前结果：`DashboardSnapshot.overview.windowPeriods.*.quotaEvidence` 与账本周期只暴露 reset 字段；输出仍不包含原始 Codex session 正文、用户输入、模型输出或私有仓库源码。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；调用编译后的 `DashboardService.getSnapshot(true, "manual")` 刷新 live 快照，确认 `weekLimit.quotaEvidence.resetCount=0`，且不再包含 `rechargeCount / rechargeEvents`；执行 `npm run verify:quota`，确认 5H / 周额度均按 `resetCount / resetEvents` 校验；执行 `npm run verify:ledger`；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-07-01] v0.3.1-dev.7 feat: 同步额度充值跟踪核心包
 
 - 开发原因：`codex-usage-core v0.1.0-dev.2` 新增 Codex 额度充值次数、充值过期时间和使用区间输出，桌面端需要同步依赖并透出到 `quotaEvidence`。
