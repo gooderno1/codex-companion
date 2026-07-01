@@ -1,5 +1,14 @@
 # DEVELOPMENT LOG
 
+## [2026-07-01] v0.3.1-dev.10 feat: 展示赠送重置逐个明细
+
+- 开发原因：用户确认需要在 `codex-companion` 中展示每个赠送重置次数的获取时间和预期过期时间，并要求总览页放在顶部四卡与 `5H / 周额度` 圆环之间；普通态只显示一行状态，点击后展开逐个明细。
+- 实现方式：将应用版本从 `v0.3.1-dev.9` 提升到 `v0.3.1-dev.10`；把 `@lifeinhand/codex-usage-core` 升级到远程 Git tag `v0.1.0-dev.5`；扩展 `DashboardSnapshot.overview.bankedResetCredits` 合同，保存脱敏观测历史、推断事件和 `activeCredits[]`；主进程通过 `readCodexAccountRateLimits()` 只读读取 `account/rateLimits/read`，合并上一轮快照观测后调用 `analyzeBankedResetCreditObservations()`；总览页新增 `BankedResetCreditStrip`，普通态显示可用次数和最早保守使用时间，展开后显示每个 credit 的获取时间、预计过期时间和保守提醒时间。
+- 适用范围：仅适用于 Codex app-server 暴露的 `rateLimitResetCredits.availableCount`；本项目不调用 `account/rateLimitResetCredit/consume`，不会消耗可用赠送重置。
+- 显示边界：`estimatedExpiresAt` 按推断获取时间加 `30d` 估算；`safeEstimatedExpiresAt` 默认提前 `1d`，页面优先展示；首次采样前已有的 credit 无法反推真实获取和过期时间，显示为“早于首次观测获得 / 建议尽快使用”。
+- 当前结果：总览页顶部四卡与额度圆环之间会展示赠送重置状态行，并支持展开查看逐个明细；输出仍不包含账号、邮箱、余额、原始 app-server 响应、原始 Codex session 正文、用户输入或模型输出。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认 5H 与周额度快照仍通过；执行 `npm run verify:ledger`，确认账本页一致性通过；调用编译后的 `DashboardService.getSnapshot(true, "manual")` 生成 live 快照，确认 `overview.bankedResetCredits.availableCount=2` 且输出 2 条 `existing-at-first-observation` active 明细；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-07-01] v0.3.1-dev.9 docs: 规划 banked reset 展示
 
 - 开发原因：`codex-usage-core v0.1.0-dev.4` 已能通过 Codex app-server 只读读取 `rateLimitResetCredits.availableCount`，桌面端需要跟进依赖版本；但用户要求两个下游项目的参数显示方式先写文档确认，再分别修改 UI。

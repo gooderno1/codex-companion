@@ -1,5 +1,8 @@
 import type {
   AppPreferences,
+  BankedResetCreditObservation,
+  BankedResetCreditRateLimitSnapshot,
+  BankedResetCreditsSummary,
   DashboardSnapshot,
   LedgerAnalysisPeriod,
   LedgerTimeBucket,
@@ -17,6 +20,11 @@ import type {
 } from "../../shared/contracts";
 import {
   analyzeQuotaObservations,
+  analyzeBankedResetCreditObservations,
+  createBankedResetCreditObservationFromSnapshot,
+  readCodexAccountRateLimits,
+  type BankedResetCreditObservation as CoreBankedResetCreditObservation,
+  type CodexRateLimitSnapshot,
   type QuotaCycleObservation
 } from "@lifeinhand/codex-usage-core";
 import { SnapshotStore } from "../state/snapshotStore";
@@ -61,11 +69,190 @@ function clampPercentage(value: number | null): number | null {
 const WEEKLY_RATE_LIMIT_WINDOW_MINUTES = 7 * 24 * 60;
 const QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS = 5 * 60 * 1000;
 const DAY_MINUTES = 24 * 60;
+const BANKED_RESET_OBSERVATION_HISTORY_LIMIT = 160;
 
 interface CollectDashboardSnapshotOptions {
   codexSessionCacheStore?: CodexSessionCacheStoreLike;
   trigger?: RefreshTrigger;
   refreshHistory?: RefreshHistoryEntry[];
+  previousBankedResetCreditObservations?: BankedResetCreditObservation[];
+}
+
+function emptyBankedResetCreditsSummary(sourceStatus: SourceStatus, note: string | null): BankedResetCreditsSummary {
+  return {
+    sourceStatus,
+    observedAt: null,
+    availableCount: null,
+    inferredGrantCount: 0,
+    inferredUseCount: 0,
+    inferredExpirationCount: 0,
+    inferredUnknownDecreaseCount: 0,
+    nextEstimatedExpiresAt: null,
+    nextSafeEstimatedExpiresAt: null,
+    activeCredits: [],
+    events: [],
+    observations: [],
+    note
+  };
+}
+
+function sanitizeBankedResetWindow(
+  windowInfo: CodexRateLimitSnapshot["primary"]
+): BankedResetCreditRateLimitSnapshot["primary"] {
+  if (!windowInfo) {
+    return null;
+  }
+
+  return {
+    usedPercent: windowInfo.usedPercent,
+    windowDurationMins: windowInfo.windowDurationMins,
+    resetsAt: windowInfo.resetsAt,
+    resetsAtUnixSeconds: windowInfo.resetsAtUnixSeconds ?? null
+  };
+}
+
+function sanitizeBankedResetRateLimitSnapshot(
+  snapshot: CodexRateLimitSnapshot | null | undefined
+): BankedResetCreditRateLimitSnapshot | null {
+  if (!snapshot) {
+    return null;
+  }
+
+  return {
+    limitId: snapshot.limitId,
+    limitName: snapshot.limitName,
+    planType: snapshot.planType,
+    primary: sanitizeBankedResetWindow(snapshot.primary),
+    secondary: sanitizeBankedResetWindow(snapshot.secondary),
+    credits: null,
+    rateLimitReachedType: snapshot.rateLimitReachedType
+  };
+}
+
+function sanitizeBankedResetObservation(
+  observation: CoreBankedResetCreditObservation
+): BankedResetCreditObservation {
+  return {
+    observedAt: observation.observedAt,
+    availableCount: observation.availableCount,
+    rateLimits: sanitizeBankedResetRateLimitSnapshot(observation.rateLimits),
+    rateLimitsByLimitId: observation.rateLimitsByLimitId
+      ? Object.fromEntries(
+          Object.entries(observation.rateLimitsByLimitId)
+            .map(([limitId, snapshot]) => [limitId, sanitizeBankedResetRateLimitSnapshot(snapshot)] as const)
+            .filter((entry): entry is readonly [string, BankedResetCreditRateLimitSnapshot] => entry[1] !== null)
+        )
+      : null,
+    sourceId: observation.sourceId ?? null
+  };
+}
+
+function normalizeBankedResetObservationHistory(
+  observations: BankedResetCreditObservation[]
+): BankedResetCreditObservation[] {
+  const deduped = new Map<string, BankedResetCreditObservation>();
+  for (const observation of observations) {
+    const observedMs = new Date(observation.observedAt).getTime();
+    if (!Number.isFinite(observedMs) || !Number.isFinite(observation.availableCount)) {
+      continue;
+    }
+
+    const key = `${observation.observedAt}:${observation.availableCount}:${observation.sourceId ?? ""}`;
+    deduped.set(key, observation);
+  }
+
+  return [...deduped.values()]
+    .sort((left, right) => new Date(left.observedAt).getTime() - new Date(right.observedAt).getTime())
+    .slice(-BANKED_RESET_OBSERVATION_HISTORY_LIMIT);
+}
+
+async function collectBankedResetCreditsSummary(
+  previousObservations: BankedResetCreditObservation[] = []
+): Promise<BankedResetCreditsSummary> {
+  const history = normalizeBankedResetObservationHistory(previousObservations);
+
+  try {
+    const snapshot = await readCodexAccountRateLimits({
+      clientName: "codex-companion",
+      clientVersion: "0.3.1-dev.10"
+    });
+    const currentObservation = sanitizeBankedResetObservation(
+      createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
+    );
+    const observations = normalizeBankedResetObservationHistory([...history, currentObservation]);
+    const analysis = analyzeBankedResetCreditObservations(observations, {
+      validityDays: 30,
+      expirationSafetyMarginDays: 1
+    });
+
+    return {
+      sourceStatus: "observed",
+      observedAt: currentObservation.observedAt,
+      availableCount: analysis.currentAvailableCount,
+      inferredGrantCount: analysis.inferredGrantCount,
+      inferredUseCount: analysis.inferredUseCount,
+      inferredExpirationCount: analysis.inferredExpirationCount,
+      inferredUnknownDecreaseCount: analysis.inferredUnknownDecreaseCount,
+      nextEstimatedExpiresAt: analysis.nextEstimatedExpiresAt,
+      nextSafeEstimatedExpiresAt: analysis.nextSafeEstimatedExpiresAt,
+      activeCredits: analysis.activeCredits,
+      events: analysis.events.map((event) => ({
+        kind: event.kind,
+        at: event.at,
+        count: event.count,
+        beforeAvailableCount: event.beforeAvailableCount,
+        afterAvailableCount: event.afterAvailableCount,
+        estimatedExpiresAt: event.estimatedExpiresAt ?? null,
+        sourceId: event.sourceId ?? null,
+        affectedLimitIds: event.evidence.affectedLimitIds
+      })),
+      observations,
+      note:
+        analysis.activeCredits.some((credit) => credit.estimateBasis === "existing-at-first-observation")
+          ? "首次观测前已有的赠送重置无法反推获取时间，已按尽快使用处理。"
+          : "过期时间按获得观测时间加 30 天估算，并提前 1 天提醒。"
+    };
+  } catch (error) {
+    if (history.length > 0) {
+      const analysis = analyzeBankedResetCreditObservations(history, {
+        validityDays: 30,
+        expirationSafetyMarginDays: 1
+      });
+      const latest = history.at(-1) ?? null;
+
+      return {
+        sourceStatus: "stale",
+        observedAt: latest?.observedAt ?? null,
+        availableCount: analysis.currentAvailableCount,
+        inferredGrantCount: analysis.inferredGrantCount,
+        inferredUseCount: analysis.inferredUseCount,
+        inferredExpirationCount: analysis.inferredExpirationCount,
+        inferredUnknownDecreaseCount: analysis.inferredUnknownDecreaseCount,
+        nextEstimatedExpiresAt: analysis.nextEstimatedExpiresAt,
+        nextSafeEstimatedExpiresAt: analysis.nextSafeEstimatedExpiresAt,
+        activeCredits: analysis.activeCredits,
+        events: analysis.events.map((event) => ({
+          kind: event.kind,
+          at: event.at,
+          count: event.count,
+          beforeAvailableCount: event.beforeAvailableCount,
+          afterAvailableCount: event.afterAvailableCount,
+          estimatedExpiresAt: event.estimatedExpiresAt ?? null,
+          sourceId: event.sourceId ?? null,
+          affectedLimitIds: event.evidence.affectedLimitIds
+        })),
+        observations: history,
+        note: `本轮读取 Codex app-server 失败，显示上次观测：${
+          error instanceof Error ? error.message : String(error)
+        }`
+      };
+    }
+
+    return emptyBankedResetCreditsSummary(
+      "unobserved",
+      `未能读取 Codex app-server banked reset：${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }
 
 function emptyRefreshTelemetry(
@@ -91,8 +278,11 @@ function ensureRefreshTelemetry(snapshot: DashboardSnapshot): DashboardSnapshot 
     refresh?: RefreshTelemetry;
     refreshHistory?: RefreshHistoryEntry[];
   };
+  const overview = snapshot.overview as DashboardSnapshot["overview"] & {
+    bankedResetCredits?: BankedResetCreditsSummary;
+  };
 
-  if (sourceHealth.refresh && sourceHealth.refreshHistory) {
+  if (sourceHealth.refresh && sourceHealth.refreshHistory && overview.bankedResetCredits) {
     return snapshot;
   }
 
@@ -105,6 +295,12 @@ function ensureRefreshTelemetry(snapshot: DashboardSnapshot): DashboardSnapshot 
         completedAt: snapshot.generatedAt
       },
       refreshHistory: sourceHealth.refreshHistory ?? []
+    },
+    overview: {
+      ...snapshot.overview,
+      bankedResetCredits:
+        overview.bankedResetCredits ??
+        emptyBankedResetCreditsSummary("unobserved", "旧缓存没有赠送重置观测，请刷新。")
     }
   };
 }
@@ -1310,7 +1506,11 @@ function buildPendingDashboardSnapshot(
           billingMonth: []
         }
       },
-      apiValueSummaryUsd: null
+      apiValueSummaryUsd: null,
+      bankedResetCredits: emptyBankedResetCreditsSummary(
+        "pending",
+        "正在后台读取 Codex 赠送重置次数。"
+      )
     },
     ledger: {
       periods: [today, naturalWeek, month, fiveHour, weekLimit],
@@ -1377,6 +1577,9 @@ async function collectDashboardSnapshot(
     sessionCacheStore: options.codexSessionCacheStore
   });
   const codexDurationMs = Date.now() - codexStartedMs;
+  const bankedResetCredits = await collectBankedResetCreditsSummary(
+    options.previousBankedResetCreditObservations
+  );
   const primaryQuotaUsage = buildQuotaWindowUsage({
     latestRateSnapshot: codex.latestRateSnapshot,
     events: codex.events,
@@ -1871,7 +2074,8 @@ async function collectDashboardSnapshot(
           billingMonth: billingProjectMonth
         }
       },
-      apiValueSummaryUsd: weeklyWindow.estimatedFullValueUsd
+      apiValueSummaryUsd: weeklyWindow.estimatedFullValueUsd,
+      bankedResetCredits
     },
     ledger: {
       periods: [
@@ -2056,7 +2260,9 @@ export class DashboardService {
         await collectDashboardSnapshot(preferences, {
           codexSessionCacheStore: this.codexSessionCacheStore,
           trigger,
-          refreshHistory: previousHistory
+          refreshHistory: previousHistory,
+          previousBankedResetCreditObservations:
+            cachedBeforeCollect?.overview.bankedResetCredits?.observations ?? []
         }),
         previousHistory
       );

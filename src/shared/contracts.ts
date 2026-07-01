@@ -111,6 +111,71 @@ export interface LimitWindow {
   note: string | null;
 }
 
+export type BankedResetCreditEventKind = "grant" | "use" | "expiration" | "decrease-unknown";
+export type BankedResetCreditEstimateBasis = "observed-grant" | "existing-at-first-observation";
+
+export interface BankedResetCreditActiveCredit {
+  id: string;
+  acquiredAt: string | null;
+  firstObservedAt: string;
+  estimatedExpiresAt: string | null;
+  safeEstimatedExpiresAt: string | null;
+  estimateBasis: BankedResetCreditEstimateBasis;
+  sourceId?: string | null;
+}
+
+export interface BankedResetCreditEvent {
+  kind: BankedResetCreditEventKind;
+  at: string;
+  count: number;
+  beforeAvailableCount: number;
+  afterAvailableCount: number;
+  estimatedExpiresAt?: string | null;
+  sourceId?: string | null;
+  affectedLimitIds: string[];
+}
+
+export interface BankedResetCreditRateLimitWindow {
+  usedPercent: number;
+  windowDurationMins: number | null;
+  resetsAt: string | null;
+  resetsAtUnixSeconds?: number | null;
+}
+
+export interface BankedResetCreditRateLimitSnapshot {
+  limitId: string | null;
+  limitName: string | null;
+  planType: string | null;
+  primary: BankedResetCreditRateLimitWindow | null;
+  secondary: BankedResetCreditRateLimitWindow | null;
+  credits: null;
+  rateLimitReachedType: string | null;
+}
+
+export interface BankedResetCreditObservation {
+  observedAt: string;
+  availableCount: number;
+  rateLimits?: BankedResetCreditRateLimitSnapshot | null;
+  rateLimitsByLimitId?: Record<string, BankedResetCreditRateLimitSnapshot> | null;
+  sourceId?: string | null;
+}
+
+export interface BankedResetCreditsSummary {
+  sourceStatus: SourceStatus;
+  observedAt: string | null;
+  availableCount: number | null;
+  inferredGrantCount: number;
+  inferredUseCount: number;
+  inferredExpirationCount: number;
+  inferredUnknownDecreaseCount: number;
+  nextEstimatedExpiresAt: string | null;
+  nextSafeEstimatedExpiresAt: string | null;
+  activeCredits: BankedResetCreditActiveCredit[];
+  events: BankedResetCreditEvent[];
+  observations: BankedResetCreditObservation[];
+  note: string | null;
+}
+
 export interface ModelMetric {
   model: string;
   tokens: TokenBreakdown;
@@ -293,6 +358,7 @@ export interface DashboardSnapshot {
       };
     };
     apiValueSummaryUsd: number | null;
+    bankedResetCredits: BankedResetCreditsSummary;
   };
   ledger: {
     periods: PeriodMetric[];

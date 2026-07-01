@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应开发版本：`v0.3.1-dev.6`
+- 对应开发版本：`v0.3.1-dev.10`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -50,7 +50,7 @@
 
 ### 2.2 额度
 
-- Codex 用量、额度周期、reset 检测和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.4`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.4`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。
+- Codex 用量、额度周期、reset 检测和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.5`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.5`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。
 - `5 小时额度` 使用 `rate_limits.primary`
 - `周额度` 使用 `rate_limits.secondary`
 - 如果同一台机器同时观测到多个 Codex `rate_limits` 池，页面可见的 `5 小时额度 / 周额度` 必须优先选择主额度池 `rate_limits.limit_id = codex`；模型或实验池，例如 `codex_bengalfox`，不能因为观测时间更新而覆盖主额度显示。
@@ -106,6 +106,15 @@
 - `LimitWindow.resetsAt` 是页面显示字段，必须与当前 `PeriodMetric.endAt` 保持一致；最近一次原始 `rate_limits.resets_at` 只作为缺少周期证据时的降级来源，避免低用量滑动窗口漂移导致“重置时间”和“周期范围”不一致。
 - `LimitWindow.estimatedFullValueUsd / estimatedRemainingValueUsd` 是套餐价值折算字段，也必须使用当前额度周期的累计已用百分比作为分母，优先取 `PeriodMetric.quotaEvidence.usedPercent`，不能使用最近一次原始 `rate_limits.used_percent`。
 - 为了支持前几周计费周对比，Codex session 采集窗口至少覆盖最近 `60` 天；该口径对齐 `dev-ledger` 已验证的周周期历史记录，避免只扫描当前月/周导致上一计费周样本缺失。
+- `DashboardSnapshot.overview.bankedResetCredits` 独立于普通额度窗口 reset，来自 Codex app-server 只读方法 `account/rateLimits/read` 的 `rateLimitResetCredits.availableCount`：
+  - `availableCount`：当前可用赠送重置次数。
+  - `activeCredits[]`：逐个可用 credit 明细，包含 `acquiredAt / firstObservedAt / estimatedExpiresAt / safeEstimatedExpiresAt / estimateBasis`。
+  - `estimatedExpiresAt`：只在本应用采样到 `availableCount` 增加时可按获取观测时间加 `30d` 推断。
+  - `safeEstimatedExpiresAt`：默认比 `estimatedExpiresAt` 提前 `1d`，总览页优先展示该字段作为保守使用提醒。
+  - `estimateBasis=existing-at-first-observation`：表示首次采样时已经存在的 credit，无法反推获取时间和真实过期时间；页面展示为“早于首次观测获得 / 建议尽快使用”。
+  - `events[]`：仅保存 `grant / use / expiration / decrease-unknown` 的脱敏推断摘要，不保存原始 app-server 响应、账号、邮箱或余额。
+  - `observations[]`：仅保存继续推断所需的脱敏观测历史，保留 `observedAt / availableCount / rateLimits` 的窗口百分比和 reset 时间，不保存 `credits.balance`。
+- `overview.bankedResetCredits` 不得混入 `quotaEvidence.resetCount`，也不得称为现金充值、API credit 或账单余额。
 - 参考验证样例：
   - `dev-ledger` 中 `2026-06-29` 的周额度从旧窗口 `used_percent=10 / resets_at=2026-07-02 13:11` 切换到新窗口 `used_percent=0 / resets_at=2026-07-06 09:01`。该事件虽低于 `50%` 高水位，但新窗口起点与观测时间贴近，并通过 `stable-window-boundary` 稳定确认。
   - `dev-ledger` 中 `2026-06-30T03:56:42.332Z` 的周额度相邻观测都是 `0%`，但 `24h` 回看旧窗口高点为 `15%`，旧高点观测时间为 `2026-06-29T18:16:43.673Z`；新窗口边界为 `2026-06-30T03:22:09Z`，后续 `84` 个稳定观测确认同一边界，因此识别为 `stabilized-boundary-drop` 周重置，当前周切到 `2026-06-30T03:22:09Z - 2026-07-07T03:22:09Z`。

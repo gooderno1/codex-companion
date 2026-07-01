@@ -1,6 +1,6 @@
 {
   "name": "codex-companion",
-  "version": "0.3.1-dev.9",
+  "version": "0.3.1-dev.10",
   "private": true,
   "description": "非官方 Codex 额度、Token 与代码活动桌面伴侣",
   "license": "MIT",
@@ -68,7 +68,7 @@
     }
   },
   "dependencies": {
-    "@lifeinhand/codex-usage-core": "github:gooderno1/codex-usage-core#v0.1.0-dev.4",
+    "@lifeinhand/codex-usage-core": "github:gooderno1/codex-usage-core#v0.1.0-dev.5",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

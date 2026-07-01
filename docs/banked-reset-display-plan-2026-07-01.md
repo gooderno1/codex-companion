@@ -1,78 +1,60 @@
-# Codex banked reset 展示方案草案
+# Codex banked reset 展示实施方案
 
-本文档只规划 `codex-companion` 如何展示 `codex-usage-core v0.1.0-dev.4` 新增的 banked reset credit 字段。本轮只升级依赖和写方案，不修改 UI 组件。
+本文档记录 `codex-companion v0.3.1-dev.10` 对 `codex-usage-core v0.1.0-dev.5` banked reset credit 字段的实际接入方式。
 
 ## 数据来源
 
-- 核心包：`@lifeinhand/codex-usage-core@v0.1.0-dev.4`
+- 核心包：`@lifeinhand/codex-usage-core@v0.1.0-dev.5`
 - 只读方法：`readCodexAccountRateLimits()`
 - Codex 本地接口：`account/rateLimits/read`
 - 主字段：`rateLimitResetCredits.availableCount`
-- 辅助字段：`rateLimits`、`rateLimitsByLimitId`
 - 事件推断：`analyzeBankedResetCreditObservations()`
+- 逐个明细：`BankedResetCreditAnalysisResult.activeCredits[]`
 
 该读取不会调用 `account/rateLimitResetCredit/consume`，不会消耗用户可用的 banked reset credit。
 
-## 建议快照字段
+## 快照字段
 
-建议后续在 `DashboardSnapshot` 增加独立字段，不混入现有 `quotaEvidence.resetCount`：
+`DashboardSnapshot.overview.bankedResetCredits` 为独立字段，不混入 `quotaEvidence.resetCount`：
 
 ```ts
-interface DashboardSnapshot {
-  codex?: {
-    bankedResetCredits?: {
-      observedAt: string;
-      availableCount: number;
-      inferredGrantCount: number;
-      inferredUseCount: number;
-      inferredExpirationCount: number;
-      inferredUnknownDecreaseCount: number;
-      nextEstimatedExpiresAt: string | null;
-      events: Array<{
-        kind: "grant" | "use" | "expiration" | "decrease-unknown";
-        at: string;
-        count: number;
-        estimatedExpiresAt?: string | null;
-        affectedLimitIds: string[];
-      }>;
-    };
-  };
+interface BankedResetCreditsSummary {
+  sourceStatus: "observed" | "pending" | "unobserved" | "stale";
+  observedAt: string | null;
+  availableCount: number | null;
+  nextEstimatedExpiresAt: string | null;
+  nextSafeEstimatedExpiresAt: string | null;
+  activeCredits: Array<{
+    id: string;
+    acquiredAt: string | null;
+    firstObservedAt: string;
+    estimatedExpiresAt: string | null;
+    safeEstimatedExpiresAt: string | null;
+    estimateBasis: "observed-grant" | "existing-at-first-observation";
+  }>;
+  events: Array<{ kind: "grant" | "use" | "expiration" | "decrease-unknown"; at: string; count: number }>;
+  observations: BankedResetCreditObservation[];
 }
 ```
 
-## 总览页展示建议
+`observations[]` 只保存继续推断所需的脱敏字段，不保存账号、邮箱、余额或原始 app-server 响应。
 
-- 展示位置：周额度卡或 5H/周额度卡之间的轻量状态行，不替换现有额度圆环。
-- 主文案：`可用赠送重置 2 次`
-- 次文案：
-  - 有估算过期：`预计最早 7月31日 过期`
-  - 无估算过期：`过期时间待后续采样确认`
-- Tooltip 说明：`来自 Codex 本地 account/rateLimits/read；过期时间按获得观测时间 +30 天估算。`
+## 总览页展示
 
-不建议在顶部四卡新增主卡片，原因是 `availableCount` 是库存状态，不是 token 消耗、成本或代码活动指标。
+- 展示位置：顶部四张指标卡下方、`5H 额度窗口 / 周额度窗口` 两张圆环卡上方。
+- 普通态：一行状态，例如 `赠送重置可用 2 次 · 最早建议 07/31 18:00 前使用`。
+- 交互：点击整行展开。
+- 展开态：逐个显示每次可用 credit：
+  - 编号：`赠送重置 #1`
+  - 获取时间：`acquiredAt`；如果是首次观测前已有，则显示 `早于 firstObservedAt`
+  - 预计过期：`estimatedExpiresAt`
+  - 保守提醒时间：`safeEstimatedExpiresAt`
 
-## 账本页展示建议
+过期提醒优先使用 `safeEstimatedExpiresAt`，默认比 `estimatedExpiresAt` 早 `1` 天。首次采样前已经存在的 credit 无法反推真实获取和过期时间，页面显示为“建议尽快使用”。
 
-- 展示位置：`周额度账本` 表格上方新增一行摘要，或在每个周周期行的状态列旁增加 badge。
-- 摘要文案：
-  - `赠送重置：可用 2 次 · 已推断使用 1 次 · 过期候选 0 次`
-- 周期行 badge：
-  - `获得 +1`
-  - `使用 -1`
-  - `可能过期 -1`
-  - `减少待判定 -1`
+## 边界
 
-`use` 事件只有在 `availableCount` 减少且同一采样区间内观察到 5H 或周额度窗口 reset 时展示为“使用”。否则必须展示为“可能过期”或“减少待判定”。
-
-## 不展示或弱化的信息
-
-- 不展示账号 ID、邮箱、原始 app-server 响应、余额字段。
-- 不把 `estimatedExpiresAt` 写成“官方过期时间”。
 - 不把 banked reset credit 称为现金充值、API credit 或账单余额。
 - 不把普通 `quotaEvidence.resetCount` 改名为赠送重置次数。
-
-## 待确认
-
-- 总览页是否接受“可用赠送重置 N 次”作为周额度卡辅助状态。
-- 账本页是否需要显示每次推断事件，还是只显示累计摘要。
-- `decrease-unknown` 是否对普通用户显示，或仅在调试/详情中显示。
+- 不展示账号 ID、邮箱、原始 app-server 响应、余额字段或 token。
+- `estimatedExpiresAt` 和 `safeEstimatedExpiresAt` 都是本地估算，不是 Codex app-server 原始字段。

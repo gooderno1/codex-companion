@@ -328,6 +328,133 @@ function sourceStatusClass(status: SourceStatus) {
   return `status-${status}`;
 }
 
+function bankedResetCreditSortTime(credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]) {
+  const value = credit.safeEstimatedExpiresAt ?? credit.estimatedExpiresAt ?? credit.firstObservedAt;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
+}
+
+function formatBankedResetExpiryLine(summary: DashboardSnapshot["overview"]["bankedResetCredits"]) {
+  const count = summary.availableCount ?? 0;
+  if (summary.sourceStatus === "pending") {
+    return "正在读取赠送重置次数";
+  }
+
+  if (summary.sourceStatus === "unobserved" && count === 0) {
+    return "暂未读取到赠送重置次数";
+  }
+
+  if (count <= 0) {
+    return "当前没有可用赠送重置";
+  }
+
+  const earliest = [...summary.activeCredits].sort(
+    (left, right) => bankedResetCreditSortTime(left) - bankedResetCreditSortTime(right)
+  )[0];
+  if (!earliest) {
+    return "过期时间待后续采样确认";
+  }
+
+  if (earliest.estimateBasis === "existing-at-first-observation") {
+    return "最早过期无法反推，建议尽快使用";
+  }
+
+  return `最早建议 ${formatDateTime(earliest.safeEstimatedExpiresAt)} 前使用`;
+}
+
+function formatBankedResetCreditAcquire(
+  credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
+) {
+  if (credit.acquiredAt) {
+    return formatDateTime(credit.acquiredAt);
+  }
+
+  return `早于 ${formatDateTime(credit.firstObservedAt)}`;
+}
+
+function formatBankedResetCreditExpiry(
+  credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
+) {
+  if (credit.estimateBasis === "existing-at-first-observation") {
+    return "无法反推，建议尽快使用";
+  }
+
+  return formatDateTime(credit.estimatedExpiresAt);
+}
+
+function formatBankedResetCreditSafeExpiry(
+  credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
+) {
+  if (credit.estimateBasis === "existing-at-first-observation") {
+    return formatDateTime(credit.safeEstimatedExpiresAt ?? credit.firstObservedAt);
+  }
+
+  return formatDateTime(credit.safeEstimatedExpiresAt);
+}
+
+function BankedResetCreditStrip({
+  summary
+}: {
+  summary: DashboardSnapshot["overview"]["bankedResetCredits"];
+}) {
+  const activeCredits = [...summary.activeCredits].sort(
+    (left, right) => bankedResetCreditSortTime(left) - bankedResetCreditSortTime(right)
+  );
+  const availableCount = summary.availableCount ?? 0;
+  const hasDetails = activeCredits.length > 0 || summary.events.length > 0 || summary.note;
+
+  return (
+    <details className={`banked-reset-strip ${hasDetails ? "" : "is-empty"}`}>
+      <summary>
+        <span className="banked-reset-summary">
+          <span className="banked-reset-icon">
+            <Glyph name="clock" />
+          </span>
+          <span>
+            赠送重置可用 <strong>{availableCount}</strong> 次 · {formatBankedResetExpiryLine(summary)}
+          </span>
+        </span>
+        <span className={`status-pill ${sourceStatusClass(summary.sourceStatus)}`}>
+          {sourceStatusLabel(summary.sourceStatus)}
+        </span>
+      </summary>
+
+      {hasDetails ? (
+        <div className="banked-reset-details">
+          <div className="banked-reset-detail-grid">
+            {activeCredits.length > 0 ? (
+              activeCredits.map((credit, index) => (
+                <article className="banked-reset-detail-item" key={credit.id}>
+                  <span>赠送重置 #{index + 1}</span>
+                  <strong>{formatBankedResetCreditSafeExpiry(credit)}</strong>
+                  <p>获取 {formatBankedResetCreditAcquire(credit)}</p>
+                  <p>预计过期 {formatBankedResetCreditExpiry(credit)}</p>
+                </article>
+              ))
+            ) : (
+              <article className="banked-reset-detail-item">
+                <span>当前库存</span>
+                <strong>{availableCount} 次</strong>
+                <p>暂无逐个明细</p>
+                <p>等待后续采样确认</p>
+              </article>
+            )}
+          </div>
+          <div className="banked-reset-footer">
+            <span>推断获得 {summary.inferredGrantCount} 次</span>
+            <span>推断使用 {summary.inferredUseCount} 次</span>
+            <span>可能过期 {summary.inferredExpirationCount} 次</span>
+            {summary.inferredUnknownDecreaseCount > 0 ? (
+              <span>减少待判定 {summary.inferredUnknownDecreaseCount} 次</span>
+            ) : null}
+            {summary.note ? <span>{summary.note}</span> : null}
+          </div>
+        </div>
+      ) : null}
+    </details>
+  );
+}
+
 type RefreshFeedback = {
   phase: "loading" | "refreshing" | "done" | "error";
   title: string;
@@ -1399,6 +1526,8 @@ function OverviewPage({
           <MetricCard key={card.key} card={card} />
         ))}
       </section>
+
+      <BankedResetCreditStrip summary={snapshot.overview.bankedResetCredits} />
 
       <section className="quota-grid">
         <QuotaWindowCard

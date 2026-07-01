@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.1-dev.6`
+- 当前适用版本：`v0.3.1-dev.10`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、设置页
 
 ## 总览页
@@ -12,8 +12,9 @@
 | 顶部工具栏 | `src/renderer/App.tsx` `topbar` | 全局复用 | `currentPage`、`overviewMode`、`sourceStatus`、`generatedAt` | `snapshot.sourceHealth`、`snapshot.generatedAt` |
 | 时间视角切换 | `TextTabs` | 可复用 | `natural / billing` | 本地页面状态 |
 | 顶部四卡 | `MetricCard` | 可复用 | `label`、`value`、`detail`、`icon`、`tone`、逐卡 `sourceStatus` | `snapshot.overview`、`snapshot.overview.previous`、`snapshot.sourceHealth` |
+| 赠送重置状态行 | `BankedResetCreditStrip` | 总览页模块 | `availableCount`、`activeCredits[]`、`sourceStatus`、展开态原生 `details` | `snapshot.overview.bankedResetCredits`；普通态显示可用次数和最早保守过期提醒，展开后显示每个 credit 的获取时间、预计过期时间和保守提醒时间 |
 | 5H 额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`windowPeriods.fiveHour.quotaEvidence.remainingPercent` 优先，降级到 `limitWindows[0]`；右侧：`windowPeriods.fiveHour`、`modelWindows.fiveHour` |
-| 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`windowPeriods.weekLimit.quotaEvidence.remainingPercent` 优先，降级到 `limitWindows[1]`；周期边界：`windowPeriods.weekLimit.startAt / endAt`，`limitWindows[1].resetsAt` 必须等于当前周期 `endAt`；reset 检测来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.4`，`resetEvents[].evidence.evidenceTypes` 支持 `stabilized-boundary-drop`，`usageSegments[]` 记录窗口起点、过期时间和 reset 前后使用区间；右侧：`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
+| 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`windowPeriods.weekLimit.quotaEvidence.remainingPercent` 优先，降级到 `limitWindows[1]`；周期边界：`windowPeriods.weekLimit.startAt / endAt`，`limitWindows[1].resetsAt` 必须等于当前周期 `endAt`；reset 检测来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.5`，`resetEvents[].evidence.evidenceTypes` 支持 `stabilized-boundary-drop`，`usageSegments[]` 记录窗口起点、过期时间和 reset 前后使用区间；右侧：`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
 | 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、表头排序 | `snapshot.overview.projectOverview` |
 | 项目表头排序 | `ProjectSortHeader` | 页面级 | `name / token / cost / code / commits / sessions / recent`、`asc / desc` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
@@ -65,6 +66,7 @@
 - 顶部 `sourceStatus` 表达本次 Codex 数据源是否成功观测；最近没有新 token 事件只通过 `lastObservedAt` 和刷新反馈说明，不能把一次成功刷新显示成 `数据过期`。
 - 顶部 `今日代码改动` 的 `detail` 使用 `snapshot.overview.previous.yesterday.code.changedLines` 与 `snapshot.overview.today.code.changedLines` 计算，昨日 Git 有数据时必须显示百分比。
 - 顶部计费时间 `本月 Token` 使用 `snapshot.overview.windowPeriods.billingMonth`；默认 `billingMonthStartDay=1`，因此当前默认与自然月一致，设置页可调整起始日并触发刷新。
+- `BankedResetCreditStrip` 固定放在顶部四卡和 `5H / 周额度窗口` 两张额度卡之间；普通态必须是一行状态，不占用顶部四卡；展开态只显示脱敏逐个明细，不展示 app-server 原始响应或余额字段。
 - 设置页 `Codex 数据目录` 支持手动输入、系统目录选择和恢复默认；保存后通过 `preferences:update` 写入本机配置并立即刷新，路径只用于读取本机 Codex sessions、archived_sessions 和 rate_limits。
 - 设置页 `仓库根目录` 支持手动输入、系统目录选择、移除和恢复默认；保存后通过 `preferences:update` 写入本机配置并立即刷新，路径只用于本地 Git 仓库扫描和 Codex 会话归因。
 - 左侧品牌图标使用 `src/renderer/icons.tsx` 中的 `BrandMark` SVG，必须保持非官方自定义资产，不使用 OpenAI / Codex 官方 logo。
