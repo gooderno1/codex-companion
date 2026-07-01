@@ -148,17 +148,25 @@ function verifyWindow({
   if (evidence) {
     report.assert(Number.isInteger(evidence.observations) && evidence.observations > 0, `${label}: observations 必须大于 0。`);
     report.assert(Number.isInteger(evidence.resetCount) && evidence.resetCount >= 0, `${label}: resetCount 必须大于等于 0。`);
+    report.assert(Number.isInteger(evidence.rechargeCount) && evidence.rechargeCount >= 0, `${label}: rechargeCount 必须大于等于 0。`);
+    const resetEvents = Array.isArray(evidence.resetEvents) ? evidence.resetEvents : [];
+    const rechargeEvents = Array.isArray(evidence.rechargeEvents) ? evidence.rechargeEvents : [];
     report.assert(Array.isArray(evidence.resetEvents), `${label}: resetEvents 必须是数组。`);
+    report.assert(Array.isArray(evidence.rechargeEvents), `${label}: rechargeEvents 必须是数组。`);
     report.assert(Array.isArray(evidence.usageSegments), `${label}: usageSegments 必须是数组。`);
     report.assert(isNumber(evidence.usedPercent) && evidence.usedPercent >= 0, `${label}: quotaEvidence.usedPercent 必须是非负数。`);
     report.assert(numberInRange(evidence.maxObservedUsedPercent, 0, 100), `${label}: maxObservedUsedPercent 必须在 0-100。`);
     report.assert(parseIsoMs(evidence.lastObservedAt) !== null, `${label}: lastObservedAt 必须是有效 ISO 时间。`);
     report.assert(
-      evidence.resetEvents.length === evidence.resetCount,
+      resetEvents.length === evidence.resetCount,
       `${label}: resetEvents.length 必须等于 resetCount。`
     );
+    report.assert(
+      rechargeEvents.length === evidence.rechargeCount,
+      `${label}: rechargeEvents.length 必须等于 rechargeCount。`
+    );
 
-    for (const [index, event] of evidence.resetEvents.entries()) {
+    for (const [index, event] of resetEvents.entries()) {
       const eventLabel = `${label}: resetEvents[${index}]`;
       report.assert(parseIsoMs(event.at) !== null, `${eventLabel}.at 必须是有效 ISO 时间。`);
       report.assert(parseIsoMs(event.beforeObservedAt) !== null, `${eventLabel}.beforeObservedAt 必须是有效 ISO 时间。`);
@@ -194,6 +202,17 @@ function verifyWindow({
           `${eventLabel}.confirmation.stableObservationCount 必须大于 0。`
         );
       }
+    }
+
+    for (const [index, event] of rechargeEvents.entries()) {
+      const eventLabel = `${label}: rechargeEvents[${index}]`;
+      report.assert(Number.isInteger(event.rechargeIndex) && event.rechargeIndex > 0, `${eventLabel}.rechargeIndex 必须大于 0。`);
+      report.assert(parseIsoMs(event.at) !== null, `${eventLabel}.at 必须是有效 ISO 时间。`);
+      report.assert(parseIsoMs(event.windowStartedAt) !== null, `${eventLabel}.windowStartedAt 必须是有效 ISO 时间。`);
+      report.assert(parseIsoMs(event.expiresAt) !== null, `${eventLabel}.expiresAt 必须是有效 ISO 时间。`);
+      report.assert(parseIsoMs(event.previousUsageStartedAt) !== null, `${eventLabel}.previousUsageStartedAt 必须是有效 ISO 时间。`);
+      report.assert(parseIsoMs(event.previousUsageEndedAt) !== null, `${eventLabel}.previousUsageEndedAt 必须是有效 ISO 时间。`);
+      report.assert(numberInRange(event.previousUsedPercent, 0, 100), `${eventLabel}.previousUsedPercent 必须在 0-100。`);
     }
 
     if (isNumber(evidence.usedPercent)) {
@@ -246,6 +265,7 @@ function verifyWindow({
     cycleUsedPercent: period.quotaEvidence?.usedPercent ?? null,
     observations: period.quotaEvidence?.observations ?? null,
     resetCount: period.quotaEvidence?.resetCount ?? null,
+    rechargeCount: period.quotaEvidence?.rechargeCount ?? null,
     tokens: period.tokens.total,
     apiCostUsd: period.apiCostUsd,
     estimatedFullValueUsd: window.estimatedFullValueUsd
@@ -299,7 +319,7 @@ async function main() {
         `Token ${summary.tokens.toLocaleString("en-US")}`,
         `API 等价成本 ${formatMoney(summary.apiCostUsd)}`,
         `观测 ${summary.observations} 次`,
-        `重置 ${summary.resetCount} 次`,
+        `充值 ${summary.rechargeCount} 次`,
         `满额估值 ${formatMoney(summary.estimatedFullValueUsd)}`
       ].join("；")
     );

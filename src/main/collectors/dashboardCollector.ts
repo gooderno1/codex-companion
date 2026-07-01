@@ -6,6 +6,7 @@ import type {
   LimitWindow,
   OverviewProjectItem,
   PeriodMetric,
+  QuotaRechargeEvent,
   QuotaResetEvent,
   QuotaUsageSegment,
   RefreshHistoryEntry,
@@ -164,8 +165,10 @@ interface QuotaCycleMetric {
   maxObservedUsedPercent: number | null;
   lastObservedAt: string | null;
   resetCount: number;
+  rechargeCount: number;
   observations: number;
   resetEvents: QuotaResetEvent[];
+  rechargeEvents: QuotaRechargeEvent[];
   usageSegments: QuotaUsageSegment[];
 }
 
@@ -195,6 +198,7 @@ interface QuotaCycleBucket {
   sessionIds: Set<string>;
   observations: QuotaCycleObservation[];
   boundaryResetEvents: QuotaResetEvent[];
+  boundaryRechargeEvents: QuotaRechargeEvent[];
   maxObservedUsedPercent: number | null;
   lastObservedAt: string | null;
   lastObservedUsedPercent: number | null;
@@ -354,6 +358,25 @@ function normalizeQuotaResetBoundaries(
   return merged;
 }
 
+function isRechargeForResetEvent(rechargeEvent: QuotaRechargeEvent, resetEvent: QuotaResetEvent) {
+  return (
+    rechargeEvent.at === resetEvent.at &&
+    rechargeEvent.expiresAt === resetEvent.afterWindowResetsAt &&
+    Math.abs(rechargeEvent.previousUsedPercent - resetEvent.beforeUsedPercent) <= 1
+  );
+}
+
+function getRechargeEventsForResetEvents(
+  resetEvents: QuotaResetEvent[],
+  rechargeEvents: QuotaRechargeEvent[]
+) {
+  return resetEvents
+    .map((resetEvent) =>
+      rechargeEvents.find((rechargeEvent) => isRechargeForResetEvent(rechargeEvent, resetEvent))
+    )
+    .filter((event): event is QuotaRechargeEvent => Boolean(event));
+}
+
 function resolveResetAwareQuotaCycleBounds(
   timestamp: string,
   currentWindow: ObservedLimitWindow,
@@ -495,15 +518,15 @@ function buildQuotaWindowUsage(args: {
     });
   }
 
-  const boundaryResetEvents = args.resetAwareTimeline
-    ? normalizeQuotaResetBoundaries(
-        analyzeQuotaObservations(quotaObservationEntries, {
-          comparisonScope: "timeline"
-        }).resetEvents,
-        windowMinutes,
-        usableWindow
-      )
+  const timelineAnalysis = args.resetAwareTimeline
+    ? analyzeQuotaObservations(quotaObservationEntries, {
+        comparisonScope: "timeline"
+      })
+    : null;
+  const boundaryResetEvents = timelineAnalysis
+    ? normalizeQuotaResetBoundaries(timelineAnalysis.resetEvents, windowMinutes, usableWindow)
     : [];
+  const boundaryRechargeEvents = timelineAnalysis?.rechargeEvents ?? [];
 
   const buckets = new Map<string, QuotaCycleBucket>();
 
@@ -533,6 +556,9 @@ function buildQuotaWindowUsage(args: {
       sessionIds: new Set<string>(),
       observations: [],
       boundaryResetEvents: bounds.closingResetEvent ? [bounds.closingResetEvent] : [],
+      boundaryRechargeEvents: bounds.closingResetEvent
+        ? getRechargeEventsForResetEvents([bounds.closingResetEvent], boundaryRechargeEvents)
+        : [],
       maxObservedUsedPercent: null,
       lastObservedAt: null,
       lastObservedUsedPercent: null
@@ -603,6 +629,9 @@ function buildQuotaWindowUsage(args: {
       const resetEvents = args.resetAwareTimeline
         ? bucket.boundaryResetEvents
         : analysis.resetEvents;
+      const rechargeEvents = args.resetAwareTimeline
+        ? bucket.boundaryRechargeEvents
+        : analysis.rechargeEvents;
       const usedPercent =
         (args.resetAwareTimeline ? null : analysis.cumulativeUsedPercent) ??
         bucket.maxObservedUsedPercent ??
@@ -622,8 +651,10 @@ function buildQuotaWindowUsage(args: {
         maxObservedUsedPercent: bucket.maxObservedUsedPercent,
         lastObservedAt: bucket.lastObservedAt,
         resetCount: resetEvents.length,
+        rechargeCount: rechargeEvents.length,
         observations: bucket.observations.length,
         resetEvents,
+        rechargeEvents,
         usageSegments: analysis.usageSegments
       };
     });
@@ -715,8 +746,10 @@ function buildQuotaCyclePeriodMetric(
       maxObservedUsedPercent: cycle.maxObservedUsedPercent,
       lastObservedAt: cycle.lastObservedAt,
       resetCount: cycle.resetCount,
+      rechargeCount: cycle.rechargeCount,
       observations: cycle.observations,
       resetEvents: cycle.resetEvents,
+      rechargeEvents: cycle.rechargeEvents,
       usageSegments: cycle.usageSegments
     }
   };

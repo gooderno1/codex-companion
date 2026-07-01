@@ -1,5 +1,17 @@
 # DEVELOPMENT LOG
 
+## [2026-07-01] v0.3.1-dev.7 feat: 同步额度充值跟踪核心包
+
+- 开发原因：`codex-usage-core v0.1.0-dev.2` 新增 Codex 额度充值次数、充值过期时间和使用区间输出，桌面端需要同步依赖并透出到 `quotaEvidence`。
+- 实现方式：将应用版本从 `v0.3.1-dev.6` 提升到 `v0.3.1-dev.7`；把 `@lifeinhand/codex-usage-core` 升级为远程 Git tag：`git+https://github.com/gooderno1/codex-usage-core.git#v0.1.0-dev.2`；扩展共享快照契约，新增 `QuotaRechargeEvent`、`quotaEvidence.rechargeCount / rechargeEvents`，并保留旧 `resetCount / resetEvents`；周额度重置感知归桶继续使用核心包 reset 事件，只把核心包返回的 recharge 事件按 reset 事件映射进对应周期；总览和账本可见文案从“重置次数”调整为“充值次数”。
+- 适用范围：仅适用于本地 Codex `rate_limits` 已观测到的 5H / 周额度窗口；不推断未暴露的月额度或账户余额。
+- 触发条件：充值事件沿用核心包稳定确认口径，即 `resets_at` 后移、`used_percent` 下降不少于默认 `5%`，并通过高水位、边界贴近或稳定边界回看证据及后续稳定窗口确认。
+- 排除条件：低用量滑动窗口漂移、缺少稳定确认、时间或窗口字段不可解析时，核心包不会输出 `rechargeEvents`，本项目也不会在下游补造事件。
+- 关键字段：`quotaEvidence.rechargeEvents[].expiresAt` 表示充值后额度窗口过期时间，`windowStartedAt` 表示充值后窗口起点，`previousUsageStartedAt / previousUsageEndedAt / previousUsedPercent` 表示充值前一轮使用区间。
+- 验证样例：核心包脱敏样例 `2026-06-01 65% -> 2026-06-02 2%` 输出 `rechargeCount=1`、`expiresAt=2026-06-09T00:00:00.000Z`；本项目校验脚本新增 `rechargeCount / rechargeEvents` 数组和时间字段断言。
+- 当前结果：`DashboardSnapshot.overview.windowPeriods.*.quotaEvidence` 与账本周期都可携带充值事件；总览额度卡和周额度账本显示充值次数；输出仍不包含原始 Codex session 正文、用户输入、模型输出或私有仓库源码。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；调用编译后的 `DashboardService.getSnapshot(true, "manual")` 刷新 live 快照，确认 `weekLimit.quotaEvidence.rechargeCount=0` 且 `rechargeEvents` 为数组；执行 `npm run verify:quota`，确认 5H / 周额度均包含 `rechargeCount / rechargeEvents` 校验，当前 5H 与周额度充值次数均为 `0`；执行 `npm run verify:ledger`；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-07-01] v0.3.1-dev.6 chore: 改用远程 Codex 用量核心包
 
 - 开发原因：用户要求下游项目不要使用本地 `file:../codex-usage-core` 依赖，避免换设备后无法同步开发。

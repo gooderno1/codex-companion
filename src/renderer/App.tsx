@@ -615,7 +615,7 @@ function QuotaWindowCard({
           <div className="quota-models-title">Top 3 模型占比</div>
           {quotaEvidence ? (
             <span className="quota-evidence">
-              观测 {quotaEvidence.observations} 次 · 重置 {quotaEvidence.resetCount} 次
+              观测 {quotaEvidence.observations} 次 · 充值 {quotaEvidence.rechargeCount} 次
             </span>
           ) : null}
         </div>
@@ -2435,7 +2435,7 @@ function WeeklyLedgerCard({ periods }: { periods: PeriodMetric[] }) {
               <th>API 等价成本</th>
               <th>满额周折算</th>
               <th>会话</th>
-              <th>观测 / 重置</th>
+              <th>观测 / 充值</th>
             </tr>
           </thead>
           <tbody>
@@ -2460,8 +2460,8 @@ function WeeklyLedgerCard({ periods }: { periods: PeriodMetric[] }) {
                   <td>{fullValue === null ? "待观测" : formatUsd(fullValue)}</td>
                   <td>{period.sessions}</td>
                   <td>
-                    <span className={`ledger-badge ${evidence?.resetCount ? "is-danger" : "is-ok"}`}>
-                      {evidence ? (evidence.resetCount > 0 ? `重置 ${evidence.resetCount} 次` : "正常") : "待观测"}
+                    <span className={`ledger-badge ${evidence?.rechargeCount ? "is-danger" : "is-ok"}`}>
+                      {evidence ? (evidence.rechargeCount > 0 ? `充值 ${evidence.rechargeCount} 次` : "正常") : "待观测"}
                     </span>
                   </td>
                 </tr>
@@ -2478,7 +2478,7 @@ function WeeklyLedgerCard({ periods }: { periods: PeriodMetric[] }) {
         </table>
       </div>
       <p className="ledger-table-note">
-        说明：周额度周期按稳定确认的重置边界切分；旧周期提前截止后不与新周期累加。满额周折算为 API 等价估计。
+        说明：周额度周期按稳定确认的充值边界切分；旧周期提前截止后不与新周期累加。满额周折算为 API 等价估计。
       </p>
     </SectionCard>
   );
