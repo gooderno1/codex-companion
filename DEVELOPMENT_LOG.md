@@ -4,8 +4,8 @@
 
 - 开发原因：用户要求将通知页、设置页重排、Git 本机状态、托盘品牌图标和一次性通知里程碑收敛为正式内部版本；最新 GitHub Release 仍为 `v0.3.4`，需要把 `v0.3.5-dev.1` 至 `v0.3.5-dev.2` 发布为 `v0.3.5`。
 - 实现方式：将应用版本从 `0.3.5-dev.2` 调整为 `0.3.5`；主进程 app-server clientVersion 改为 `0.3.5`；更新 README、Roadmap、数据契约、组件映射和 Release notes；本次 release 继续固定远程核心包 `@lifeinhand/codex-usage-core@0.1.0-dev.7`。
-- 当前结果：发布资料已更新；`release/Codex Companion Setup 0.3.5.exe` 已生成，SHA256 为 `E2E37C9B6A714FD92C8147C2B58D13BF904952A91EF8790D48BD69FDC8351202`；待创建 Git tag `v0.3.5` 和 GitHub Release，上传资产名为 `Codex.Companion.Setup.0.3.5.exe`。
-- 验证方式：执行 `npm run package:win`，通过 lint、TypeScript、renderer build、main build 和 Windows NSIS 打包；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `26%`、周额度余量 `52%`，两个窗口当前均未识别新的 reset；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；执行合成快照验证，确认赠送重置生成 `5` 个过期里程碑候选，首次发送 `6` 条、第二次发送 `0` 条，同一 5H 周期 `10%` danger 首次发送 `1` 条、重复发送 `0` 条；使用 Electron 生成 `local_dev_work/settings-1360x900-dev2.png`，确认设置页通知策略文案、Git 状态和版本号正常；执行 `git diff --check`，仅有 Windows 换行提示。
+- 当前结果：发布资料已更新；`release/Codex Companion Setup 0.3.5.exe` 已生成，SHA256 为 `E2E37C9B6A714FD92C8147C2B58D13BF904952A91EF8790D48BD69FDC8351202`；已创建 Git tag `v0.3.5` 和 GitHub Release `https://github.com/gooderno1/codex-companion/releases/tag/v0.3.5`，上传资产名为 `Codex.Companion.Setup.0.3.5.exe`。
+- 验证方式：执行 `npm run package:win`，通过 lint、TypeScript、renderer build、main build 和 Windows NSIS 打包；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `26%`、周额度余量 `52%`，两个窗口当前均未识别新的 reset；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；执行合成快照验证，确认赠送重置生成 `5` 个过期里程碑候选，首次发送 `6` 条、第二次发送 `0` 条，同一 5H 周期 `10%` danger 首次发送 `1` 条、重复发送 `0` 条；使用 Electron 生成 `local_dev_work/settings-1360x900-dev2.png`，确认设置页通知策略文案、Git 状态和版本号正常；执行 `git diff --check`，仅有 Windows 换行提示；执行 `gh release view v0.3.5`，确认 release 资产已上传且 digest 与本地 SHA256 一致。
 
 ## [2026-07-02] v0.3.5-dev.2 fix: 通知改为一次性里程碑提醒
 
