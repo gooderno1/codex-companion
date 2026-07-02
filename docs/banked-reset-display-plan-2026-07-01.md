@@ -1,10 +1,10 @@
 # Codex banked reset 展示实施方案
 
-本文档记录 `codex-companion v0.3.2-dev.1` 对 `codex-usage-core v0.1.0-dev.6` banked reset credit 字段的实际接入方式。
+本文档记录 `codex-companion v0.3.2-dev.2` 对 `codex-usage-core v0.1.0-dev.7` banked reset credit 字段的实际接入方式。
 
 ## 数据来源
 
-- 核心包：`@lifeinhand/codex-usage-core@v0.1.0-dev.6`
+- 核心包：`@lifeinhand/codex-usage-core@v0.1.0-dev.7`
 - 只读方法：`readCodexAccountRateLimits()`
 - Codex 本地接口：`account/rateLimits/read`
 - 主字段：`rateLimitResetCredits.availableCount`
@@ -50,7 +50,7 @@ interface BankedResetCreditsSummary {
   - 预计过期：`estimatedExpiresAt`
   - 保守提醒时间：`safeEstimatedExpiresAt`
 
-过期提醒优先使用 `safeEstimatedExpiresAt`，默认比 `estimatedExpiresAt` 早 `1` 天。核心包默认使用两个公开 seed：`2026-06-11` Codex banking 上线 free reset，预计 `2026-07-11` 过期、`2026-07-10` 前保守使用；`2026-06-30` 异常消耗修复补偿 reset，预计 `2026-07-30` 过期、`2026-07-29` 前保守使用。首次采样前已经存在且未匹配公开 seed 的 credit 无法反推真实获取和过期时间，页面显示为“建议尽快使用”。
+过期提醒优先使用 `safeEstimatedExpiresAt`，默认比 `estimatedExpiresAt` 早 `1` 天。核心包默认保留但不自动匹配 `2026-06-11` Codex banking 上线 free reset，因为该 reset 可能在开始监控前已被用户手动使用；当前默认可自动匹配的公开 seed 包括 `2026-06-30` 异常消耗修复补偿 reset，预计 `2026-07-30` 过期、`2026-07-29` 前保守使用。首次采样前已经存在且未匹配公开 seed 的 credit 无法反推真实获取和过期时间，页面显示为“建议尽快使用”。
 
 ## 边界
 

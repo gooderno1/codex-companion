@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.3.2-dev.1`
+- 对应版本：`v0.3.2-dev.2`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -50,7 +50,7 @@
 
 ### 2.2 额度
 
-- Codex 用量、额度周期、reset 检测和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.6`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.6`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。
+- Codex 用量、额度周期、reset 检测和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.7`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.7`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。
 - `5 小时额度` 使用 `rate_limits.primary`
 - `周额度` 使用 `rate_limits.secondary`
 - 如果同一台机器同时观测到多个 Codex `rate_limits` 池，页面可见的 `5 小时额度 / 周额度` 必须优先选择主额度池 `rate_limits.limit_id = codex`；模型或实验池，例如 `codex_bengalfox`，不能因为观测时间更新而覆盖主额度显示。
@@ -111,7 +111,7 @@
   - `activeCredits[]`：逐个可用 credit 明细，包含 `acquiredAt / firstObservedAt / estimatedExpiresAt / safeEstimatedExpiresAt / estimateBasis`。
   - `estimatedExpiresAt`：按公开 seed 或本应用采样到 `availableCount` 增加时的获取观测时间加 `30d` 推断。
   - `safeEstimatedExpiresAt`：默认比 `estimatedExpiresAt` 提前 `1d`，总览页优先展示该字段作为保守使用提醒。
-  - `estimateBasis=public-grant`：表示首次采样时的 credit 匹配到公开发放事件 seed，例如 `2026-06-11` Codex banking 上线 free reset 或 `2026-06-30` 异常消耗修复补偿 reset；页面需标注为公开发放估算。
+  - `estimateBasis=public-grant`：表示首次采样时的 credit 匹配到允许默认匹配的公开发放事件 seed，例如 `2026-06-30` 异常消耗修复补偿 reset；`2026-06-11` Codex banking 上线 free reset 可能已在监控前被使用，核心包默认不再自动归因到当前库存。
   - `estimateBasis=existing-at-first-observation`：表示首次采样时已经存在的 credit，无法反推获取时间和真实过期时间；页面展示为“早于首次观测获得 / 建议尽快使用”。
   - `events[]`：仅保存 `grant / use / expiration / decrease-unknown` 的脱敏推断摘要，不保存原始 app-server 响应、账号、邮箱或余额。
   - `observations[]`：仅保存继续推断所需的脱敏观测历史，保留 `observedAt / availableCount / rateLimits` 的窗口百分比和 reset 时间，不保存 `credits.balance`。

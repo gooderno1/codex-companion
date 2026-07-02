@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.2-dev.2 fix: 避免默认匹配已用 launch reset
+
+- 开发原因：用户确认当前 `rateLimitResetCredits.availableCount=3` 是正确的，但 `2026-06-11` banking 上线赠送的 launch free reset 很可能已经使用；当前 3 次应优先按后续公开补偿和本地观测新增来解释。
+- 实现方式：将应用版本从 `v0.3.2-dev.1` 提升到 `v0.3.2-dev.2`；把 `@lifeinhand/codex-usage-core` 升级到远程 Git tag `v0.1.0-dev.7`；同步 README、Roadmap、数据合同、组件映射和 banked reset 展示方案，明确 `2026-06-11` seed 默认不再自动匹配当前库存。
+- 适用范围：仅影响首次观测前已有的赠送重置归因；后续 `availableCount` 增加仍按本地观测时间推断获取和过期。
+- 当前结果：live 快照确认当前 `availableCount=3`，且 active 明细不再包含 `2026-06-11`；三条分别为 1 条 `existing-at-first-observation`、1 条 `2026-06-30 -> 2026-07-30` 的 `public-grant`、1 条 `2026-07-01T19:58:24.705Z -> 2026-07-31T19:58:24.705Z` 的 `observed-grant`。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认额度快照校验通过；执行 `npm run verify:ledger`，确认账本页一致性通过；调用编译后的 `DashboardService.getSnapshot(true, "manual")`，确认 `bankedResetCredits.availableCount=3` 且无 `2026-06-11` active 明细；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-07-02] v0.3.2-dev.1 feat: 用公开发放时间展示赠送重置
 
 - 开发原因：用户指出 banked reset credit 的过期时间可以按公开 `30` 天有效期推断，当前本机可用的 `2` 次也可先对应公开发放事件；总览页不应把这两次都展示为无法反推。
