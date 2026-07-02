@@ -1482,6 +1482,8 @@ function SettingsPage({
           <strong>%APPDATA%/codex-companion/snapshot.json</strong>
           <span>增量缓存</span>
           <strong>%APPDATA%/codex-companion/codex-session-cache.json</strong>
+          <span>通知去重</span>
+          <strong>%APPDATA%/codex-companion/notification-state.json</strong>
         </div>
       </SectionCard>
     </div>

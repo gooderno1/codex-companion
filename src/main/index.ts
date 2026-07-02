@@ -5,6 +5,7 @@ import {
   ipcMain,
   Menu,
   nativeImage,
+  Notification,
   screen,
   Tray
 } from "electron";
@@ -21,6 +22,7 @@ import type {
 } from "../shared/contracts";
 import { DashboardService } from "./collectors/dashboardCollector";
 import { CodexSessionCacheStore } from "./state/codexSessionCacheStore";
+import { DashboardNotificationService } from "./notifications";
 import { SettingsStore } from "./state/settingsStore";
 import { SnapshotStore } from "./state/snapshotStore";
 
@@ -29,6 +31,7 @@ let widgetWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 let dashboardService: DashboardService;
+let dashboardNotificationService: DashboardNotificationService | null = null;
 let currentPreferences: AppPreferences | null = null;
 let latestSnapshot: DashboardSnapshot | null = null;
 let persistBoundsTimer: NodeJS.Timeout | null = null;
@@ -40,6 +43,10 @@ let dashboardRefreshTask: Promise<DashboardSnapshot> | null = null;
 let startupRefreshTimer: NodeJS.Timeout | null = null;
 
 const preloadPath = path.join(__dirname, "preload.js");
+
+if (process.platform === "win32") {
+  app.setAppUserModelId("com.gooderno1.codex-companion");
+}
 
 if (process.env.CODEX_COMPANION_CAPTURE_PATH) {
   app.disableHardwareAcceleration();
@@ -284,6 +291,38 @@ function broadcastDashboardSnapshot(snapshot: DashboardSnapshot) {
     sendDashboardUpdate(widgetWindow, snapshot);
   }
   refreshTrayMenu();
+  void showDashboardNotifications(snapshot);
+}
+
+async function showDashboardNotifications(snapshot: DashboardSnapshot) {
+  if (
+    !dashboardNotificationService ||
+    process.env.CODEX_COMPANION_CAPTURE_PATH ||
+    !Notification.isSupported()
+  ) {
+    return;
+  }
+
+  try {
+    const notifications =
+      await dashboardNotificationService.takeUnsentNotifications(snapshot);
+
+    for (const item of notifications) {
+      const notification = new Notification({
+        title: item.title,
+        body: item.body,
+        silent: false
+      });
+      notification.on("click", () => {
+        void openPage(item.page);
+      });
+      notification.show();
+    }
+  } catch (error) {
+    console.error(
+      `系统通知失败：${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }
 
 function refreshDashboardAndBroadcast(
@@ -637,6 +676,7 @@ async function bootstrap() {
     snapshotStore,
     codexSessionCacheStore
   );
+  dashboardNotificationService = new DashboardNotificationService(userDataPath);
   currentPreferences = await dashboardService.getPreferences();
 
   createMainWindow();

@@ -1,5 +1,14 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.3-dev.1 feat: 增加本机系统通知
+
+- 开发原因：用户要求先确认项目最新进展，并增加类似赠送重置次数到期、额度不足的通知能力；当前最新正式进展已同步到 `v0.3.2`，重点是赠送重置次数的公开发放估算和保守过期提醒。
+- 实现方式：将应用版本提升到 `v0.3.3-dev.1`；新增 `DashboardNotificationService`，在主进程处理 live `DashboardSnapshot` 后生成系统通知候选；通知只消费 `overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit` 和 `limitWindows[0..1]`，不修改 `codex-usage-core` reset engine；通过 Electron `Notification` 发出系统通知，点击通知打开总览页；新增 `%APPDATA%/codex-companion/notification-state.json` 保存已发送提醒 key、标题、正文和发送时间，避免 5 分钟自动刷新重复弹出同一提醒；设置页数据边界新增通知去重文件。
+- 触发条件：赠送重置预计已过期、已到 `safeEstimatedExpiresAt`、距离 `safeEstimatedExpiresAt` 不超过 `24h`，或 `estimateBasis=existing-at-first-observation` 无法反推真实过期时间时提醒；`5H 额度` 或 `周额度` 当前周期余量 `remainingPercent <= 20%` 时提醒，`<= 10%` 时使用更高优先级提醒。
+- 排除条件：仅 live 快照触发；截图模式、缓存快照和 pending 快照不触发；`sourceStatus=pending / unobserved` 的赠送重置不提醒；非 `observed` 的额度窗口不提醒；可观测月额度暂不提醒，因为当前月额度字段仍未稳定观测。
+- 当前结果：后台刷新、启动刷新和手动刷新后都会进入通知判断；当前本机快照只生成 1 条赠送重置候选，内容为 `2` 次赠送重置早于首次观测、过期时间无法反推，低额度提醒不会触发，因为当前 5H 余量 `78%`、周额度余量 `60%`。
+- 验证方式：执行 `git pull --rebase`，确认本项目远端已是最新；执行 `git ls-remote --tags https://github.com/gooderno1/codex-usage-core.git`，确认远程核心包最新 tag 仍为 `v0.1.0-dev.7`，本项目继续固定该版本；执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认 5H / 周额度快照校验通过；执行编译后的 `buildDashboardNotificationCandidates(snapshot)` 只读检查，确认当前候选为 `banked-reset:unknown`，不会触发低额度候选；执行 `git diff --check`，仅有 Windows 换行提示；使用 Electron 截图命令生成 `local_dev_work/settings-notifications-v0.3.3-dev1.png` 和 `local_dev_work/settings-notifications-full-v0.3.3-dev1.png`，确认设置页主体加载正常。
+
 ## [2026-07-02] v0.3.2 release: 内部正式版
 
 - 开发原因：用户要求确认 `codex-companion` 是否已经 release；核查 Git tag 和 GitHub Release 后确认最新正式版仍停在 `v0.3.1`，需要把 `v0.3.2-dev.1` 至 `v0.3.2-dev.2` 收敛为内部正式版。

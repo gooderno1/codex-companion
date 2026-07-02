@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.2`
+- 当前适用版本：`v0.3.3-dev.1`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、设置页
 
 ## 总览页
@@ -24,6 +24,7 @@
 | 页脚数据来源 | `FooterNote` / `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
+| 系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 去重、点击打开总览页 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；赠送重置到期或无法反推、5H / 周额度低于 `20% / 10%` 时触发 |
 | Codex 增量缓存 | `CodexSessionCacheStore` / `collectCodexData` | 主进程复用 | `size`、`mtimeMs`、解析结果 | `%APPDATA%/codex-companion/codex-session-cache.json` |
 
 ## 设置页
@@ -34,7 +35,7 @@
 | 计费口径 | `SettingsPage` `settings-form-row` | 页面级 | `billingMonthStartDay`、保存并刷新 | `preferences.billingMonthStartDay`、`preferences:update` |
 | 仓库根目录 | `SettingsPage` `repo-root-editor` | 页面级 | 手动输入、选择目录、移除、保存并刷新 | `preferences.repoRoots`、`app:select-directory`、`preferences:update` |
 | 刷新历史 | `RefreshHistoryTable` | 页面级 | 最近 `30` 条刷新记录 | `snapshot.sourceHealth.refreshHistory` |
-| 数据边界 | `SettingsPage` `settings-source-grid` | 页面级 | Codex home、仓库根、本地快照、增量缓存 | `snapshot.sourceHealth`、本项目独立采集约定 |
+| 数据边界 | `SettingsPage` `settings-source-grid` | 页面级 | Codex home、仓库根、本地快照、增量缓存、通知去重 | `snapshot.sourceHealth`、本项目独立采集约定、`notification-state.json` |
 
 ## Codex 账本页
 
@@ -88,6 +89,7 @@
 - 顶部时间视角属于中部页面控制区，不能被 `space-between` 推到右侧操作区旁边，也不能因 `flex-start` 偏到标题组旁边；顶栏桌面态使用左 / 中 / 右三列布局，中部视角控件几何居中，右侧状态、刷新和快照贴右。
 - 页面级截图支持通过 hash 查询参数设置初始 `overviewMode`，用于生成自然时间和计费时间两种真实 Electron 截图；普通用户默认进入计费时间。
 - 主进程默认每 `5` 分钟后台采集一次 `DashboardSnapshot` 并通过 `dashboard:updated` 广播；启动时优先显示缓存快照，延迟后台刷新，手动刷新完成后也必须广播，渲染端通过 `window.codexCompanion.onDashboardUpdated` 静默更新页面。
+- 系统通知只在 live 快照生成后检查：赠送重置临近 `safeEstimatedExpiresAt`、预计过期、首次观测前已有 credit 无法反推时提醒；5H / 周额度剩余量低于 `20%` 或 `10%` 时提醒；同一 credit 状态或同一额度周期阈值通过 `notification-state.json` 去重。
 - 顶部工具栏状态胶囊只显示状态文字，不额外显示状态图标；额度卡和指标卡内状态标签也保持文字-only。
 - 顶部工具栏不显示 `桌面总控台` 等额外眉标，页面标题与副标题横向组成同一信息组。
 - 左侧品牌区必须保持产品图标和 `Codex Companion` 标题顶线对齐，说明文字放在标题下方，图标与标题间距接近设计稿；文字组允许少量基线补偿，避免标题高于图标造成错位。

@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.3.2`
+- 对应版本：`v0.3.3-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -153,6 +153,20 @@
 - 每次 live 刷新或缓存回退必须向 `sourceHealth.refreshHistory` 追加一条记录，最多保留最近 `30` 条，用于设置页展示手动、自动、启动和后台刷新情况。
 - 顶部刷新反馈条只是临时状态提示，刷新完成或失败后约 `5s` 消失；长期追溯以 `sourceHealth.refreshHistory` 为准。
 - 读取旧版 `snapshot.json` 时如果缺少 `sourceHealth.refresh`，主进程必须补齐默认结构，避免升级后首屏渲染异常。
+
+### 2.6 系统通知
+
+- 系统通知只在主进程处理 `generatedFrom=live` 的 `DashboardSnapshot` 后触发；缓存快照、pending 快照和截图模式不触发通知。
+- 通知只消费现有聚合字段，不重新解析 Codex session，也不改变 `codex-usage-core` 的 reset 检测口径。
+- 触发范围：
+  - 赠送重置：`overview.bankedResetCredits.activeCredits[]` 中存在预计已过期、已到 `safeEstimatedExpiresAt`、距离 `safeEstimatedExpiresAt` 不超过 `24h`，或 `estimateBasis=existing-at-first-observation` 无法反推过期时间的 credit。
+  - 额度提醒：`5H 额度` 或 `周额度` 当前周期 `remainingPercent <= 20%` 时提醒；`remainingPercent <= 10%` 时使用更高优先级提醒。
+- 排除条件：
+  - `sourceStatus=pending / unobserved` 的赠送重置不提醒。
+  - `LimitWindow.sourceStatus` 非 `observed` 的额度窗口不提醒。
+  - `可观测月额度` 暂不触发提醒，因为当前月额度字段仍未稳定观测。
+- 去重方式：写入 Electron `userData/notification-state.json`，仅保存通知 key、标题、正文和发送时间；同一 credit 同一到期状态、同一额度周期同一阈值只提醒一次。
+- 隐私边界：通知正文只包含聚合后的剩余百分比、周期范围和赠送重置估算时间，不展示账号、邮箱、原始 app-server 响应、余额字段、原始 JSONL、用户输入正文或模型输出正文。
 
 ## 3. 状态字段
 
