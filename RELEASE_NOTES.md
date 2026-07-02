@@ -1,5 +1,61 @@
 # RELEASE NOTES
 
+## [2026-07-02] v0.3.2 release: 内部正式版
+
+### Release 范围
+
+本次 Release 作为 private 仓库内部正式版，用于内测验证，不等同于公开发布。
+
+包含开发版本：
+
+- `v0.3.2-dev.1`
+- `v0.3.2-dev.2`
+
+未排除开发版本：无。
+
+### 主要变更
+
+- 升级共享核心包到 `@lifeinhand/codex-usage-core@0.1.0-dev.7`。
+- 赠送重置次数支持按公开发放事件 seed 推断获取时间、预计过期时间和提前 `1` 天的保守提醒时间。
+- 默认保留 `2026-06-30` 异常消耗修复补偿 reset 作为公开发放估算。
+- `2026-06-11` Codex banking 上线 free reset 仍记录为已知公开 seed，但默认不再自动归因到当前库存，避免把已用早期 reset 误显示为仍可用。
+- 总览页继续在顶部指标卡和 5H / 周额度圆环之间展示赠送重置次数，普通态显示当前可用次数和最早保守提醒时间，展开态显示逐条获取、预计过期和保守提醒时间。
+
+### 修复内容
+
+- 修正首次观测前已有库存会默认匹配 `2026-06-11` launch free reset 的问题。
+- 修正当前 `availableCount=3` 时的展示归因：1 条首次观测前已有库存、1 条 `2026-06-30` 公开补偿估算、1 条 `2026-07-01` 本地观测新增。
+- 修正文档中对公开 seed 默认匹配范围的说明，明确 6 月 11 日 seed 需要调用方显式启用才会参与自动匹配。
+
+### 验证结果
+
+- `npm run build`：通过，覆盖 lint、TypeScript 类型检查、renderer build 和 main build。
+- `npm run verify:quota`：通过，当前快照中 5H 额度余量 `87%`、周额度余量 `61%`，两个窗口当前均未识别新的 reset。
+- `npm run verify:ledger`：通过，账本页设计图、数据合同、采集器和页面实现关键内容一致。
+- live 快照读取：通过，`bankedResetCredits.sourceStatus=observed`、`availableCount=3`、`activeCreditCount=3`；active 明细不再包含 `2026-06-11` public grant。
+- `npm run package:win`：通过，生成 `Codex Companion Setup 0.3.2.exe` 安装包。
+- `git diff --check`：通过，仅出现 Windows 换行转换提示。
+
+### Release 资产校验
+
+- `Codex Companion Setup 0.3.2.exe`：`SHA256 E0A202A0EFAC21B969357F270016A2F813D4D1954A7B8975F99137E96C8C04F3`；GitHub 资产名为 `Codex.Companion.Setup.0.3.2.exe`
+
+### 升级注意事项
+
+- 应用版本号从开发版 `0.3.2-dev.2` 切换为正式版 `0.3.2`。
+- 当前继续依赖远程 Git tag `gooderno1/codex-usage-core#v0.1.0-dev.7`。
+- 赠送重置次数来自 Codex app-server 只读 `rateLimitResetCredits.availableCount` 观测；本项目不调用消耗接口，不会使用或扣减 credit。
+- 首次观测前已存在但未匹配公开 seed 的 credit 无法反推真实获取时间和过期时间，页面只展示保守估算并建议尽快使用。
+- 本版本只提供 Windows NSIS 安装包，不提供便携版 exe。
+- API 等价成本和 Codex credits 仍为估算，不代表官方账单。
+
+### 已知边界
+
+- 当前 GitHub 仓库仍为 private，Release 资产只对有仓库读权限的成员可见。
+- Windows 包尚未配置代码签名，内测安装时可能出现系统安全提示。
+- 暂未提供自动更新。
+- `npm audit` 仍存在上游依赖漏洞提示，未在本次 release 中升级依赖树。
+
 ## [2026-07-02] v0.3.1 release: 内部正式版
 
 ### Release 范围
