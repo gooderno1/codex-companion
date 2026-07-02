@@ -15,12 +15,23 @@ import { readJsonFile, writeJsonFile } from "./utils/fs";
 
 const NOTIFICATION_STATE_FILE_NAME = "notification-state.json";
 const SENT_RECORD_TTL_MS = 90 * 24 * 60 * 60 * 1000;
-const BANKED_RESET_NOTICE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const LOW_QUOTA_WARNING_THRESHOLD = 20;
 const LOW_QUOTA_DANGER_THRESHOLD = 10;
 const NOTIFICATION_HISTORY_LIMIT = 80;
-const BALANCED_REPEAT_COOLDOWN_MS = 12 * 60 * 60 * 1000;
-const IMPORTANT_REPEAT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+
+const BANKED_RESET_EXPIRATION_MILESTONES = [
+  { key: "1h", label: "1 小时", ms: HOUR_MS, tone: "danger" },
+  { key: "12h", label: "12 小时", ms: 12 * HOUR_MS, tone: "danger" },
+  { key: "1d", label: "1 天", ms: DAY_MS, tone: "warning" },
+  { key: "3d", label: "3 天", ms: 3 * DAY_MS, tone: "warning" },
+  { key: "7d", label: "1 周", ms: 7 * DAY_MS, tone: "warning" }
+] as const;
+
+type BankedResetExpirationMilestone =
+  (typeof BANKED_RESET_EXPIRATION_MILESTONES)[number];
 
 export interface DashboardNotification {
   key: string;
@@ -368,6 +379,53 @@ function buildBankedResetGroupKey(
   return `banked-reset:${kind}:${credits.length}:${stableDates}`;
 }
 
+function bankedResetExpirationMilestone(
+  expiresAt: string | null | undefined,
+  nowMs: number
+): BankedResetExpirationMilestone | "expired" | null {
+  const expiresMs = dateMs(expiresAt);
+  if (expiresMs === null) {
+    return null;
+  }
+
+  const remainingMs = expiresMs - nowMs;
+  if (remainingMs <= 0) {
+    return "expired";
+  }
+
+  return (
+    BANKED_RESET_EXPIRATION_MILESTONES.find(
+      (milestone) => remainingMs <= milestone.ms
+    ) ?? null
+  );
+}
+
+function buildBankedResetExpirationKey(
+  milestone: BankedResetExpirationMilestone | "expired",
+  expiresAt: string
+) {
+  return `banked-reset:expiration:${milestone === "expired" ? "expired" : milestone.key}:${expiresAt}`;
+}
+
+function countCreditsByExpiration(
+  credits: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"]
+) {
+  const counts = new Map<string, number>();
+
+  for (const credit of credits) {
+    if (!credit.estimatedExpiresAt) {
+      continue;
+    }
+
+    counts.set(
+      credit.estimatedExpiresAt,
+      (counts.get(credit.estimatedExpiresAt) ?? 0) + 1
+    );
+  }
+
+  return counts;
+}
+
 function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNotification[] {
   const summary = snapshot.overview.bankedResetCredits;
   const availableCount = summary.availableCount ?? 0;
@@ -385,75 +443,53 @@ function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNo
   }
 
   const estimableCredits = credits.filter(
-    (credit) => credit.estimateBasis !== "existing-at-first-observation"
+    (credit) =>
+      credit.estimateBasis !== "existing-at-first-observation" &&
+      credit.estimatedExpiresAt
   );
-  const expired = estimableCredits.filter((credit) => {
-    const expiresMs = dateMs(credit.estimatedExpiresAt);
-    return expiresMs !== null && expiresMs <= nowMs;
-  });
-  const due = estimableCredits.filter((credit) => {
-    const safeMs = dateMs(credit.safeEstimatedExpiresAt);
-    const expiresMs = dateMs(credit.estimatedExpiresAt);
-    return safeMs !== null && safeMs <= nowMs && !(expiresMs !== null && expiresMs <= nowMs);
-  });
-  const soon = estimableCredits.filter((credit) => {
-    const safeMs = dateMs(credit.safeEstimatedExpiresAt);
-    return (
-      safeMs !== null &&
-      safeMs > nowMs &&
-      safeMs - nowMs <= BANKED_RESET_NOTICE_WINDOW_MS
-    );
-  });
   const unknown = credits.filter(
     (credit) => credit.estimateBasis === "existing-at-first-observation"
   );
-
-  if (expired.length > 0) {
-    const earliest = expired[0];
-    return [
-      {
-        key: buildBankedResetGroupKey("expired", expired),
-        title: "赠送重置可能已到期",
-        body: `有 ${expired.length} 次赠送重置按估算已到过期时间，最早 ${formatNotificationDate(
-          earliest.estimatedExpiresAt
-        )}；当前共 ${availableCount} 次可用。`,
-        page: "overview",
-        category: "banked-reset",
-        tone: "danger"
+  const expirationCounts = countCreditsByExpiration(estimableCredits);
+  const expirationNotifications = [...expirationCounts.entries()].flatMap(
+    ([expiresAt, count]): DashboardNotification[] => {
+      const milestone = bankedResetExpirationMilestone(expiresAt, nowMs);
+      if (!milestone) {
+        return [];
       }
-    ];
-  }
 
-  if (due.length > 0) {
-    const earliest = due[0];
-    return [
-      {
-        key: buildBankedResetGroupKey("due", due),
-        title: "赠送重置建议尽快使用",
-        body: `有 ${due.length} 次赠送重置已到保守提醒时间，预计最早 ${formatNotificationDate(
-          earliest.estimatedExpiresAt
-        )} 过期；当前共 ${availableCount} 次可用。`,
-        page: "overview",
-        category: "banked-reset",
-        tone: "warning"
+      if (milestone === "expired") {
+        return [
+          {
+            key: buildBankedResetExpirationKey(milestone, expiresAt),
+            title: "赠送重置可能已到期",
+            body: `有 ${count} 次赠送重置按估算已到过期时间 ${formatNotificationDate(
+              expiresAt
+            )}；当前共 ${availableCount} 次可用。`,
+            page: "overview",
+            category: "banked-reset",
+            tone: "danger"
+          }
+        ];
       }
-    ];
-  }
 
-  if (soon.length > 0) {
-    const earliest = soon[0];
-    return [
-      {
-        key: buildBankedResetGroupKey("soon", soon),
-        title: "赠送重置即将到提醒时间",
-        body: `有 ${soon.length} 次赠送重置将在 24 小时内到达建议使用时间，最早 ${formatNotificationDate(
-          earliest.safeEstimatedExpiresAt
-        )}；预计 ${formatNotificationDate(earliest.estimatedExpiresAt)} 过期。`,
-        page: "overview",
-        category: "banked-reset",
-        tone: "warning"
-      }
-    ];
+      return [
+        {
+          key: buildBankedResetExpirationKey(milestone, expiresAt),
+          title: `赠送重置将在 ${milestone.label} 内过期`,
+          body: `有 ${count} 次赠送重置预计 ${formatNotificationDate(
+            expiresAt
+          )} 过期；这是 ${milestone.label} 前的一次性提醒，当前共 ${availableCount} 次可用。`,
+          page: "overview",
+          category: "banked-reset",
+          tone: milestone.tone
+        }
+      ];
+    }
+  );
+
+  if (expirationNotifications.length > 0) {
+    return expirationNotifications;
   }
 
   if (unknown.length > 0) {
@@ -485,19 +521,11 @@ export function buildDashboardNotificationCandidates(
   ];
 }
 
-function notificationRepeatCooldownMs(mode: NotificationDeliveryMode): number {
-  if (mode === "important") {
-    return IMPORTANT_REPEAT_COOLDOWN_MS;
-  }
-
-  return BALANCED_REPEAT_COOLDOWN_MS;
-}
-
 function isImportantNotification(candidate: DashboardNotification): boolean {
   return (
     candidate.tone === "danger" ||
-    candidate.key.startsWith("banked-reset:due") ||
-    candidate.key.startsWith("banked-reset:expired")
+    candidate.key.startsWith("banked-reset:expiration:1h") ||
+    candidate.key.startsWith("banked-reset:expiration:12h")
   );
 }
 
@@ -529,11 +557,6 @@ function shouldShowSystemNotification(
   }
 
   return true;
-}
-
-function isCooldownElapsed(lastIso: string | null, nowMs: number, cooldownMs: number): boolean {
-  const lastMs = dateMs(lastIso);
-  return lastMs === null || nowMs - lastMs >= cooldownMs;
 }
 
 function findEquivalentNotification(
@@ -599,9 +622,6 @@ export class DashboardNotificationService {
     const now = new Date();
     const nowIso = now.toISOString();
     const nowMs = now.getTime();
-    const cooldownMs = notificationRepeatCooldownMs(
-      normalizedPreferences.deliveryMode
-    );
     const state = await this.readState();
     const existingByKey = new Map(
       pruneSentNotifications(state.notifications, nowMs).map((notification) => [
@@ -618,18 +638,6 @@ export class DashboardNotificationService {
         if (equivalent && equivalent[0] !== candidate.key) {
           existingByKey.delete(equivalent[0]);
         }
-        const canRepeat = isCooldownElapsed(
-          existing.lastTriggeredAt,
-          nowMs,
-          cooldownMs
-        );
-        const canShowSystem =
-          canRepeat &&
-          shouldShowSystemNotification(
-            candidate,
-            normalizedPreferences.deliveryMode
-          ) &&
-          isCooldownElapsed(existing.systemNotifiedAt, nowMs, cooldownMs);
         existingByKey.set(candidate.key, {
           ...existing,
           key: candidate.key,
@@ -638,13 +646,10 @@ export class DashboardNotificationService {
           page: candidate.page,
           category: candidate.category,
           tone: candidate.tone,
-          lastTriggeredAt: canRepeat ? nowIso : existing.lastTriggeredAt,
-          systemNotifiedAt: canShowSystem ? nowIso : existing.systemNotifiedAt,
-          readAt: canRepeat ? null : existing.readAt
+          lastTriggeredAt: existing.lastTriggeredAt,
+          systemNotifiedAt: existing.systemNotifiedAt,
+          readAt: existing.readAt
         });
-        if (canShowSystem) {
-          unsent.push(existingByKey.get(candidate.key) as DashboardNotificationEntry);
-        }
         continue;
       }
 

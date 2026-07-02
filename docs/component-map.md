@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.5-dev.1`
+- 当前适用版本：`v0.3.5-dev.2`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、设置页
 
 ## 总览页
@@ -27,7 +27,7 @@
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
 | Windows 托盘图标 | `createTrayIcon` / `createTrayPngBuffer` | 主进程复用 | 32px PNG `nativeImage` | 主进程运行时按 `BrandMark` 品牌几何生成蓝青 PNG，避免 Windows 托盘使用 SVG DataURL 时出现空白或图标不一致 |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
-| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 去重、已读状态、通知模式冷却、点击打开关联页面 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；赠送重置到期或无法反推、5H / 周额度低于 `20% / 10%` 时触发；默认 `balanced` 同一提醒 `12h` 冷却 |
+| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 一次性去重、已读状态、通知模式筛选、点击打开关联页面 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；赠送重置按过期前 `7d / 3d / 1d / 12h / 1h` 各提醒一次，5H / 周额度低于 `20% / 10%` 时按周期阈值各提醒一次 |
 | Codex 增量缓存 | `CodexSessionCacheStore` / `collectCodexData` | 主进程复用 | `size`、`mtimeMs`、解析结果 | `%APPDATA%/codex-companion/codex-session-cache.json` |
 
 ## 设置页
@@ -97,7 +97,7 @@
 - 页面级截图支持通过 hash 查询参数设置初始 `overviewMode`，用于生成自然时间和计费时间两种真实 Electron 截图；普通用户默认进入计费时间。
 - 主进程默认每 `5` 分钟后台采集一次 `DashboardSnapshot` 并通过 `dashboard:updated` 广播；启动时优先显示缓存快照，延迟后台刷新，手动刷新完成后也必须广播，渲染端通过 `window.codexCompanion.onDashboardUpdated` 静默更新页面。
 - 提醒中心位于顶栏操作区，铃铛按钮显示未读数；点击后展开最近提醒详情，支持查看对应页面和标记已读；详情只展示聚合后的提醒正文，不展示原始会话或 app-server 响应。
-- 系统通知只在 live 快照生成后检查：赠送重置临近 `safeEstimatedExpiresAt`、预计过期、首次观测前已有 credit 无法反推时提醒；5H / 周额度剩余量低于 `20%` 或 `10%` 时提醒；同一提醒默认 `12h` 冷却，`important` 模式 `24h` 冷却，`quiet` 只进入应用内通知页，`off` 不生成新提醒。
+- 系统通知只在 live 快照生成后检查：赠送重置按预计过期前 `7d / 3d / 1d / 12h / 1h` 里程碑提醒，首次观测前已有 credit 无法反推时只提醒一次；5H / 周额度剩余量低于 `20%` 或 `10%` 时按当前额度周期提醒一次；`quiet` 只进入应用内通知页，`off` 不生成新提醒。
 - 顶部工具栏状态胶囊只显示状态文字，不额外显示状态图标；额度卡和指标卡内状态标签也保持文字-only。
 - 顶部工具栏不显示 `桌面总控台` 等额外眉标，页面标题与副标题横向组成同一信息组。
 - 左侧品牌区必须保持产品图标和 `Codex Companion` 标题顶线对齐，说明文字放在标题下方，图标与标题间距接近设计稿；文字组允许少量基线补偿，避免标题高于图标造成错位。

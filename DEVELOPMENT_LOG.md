@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.5-dev.2 fix: 通知改为一次性里程碑提醒
+
+- 开发原因：用户反馈赠送重置过期提醒不应按冷却期重复提醒，而应在过期前固定时间点各提醒一次；额度提醒也应在对应额度阈值到达时提醒一次。
+- 实现方式：将应用版本提升到 `v0.3.5-dev.2`；移除 `DashboardNotificationService` 中的 `12h / 24h` 冷却重复提醒逻辑；同一通知 key 已存在时只更新标题和正文，不更新最近触发时间、不重置未读状态、不重复触发系统通知；赠送重置可估算过期时间时按 `banked-reset:expiration:<milestone>:<estimatedExpiresAt>` 生成稳定 key，其中 `milestone` 为 `7d / 3d / 1d / 12h / 1h / expired`；无法反推过期时间的赠送重置仍只生成一次待确认提醒；5H / 周额度继续按额度窗口、周期起止和阈值生成 key，`20%` warning 与 `10%` danger 在同一周期内各只提醒一次；同步更新 README、Roadmap、数据契约、组件映射和设置页通知策略文案。
+- 触发条件：赠送重置预计过期前 `7 天 / 3 天 / 1 天 / 12 小时 / 1 小时` 各生成一次提醒；如果应用首次观测时已经过估算过期时间，只生成一次 `expired` 补偿提醒；额度窗口 `remainingPercent <= 20%` 生成一次 warning，`remainingPercent <= 10%` 生成一次 danger，均限定在当前额度周期 key 内。
+- 当前结果：通知策略从“冷却后可重复提醒”改为“固定里程碑一次性提醒”；设置页显示默认均衡策略为“记录全部里程碑提醒，每个过期里程碑和额度阈值只提醒一次”。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行合成快照验证，确认赠送重置候选 key 包含 `7d / 3d / 1d / 12h / 1h` 五个里程碑，首次 `takeUnsentNotifications` 返回 `6` 条，第二次返回 `0` 条；同一 5H 周期 `20%` warning 首次生成一次，切到 `10%` danger 后生成一次，重复 danger 返回 `0` 条；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `30%`、周额度余量 `52%`；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；使用 Electron 生成 `local_dev_work/settings-1360x900-dev2.png`，确认设置页通知策略文案和版本号正常；截图时 Electron 仍输出本机 GPU cache 权限告警，但应用启动、截图和退出正常。
+
 ## [2026-07-02] v0.3.5-dev.1 feat: 重设计通知与设置页
 
 - 开发原因：用户反馈通知过于频繁、只有顶部下拉没有独立通知页、设置页刷新历史过重、Git 登录授权入口不清晰，以及 Windows 托盘图标虽然可见但不是应用品牌图标。

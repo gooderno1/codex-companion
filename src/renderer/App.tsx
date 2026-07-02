@@ -562,9 +562,9 @@ function notificationDeliveryModeLabel(mode: NotificationDeliveryMode) {
 
 function notificationDeliveryModeDetail(mode: NotificationDeliveryMode) {
   const mapping: Record<NotificationDeliveryMode, string> = {
-    balanced: "默认策略。同一提醒 12 小时内不重复弹系统通知，也不会反复顶到列表最前。",
-    important: "只保留紧急额度和赠送重置到期类提醒，同一提醒 24 小时冷却。",
-    quiet: "保留应用内通知历史，不弹出系统通知。",
+    balanced: "默认策略。记录全部里程碑提醒；每个过期里程碑和额度阈值只提醒一次。",
+    important: "只保留紧急额度、1 小时和 12 小时过期提醒。",
+    quiet: "保留应用内通知历史，不弹出系统通知；每个提醒仍只生成一次。",
     off: "不再生成新的提醒；已有历史仍可查看和标记已读。"
   };
 
