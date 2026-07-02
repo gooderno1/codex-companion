@@ -4,6 +4,8 @@ import type { CodexCompanionApi } from "../shared/contracts";
 
 const api: CodexCompanionApi = {
   getDashboard: (force) => ipcRenderer.invoke("dashboard:get", force),
+  getNotifications: () => ipcRenderer.invoke("notifications:get"),
+  markNotificationsRead: (keys) => ipcRenderer.invoke("notifications:mark-read", keys),
   getPreferences: () => ipcRenderer.invoke("preferences:get"),
   updatePreferences: (patch) => ipcRenderer.invoke("preferences:update", patch),
   refreshDashboard: () => ipcRenderer.invoke("dashboard:refresh"),
@@ -33,6 +35,19 @@ const api: CodexCompanionApi = {
     ipcRenderer.on("dashboard:updated", subscription);
     return () => {
       ipcRenderer.removeListener("dashboard:updated", subscription);
+    };
+  },
+  onNotificationsUpdated: (listener) => {
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      notifications: Parameters<typeof listener>[0]
+    ) => {
+      listener(notifications);
+    };
+
+    ipcRenderer.on("notifications:updated", subscription);
+    return () => {
+      ipcRenderer.removeListener("notifications:updated", subscription);
     };
   },
   openPage: (page) => ipcRenderer.invoke("app:open-page", page),

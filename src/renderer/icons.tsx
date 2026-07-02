@@ -12,6 +12,7 @@ export type IconName =
   | "code"
   | "cost"
   | "session"
+  | "bell"
   | "maximize"
   | "close";
 
@@ -119,6 +120,14 @@ export function Glyph({ name }: { name: IconName }) {
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path {...common} d="M5 6h14v10H8l-3 3z" />
           <path {...common} d="M9 10h6M9 13h4" />
+        </svg>
+      );
+    case "bell":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path {...common} d="M7 10a5 5 0 0 1 10 0c0 4 1.5 5.5 2.5 6.5h-15C5.5 15.5 7 14 7 10Z" />
+          <path {...common} d="M10 19a2.2 2.2 0 0 0 4 0" />
+          <path {...common} d="M12 4V3" />
         </svg>
       );
     case "maximize":

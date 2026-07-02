@@ -2,6 +2,9 @@ import path from "node:path";
 
 import type {
   AppPage,
+  DashboardNotificationCategory,
+  DashboardNotificationEntry,
+  DashboardNotificationTone,
   DashboardSnapshot,
   LimitWindow,
   PeriodMetric
@@ -13,23 +16,19 @@ const SENT_RECORD_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const BANKED_RESET_NOTICE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const LOW_QUOTA_WARNING_THRESHOLD = 20;
 const LOW_QUOTA_DANGER_THRESHOLD = 10;
+const NOTIFICATION_HISTORY_LIMIT = 80;
 
 export interface DashboardNotification {
   key: string;
   title: string;
   body: string;
   page: AppPage;
-}
-
-interface SentNotificationRecord {
-  key: string;
-  title: string;
-  body: string;
-  lastSentAt: string;
+  category: DashboardNotificationCategory;
+  tone: DashboardNotificationTone;
 }
 
 interface NotificationState {
-  sent: Record<string, SentNotificationRecord>;
+  notifications: DashboardNotificationEntry[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -37,10 +36,51 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function normalizeNotificationState(value: unknown): NotificationState {
-  const sentValue = isRecord(value) && isRecord(value.sent) ? value.sent : {};
-  const sent: Record<string, SentNotificationRecord> = {};
+  const notificationValues =
+    isRecord(value) && Array.isArray(value.notifications)
+      ? value.notifications
+      : [];
+  const notifications: DashboardNotificationEntry[] = [];
 
-  for (const [key, recordValue] of Object.entries(sentValue)) {
+  for (const recordValue of notificationValues) {
+    if (!isRecord(recordValue)) {
+      continue;
+    }
+
+    const key = recordValue.key;
+    const createdAt = recordValue.createdAt;
+    const lastTriggeredAt = recordValue.lastTriggeredAt;
+    if (
+      typeof key !== "string" ||
+      typeof createdAt !== "string" ||
+      typeof lastTriggeredAt !== "string"
+    ) {
+      continue;
+    }
+
+    notifications.push({
+      key,
+      title: typeof recordValue.title === "string" ? recordValue.title : "",
+      body: typeof recordValue.body === "string" ? recordValue.body : "",
+      page: normalizeNotificationPage(recordValue.page),
+      category: normalizeNotificationCategory(recordValue.category),
+      tone: normalizeNotificationTone(recordValue.tone),
+      createdAt,
+      lastTriggeredAt,
+      systemNotifiedAt:
+        typeof recordValue.systemNotifiedAt === "string"
+          ? recordValue.systemNotifiedAt
+          : null,
+      readAt: typeof recordValue.readAt === "string" ? recordValue.readAt : null
+    });
+  }
+
+  if (notifications.length > 0) {
+    return { notifications: sortNotifications(notifications) };
+  }
+
+  const legacySent = isRecord(value) && isRecord(value.sent) ? value.sent : {};
+  for (const [key, recordValue] of Object.entries(legacySent)) {
     if (!isRecord(recordValue)) {
       continue;
     }
@@ -50,33 +90,68 @@ function normalizeNotificationState(value: unknown): NotificationState {
       continue;
     }
 
-    sent[key] = {
+    notifications.push({
       key,
       title: typeof recordValue.title === "string" ? recordValue.title : "",
       body: typeof recordValue.body === "string" ? recordValue.body : "",
-      lastSentAt
-    };
+      page: "overview",
+      category: key.startsWith("quota:") ? "quota" : "banked-reset",
+      tone: key.includes(":danger") ? "danger" : "warning",
+      createdAt: lastSentAt,
+      lastTriggeredAt: lastSentAt,
+      systemNotifiedAt: lastSentAt,
+      readAt: null
+    });
   }
 
-  return { sent };
+  return { notifications: sortNotifications(notifications) };
 }
 
 function pruneSentNotifications(
-  sent: Record<string, SentNotificationRecord>,
+  notifications: DashboardNotificationEntry[],
   nowMs: number
-): Record<string, SentNotificationRecord> {
-  const kept: Record<string, SentNotificationRecord> = {};
+): DashboardNotificationEntry[] {
+  const kept: DashboardNotificationEntry[] = [];
 
-  for (const [key, record] of Object.entries(sent)) {
-    const sentMs = new Date(record.lastSentAt).getTime();
-    if (!Number.isFinite(sentMs) || nowMs - sentMs > SENT_RECORD_TTL_MS) {
+  for (const notification of notifications) {
+    const triggeredMs = new Date(notification.lastTriggeredAt).getTime();
+    if (!Number.isFinite(triggeredMs) || nowMs - triggeredMs > SENT_RECORD_TTL_MS) {
       continue;
     }
 
-    kept[key] = record;
+    kept.push(notification);
   }
 
-  return kept;
+  return sortNotifications(kept).slice(0, NOTIFICATION_HISTORY_LIMIT);
+}
+
+function normalizeNotificationPage(value: unknown): AppPage {
+  return value === "ledger" ||
+    value === "repositories" ||
+    value === "settings" ||
+    value === "widget" ||
+    value === "overview"
+    ? value
+    : "overview";
+}
+
+function normalizeNotificationCategory(value: unknown): DashboardNotificationCategory {
+  return value === "quota" ? "quota" : "banked-reset";
+}
+
+function normalizeNotificationTone(value: unknown): DashboardNotificationTone {
+  return value === "danger" || value === "info" || value === "warning"
+    ? value
+    : "warning";
+}
+
+function sortNotifications(
+  notifications: DashboardNotificationEntry[]
+): DashboardNotificationEntry[] {
+  return [...notifications].sort(
+    (left, right) =>
+      new Date(right.lastTriggeredAt).getTime() - new Date(left.lastTriggeredAt).getTime()
+  );
 }
 
 function dateMs(iso: string | null | undefined): number | null {
@@ -167,7 +242,9 @@ function buildLowQuotaNotifications(snapshot: DashboardSnapshot): DashboardNotif
         body: `当前剩余 ${formatNotificationPercent(
           remainingPercent
         )}，周期 ${cycleLabel}。数据来自本机 rate_limits 快照。`,
-        page: "overview" as AppPage
+        page: "overview" as AppPage,
+        category: "quota",
+        tone: tier === "danger" ? "danger" : "warning"
       }
     ];
   });
@@ -253,7 +330,9 @@ function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNo
         body: `有 ${expired.length} 次赠送重置按估算已到过期时间，最早 ${formatNotificationDate(
           earliest.estimatedExpiresAt
         )}；当前共 ${availableCount} 次可用。`,
-        page: "overview"
+        page: "overview",
+        category: "banked-reset",
+        tone: "danger"
       }
     ];
   }
@@ -267,7 +346,9 @@ function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNo
         body: `有 ${due.length} 次赠送重置已到保守提醒时间，预计最早 ${formatNotificationDate(
           earliest.estimatedExpiresAt
         )} 过期；当前共 ${availableCount} 次可用。`,
-        page: "overview"
+        page: "overview",
+        category: "banked-reset",
+        tone: "warning"
       }
     ];
   }
@@ -281,7 +362,9 @@ function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNo
         body: `有 ${soon.length} 次赠送重置将在 24 小时内到达建议使用时间，最早 ${formatNotificationDate(
           earliest.safeEstimatedExpiresAt
         )}；预计 ${formatNotificationDate(earliest.estimatedExpiresAt)} 过期。`,
-        page: "overview"
+        page: "overview",
+        category: "banked-reset",
+        tone: "warning"
       }
     ];
   }
@@ -292,7 +375,9 @@ function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNo
         key: buildBankedResetGroupKey("unknown", unknown),
         title: "赠送重置过期时间待确认",
         body: `有 ${unknown.length} 次赠送重置早于首次观测获得，无法反推过期时间；建议优先确认或使用。`,
-        page: "overview"
+        page: "overview",
+        category: "banked-reset",
+        tone: "warning"
       }
     ];
   }
@@ -320,33 +405,98 @@ export class DashboardNotificationService {
     this.statePath = path.join(userDataPath, NOTIFICATION_STATE_FILE_NAME);
   }
 
+  public async getNotifications(): Promise<DashboardNotificationEntry[]> {
+    const state = await this.readState();
+    return state.notifications;
+  }
+
+  public async markNotificationsRead(
+    keys?: string[]
+  ): Promise<DashboardNotificationEntry[]> {
+    const state = await this.readState();
+    const keySet = keys ? new Set(keys) : null;
+    const readAt = new Date().toISOString();
+    const notifications = state.notifications.map((notification) => {
+      if (notification.readAt || (keySet && !keySet.has(notification.key))) {
+        return notification;
+      }
+
+      return {
+        ...notification,
+        readAt
+      };
+    });
+
+    await this.writeState({ notifications });
+    return sortNotifications(notifications);
+  }
+
   public async takeUnsentNotifications(
     snapshot: DashboardSnapshot
-  ): Promise<DashboardNotification[]> {
+  ): Promise<DashboardNotificationEntry[]> {
     const candidates = buildDashboardNotificationCandidates(snapshot);
     if (candidates.length === 0) {
       return [];
     }
 
-    const state = normalizeNotificationState(await readJsonFile<unknown>(this.statePath));
     const now = new Date();
-    const sent = pruneSentNotifications(state.sent, now.getTime());
-    const unsent = candidates.filter((candidate) => !sent[candidate.key]);
+    const state = await this.readState();
+    const existingByKey = new Map(
+      pruneSentNotifications(state.notifications, now.getTime()).map((notification) => [
+        notification.key,
+        notification
+      ])
+    );
+    const unsent: DashboardNotificationEntry[] = [];
 
-    if (unsent.length === 0) {
-      return [];
-    }
+    for (const candidate of candidates) {
+      const existing = existingByKey.get(candidate.key);
+      if (existing) {
+        existingByKey.set(candidate.key, {
+          ...existing,
+          title: candidate.title,
+          body: candidate.body,
+          page: candidate.page,
+          category: candidate.category,
+          tone: candidate.tone,
+          lastTriggeredAt: now.toISOString()
+        });
+        continue;
+      }
 
-    for (const notification of unsent) {
-      sent[notification.key] = {
-        key: notification.key,
-        title: notification.title,
-        body: notification.body,
-        lastSentAt: now.toISOString()
+      const notification: DashboardNotificationEntry = {
+        ...candidate,
+        createdAt: now.toISOString(),
+        lastTriggeredAt: now.toISOString(),
+        systemNotifiedAt: now.toISOString(),
+        readAt: null
       };
+      existingByKey.set(candidate.key, notification);
+      unsent.push(notification);
     }
 
-    await writeJsonFile(this.statePath, { sent });
+    if (unsent.length > 0 || candidates.length > 0) {
+      await this.writeState({
+        notifications: sortNotifications([...existingByKey.values()]).slice(
+          0,
+          NOTIFICATION_HISTORY_LIMIT
+        )
+      });
+    }
+
     return unsent;
+  }
+
+  private async readState(): Promise<NotificationState> {
+    return normalizeNotificationState(await readJsonFile<unknown>(this.statePath));
+  }
+
+  private async writeState(state: NotificationState): Promise<void> {
+    await writeJsonFile(this.statePath, {
+      notifications: sortNotifications(state.notifications).slice(
+        0,
+        NOTIFICATION_HISTORY_LIMIT
+      )
+    });
   }
 }

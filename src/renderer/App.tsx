@@ -12,6 +12,7 @@ import appPackage from "../../package.json";
 import type {
   AppPage,
   AppPreferences,
+  DashboardNotificationEntry,
   DashboardSnapshot,
   LedgerAnalysisPeriod,
   LedgerTimeBucket,
@@ -514,6 +515,25 @@ function generatedFromLabel(value: DashboardSnapshot["generatedFrom"]) {
   };
 
   return mapping[value];
+}
+
+function notificationCategoryLabel(category: DashboardNotificationEntry["category"]) {
+  const mapping: Record<DashboardNotificationEntry["category"], string> = {
+    "banked-reset": "赠送重置",
+    quota: "额度提醒"
+  };
+
+  return mapping[category];
+}
+
+function notificationToneLabel(tone: DashboardNotificationEntry["tone"]) {
+  const mapping: Record<DashboardNotificationEntry["tone"], string> = {
+    info: "提示",
+    warning: "提醒",
+    danger: "紧急"
+  };
+
+  return mapping[tone];
 }
 
 function maskValue(value: string, privacyMode: boolean) {
@@ -1192,6 +1212,125 @@ function FirstLoadPanel({
       </div>
       <DataSourceStatusPanel snapshot={snapshot} preferences={preferences} />
     </section>
+  );
+}
+
+function NotificationCenter({
+  notifications,
+  onMarkRead
+}: {
+  notifications: DashboardNotificationEntry[];
+  onMarkRead: (keys?: string[]) => Promise<void>;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const unreadCount = notifications.filter((item) => !item.readAt).length;
+  const recentNotifications = notifications.slice(0, 8);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        rootRef.current &&
+        event.target instanceof Node &&
+        !rootRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    return () => window.removeEventListener("mousedown", handlePointerDown);
+  }, [isOpen]);
+
+  return (
+    <div className="notification-center" ref={rootRef}>
+      <button
+        type="button"
+        className={`action-button notification-trigger${unreadCount > 0 ? " has-unread" : ""}`}
+        title="提醒中心"
+        aria-label={`提醒中心，${unreadCount} 条未读`}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <span className="button-icon">
+          <Glyph name="bell" />
+        </span>
+        {unreadCount > 0 ? (
+          <span className="notification-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
+        ) : null}
+      </button>
+
+      {isOpen ? (
+        <div className="notification-popover" role="dialog" aria-label="提醒详情">
+          <div className="notification-popover-head">
+            <div>
+              <h3>提醒中心</h3>
+              <span>{unreadCount > 0 ? `${unreadCount} 条未读` : "暂无未读提醒"}</span>
+            </div>
+            <button
+              type="button"
+              className="secondary-button notification-read-all"
+              disabled={unreadCount === 0}
+              onClick={() => void onMarkRead()}
+            >
+              全部已读
+            </button>
+          </div>
+
+          <div className="notification-list">
+            {recentNotifications.length > 0 ? (
+              recentNotifications.map((item) => (
+                <article
+                  key={item.key}
+                  className={`notification-item notification-${item.tone}${
+                    item.readAt ? "" : " is-unread"
+                  }`}
+                >
+                  <div className="notification-item-head">
+                    <div>
+                      <strong>{item.title}</strong>
+                      <span>
+                        {notificationCategoryLabel(item.category)} · {notificationToneLabel(item.tone)}
+                      </span>
+                    </div>
+                    <time>{formatDateTime(item.lastTriggeredAt)}</time>
+                  </div>
+                  <p>{item.body}</p>
+                  <div className="notification-item-actions">
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => {
+                        void window.codexCompanion.openPage(item.page);
+                        setIsOpen(false);
+                      }}
+                    >
+                      查看页面
+                    </button>
+                    {!item.readAt ? (
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => void onMarkRead([item.key])}
+                      >
+                        标记已读
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="notification-empty">
+                当前没有应用内提醒。
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -3156,6 +3295,7 @@ export default function App() {
   const [page, setPage] = useState<AppPage>(resolvePageFromHash());
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
+  const [notifications, setNotifications] = useState<DashboardNotificationEntry[]>([]);
   const [overviewMode, setOverviewMode] = useState<OverviewMode>(resolveOverviewModeFromHash);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -3191,6 +3331,12 @@ export default function App() {
   useEffect(() => {
     void window.codexCompanion.getPreferences().then(setPreferences);
     const unsubscribe = window.codexCompanion.onPreferencesUpdated(setPreferences);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    void window.codexCompanion.getNotifications().then(setNotifications);
+    const unsubscribe = window.codexCompanion.onNotificationsUpdated(setNotifications);
     return unsubscribe;
   }, []);
 
@@ -3302,6 +3448,11 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function markNotificationsRead(keys?: string[]) {
+    const nextNotifications = await window.codexCompanion.markNotificationsRead(keys);
+    setNotifications(nextNotifications);
   }
 
   async function saveCodexHome(codexHome: string) {
@@ -3475,6 +3626,10 @@ export default function App() {
           )}
 
           <div className="topbar-actions">
+            <NotificationCenter
+              notifications={notifications}
+              onMarkRead={markNotificationsRead}
+            />
             <span className={`status-pill ${sourceStatusClass(snapshot?.sourceHealth.sourceStatus ?? "pending")}`}>
               {sourceStatusLabel(snapshot?.sourceHealth.sourceStatus ?? "pending")}
             </span>

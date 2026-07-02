@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.4-dev.1 fix: 补齐提醒中心并修复托盘图标
+
+- 开发原因：用户反馈 `v0.3.3` 只有系统通知，应用内部没有提醒列表和通知详情；同时 Windows 托盘区域看不到应用图标，显示为空白。
+- 实现方式：将应用版本提升到 `v0.3.4-dev.1`；扩展共享合同，新增 `DashboardNotificationEntry`、通知类别和级别；`DashboardNotificationService` 将 `notification-state.json` 从单纯系统弹窗去重扩展为应用内通知历史，保存标题、正文、页面、类别、级别、创建时间、最近触发时间、系统通知时间和已读时间，并兼容读取旧版 `sent` 结构；主进程新增 `notifications:get / notifications:mark-read / notifications:updated` IPC；渲染层顶栏新增 `NotificationCenter`，显示未读数、通知详情、触发时间、查看页面和标记已读；托盘图标从 SVG DataURL 改为主进程运行时生成 PNG buffer，避免 Windows 托盘对 SVG 原生图像支持不稳定导致空白。
+- 触发条件：应用内提醒继续沿用 `v0.3.3` 的 live 快照候选规则；同一 credit 同一状态或同一额度周期阈值只生成一条通知，重复刷新只更新最近触发时间；系统通知不可用时仍保留应用内通知详情。
+- 当前结果：顶栏铃铛显示未读数，点击后可查看提醒正文和来源类别；当前本机快照生成 1 条 `banked-reset`、`warning` 提醒，标记已读后未读数从 `1` 变为 `0`；托盘图标改为 32px PNG 蓝青渐变图标，不再依赖 SVG DataURL。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `61%`、周额度余量 `57%`；执行 `npm run verify:ledger`，确认账本页一致性通过；使用临时目录实例化 `DashboardNotificationService`，确认候选数 `1`、入库数 `1`、未读数 `1 -> 0`，且首条通知包含标题、正文、类别和级别；使用 Electron 截图命令生成 `local_dev_work/overview-notification-center-v0.3.4-dev1.png`，确认顶栏铃铛、未读数和详情弹层布局正常；截图时 Electron 仍输出本机 GPU cache 权限告警，但应用启动、截图和退出正常。
+
 ## [2026-07-02] v0.3.3 release: 内部正式版
 
 - 开发原因：用户要求将已完成的系统通知开发版发布为正式内部版本；最新 GitHub Release 仍为 `v0.3.2`，需要把 `v0.3.3-dev.1` 收敛为 `v0.3.3`。

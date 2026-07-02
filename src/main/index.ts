@@ -12,10 +12,12 @@ import {
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { deflateSync } from "node:zlib";
 
 import type {
   AppPage,
   AppPreferences,
+  DashboardNotificationEntry,
   DashboardSnapshot,
   RefreshTrigger,
   WidgetPreferences
@@ -155,31 +157,119 @@ function scheduleMainWindowCapture() {
   });
 }
 
-function createTrayIcon() {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-      <defs>
-        <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#2563EB"/>
-          <stop offset="100%" stop-color="#06B6D4"/>
-        </linearGradient>
-      </defs>
-      <path d="M22 10c7-4 16-4 23 0 10 6 15 18 13 29" fill="none" stroke="url(#orbit)" stroke-width="4" stroke-linecap="round"/>
-      <path d="M42 54c-7 4-16 4-23 0C9 48 4 36 6 25" fill="none" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
-      <circle cx="48" cy="12" r="4.5" fill="#ffffff" stroke="#2563EB" stroke-width="3"/>
-      <circle cx="54" cy="43" r="4.5" fill="#ffffff" stroke="#2563EB" stroke-width="3"/>
-      <circle cx="10" cy="31" r="4.5" fill="#ffffff" stroke="#2563EB" stroke-width="3"/>
-      <path d="M32 16 18 24v16l14 8 14-8V24Z" fill="none" stroke="#06B6D4" stroke-width="4" stroke-linejoin="round"/>
-      <rect x="24" y="26" width="6" height="6" rx="1.5" fill="#1F2937"/>
-      <rect x="34" y="26" width="6" height="6" rx="1.5" fill="#1F2937"/>
-      <rect x="24" y="36" width="6" height="6" rx="1.5" fill="#1F2937"/>
-      <rect x="34" y="36" width="6" height="6" rx="1.5" fill="#1F2937"/>
-    </svg>
-  `;
+function crc32(buffer: Buffer): number {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+  }
 
-  return nativeImage.createFromDataURL(
-    `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`
-  );
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type: string, data: Buffer): Buffer {
+  const typeBuffer = Buffer.from(type, "ascii");
+  const lengthBuffer = Buffer.alloc(4);
+  lengthBuffer.writeUInt32BE(data.length, 0);
+  const crcBuffer = Buffer.alloc(4);
+  crcBuffer.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 0);
+  return Buffer.concat([lengthBuffer, typeBuffer, data, crcBuffer]);
+}
+
+function setPixel(
+  pixels: Buffer,
+  size: number,
+  x: number,
+  y: number,
+  color: [number, number, number, number]
+) {
+  if (x < 0 || y < 0 || x >= size || y >= size) {
+    return;
+  }
+
+  const index = (y * size + x) * 4;
+  pixels[index] = color[0];
+  pixels[index + 1] = color[1];
+  pixels[index + 2] = color[2];
+  pixels[index + 3] = color[3];
+}
+
+function createTrayPngBuffer(size = 32): Buffer {
+  const pixels = Buffer.alloc(size * size * 4);
+  const center = (size - 1) / 2;
+  const outerRadius = size * 0.43;
+  const ringOuter = size * 0.29;
+  const ringInner = size * 0.19;
+  const blue: [number, number, number, number] = [37, 99, 235, 255];
+  const teal: [number, number, number, number] = [6, 182, 212, 255];
+  const white: [number, number, number, number] = [255, 255, 255, 255];
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = x - center;
+      const dy = y - center;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance <= outerRadius) {
+        const mix = Math.max(0, Math.min(1, (x + y) / (size * 2)));
+        setPixel(pixels, size, x, y, [
+          Math.round(blue[0] * (1 - mix) + teal[0] * mix),
+          Math.round(blue[1] * (1 - mix) + teal[1] * mix),
+          Math.round(blue[2] * (1 - mix) + teal[2] * mix),
+          255
+        ]);
+      }
+
+      const inRing = distance >= ringInner && distance <= ringOuter;
+      const openRight = dx > 0 && Math.abs(dy) < ringInner * 0.72;
+      if (inRing && !openRight) {
+        setPixel(pixels, size, x, y, white);
+      }
+    }
+  }
+
+  const dotRadius = Math.max(2, size * 0.09);
+  const dotCenterX = Math.round(size * 0.72);
+  const dotCenterY = Math.round(size * 0.5);
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      if (Math.hypot(x - dotCenterX, y - dotCenterY) <= dotRadius) {
+        setPixel(pixels, size, x, y, teal);
+      }
+    }
+  }
+
+  const scanlines = Buffer.alloc(size * (size * 4 + 1));
+  for (let y = 0; y < size; y += 1) {
+    const sourceStart = y * size * 4;
+    const targetStart = y * (size * 4 + 1);
+    scanlines[targetStart] = 0;
+    pixels.copy(scanlines, targetStart + 1, sourceStart, sourceStart + size * 4);
+  }
+
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  ihdr[10] = 0;
+  ihdr[11] = 0;
+  ihdr[12] = 0;
+
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk("IHDR", ihdr),
+    pngChunk("IDAT", deflateSync(scanlines)),
+    pngChunk("IEND", Buffer.alloc(0))
+  ]);
+}
+
+function createTrayIcon() {
+  const icon = nativeImage.createFromBuffer(createTrayPngBuffer(32));
+  icon.setTemplateImage(false);
+  return icon;
 }
 
 function defaultWidgetBounds(preferences: WidgetPreferences) {
@@ -284,6 +374,30 @@ function sendDashboardUpdate(
   targetWindow.webContents.send("dashboard:updated", snapshot);
 }
 
+function sendNotificationsUpdate(
+  targetWindow: BrowserWindow | null,
+  notifications: DashboardNotificationEntry[]
+) {
+  if (!targetWindow || targetWindow.webContents.isDestroyed()) {
+    return;
+  }
+
+  targetWindow.webContents.send("notifications:updated", notifications);
+}
+
+async function broadcastDashboardNotifications() {
+  if (!dashboardNotificationService) {
+    return [];
+  }
+
+  const notifications = await dashboardNotificationService.getNotifications();
+  sendNotificationsUpdate(mainWindow, notifications);
+  if (!WIDGET_DISABLED) {
+    sendNotificationsUpdate(widgetWindow, notifications);
+  }
+  return notifications;
+}
+
 function broadcastDashboardSnapshot(snapshot: DashboardSnapshot) {
   latestSnapshot = snapshot;
   sendDashboardUpdate(mainWindow, snapshot);
@@ -297,8 +411,7 @@ function broadcastDashboardSnapshot(snapshot: DashboardSnapshot) {
 async function showDashboardNotifications(snapshot: DashboardSnapshot) {
   if (
     !dashboardNotificationService ||
-    process.env.CODEX_COMPANION_CAPTURE_PATH ||
-    !Notification.isSupported()
+    process.env.CODEX_COMPANION_CAPTURE_PATH
   ) {
     return;
   }
@@ -306,6 +419,11 @@ async function showDashboardNotifications(snapshot: DashboardSnapshot) {
   try {
     const notifications =
       await dashboardNotificationService.takeUnsentNotifications(snapshot);
+    await broadcastDashboardNotifications();
+
+    if (!Notification.isSupported()) {
+      return;
+    }
 
     for (const item of notifications) {
       const notification = new Notification({
@@ -610,6 +728,15 @@ function registerIpcHandlers() {
     force ? refreshDashboardAndBroadcast("manual") : loadSnapshot(false)
   );
   ipcMain.handle("dashboard:refresh", async () => refreshDashboardAndBroadcast("manual"));
+  ipcMain.handle("notifications:get", async () =>
+    dashboardNotificationService?.getNotifications() ?? []
+  );
+  ipcMain.handle("notifications:mark-read", async (_event, keys?: string[]) => {
+    const notifications =
+      (await dashboardNotificationService?.markNotificationsRead(keys)) ?? [];
+    await broadcastDashboardNotifications();
+    return notifications;
+  });
   ipcMain.handle("preferences:get", async () => dashboardService.getPreferences());
   ipcMain.handle(
     "preferences:update",
@@ -684,13 +811,14 @@ async function bootstrap() {
     createWidgetWindow(currentPreferences);
   }
 
-  tray = new Tray(createTrayIcon().resize({ width: 18, height: 18 }));
+  tray = new Tray(createTrayIcon());
   tray.on("double-click", () => {
     void openPage("overview");
   });
 
   registerIpcHandlers();
   await applyWidgetPreferences(currentPreferences);
+  void broadcastDashboardNotifications();
   void loadSnapshot(false);
   scheduleStartupBackgroundRefresh();
   startDashboardAutoRefresh();

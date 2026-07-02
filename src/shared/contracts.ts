@@ -3,6 +3,8 @@ export type SourceStatus = "observed" | "pending" | "unobserved" | "stale";
 export type AppPage = "overview" | "ledger" | "repositories" | "settings" | "widget";
 export type WidgetPreset = "signal-bar" | "mini-capsule";
 export type RefreshTrigger = "manual" | "auto" | "startup" | "background";
+export type DashboardNotificationCategory = "banked-reset" | "quota";
+export type DashboardNotificationTone = "info" | "warning" | "danger";
 
 export interface TokenBreakdown {
   input: number;
@@ -424,8 +426,23 @@ export interface AppPreferences {
   widget: WidgetPreferences;
 }
 
+export interface DashboardNotificationEntry {
+  key: string;
+  title: string;
+  body: string;
+  page: AppPage;
+  category: DashboardNotificationCategory;
+  tone: DashboardNotificationTone;
+  createdAt: string;
+  lastTriggeredAt: string;
+  systemNotifiedAt: string | null;
+  readAt: string | null;
+}
+
 export interface CodexCompanionApi {
   getDashboard(force?: boolean): Promise<DashboardSnapshot>;
+  getNotifications(): Promise<DashboardNotificationEntry[]>;
+  markNotificationsRead(keys?: string[]): Promise<DashboardNotificationEntry[]>;
   getPreferences(): Promise<AppPreferences>;
   updatePreferences(patch: Partial<AppPreferences>): Promise<AppPreferences>;
   refreshDashboard(): Promise<DashboardSnapshot>;
@@ -437,6 +454,9 @@ export interface CodexCompanionApi {
   ): () => void;
   onDashboardUpdated(
     listener: (snapshot: DashboardSnapshot) => void
+  ): () => void;
+  onNotificationsUpdated(
+    listener: (notifications: DashboardNotificationEntry[]) => void
   ): () => void;
   openPage(page: AppPage): Promise<void>;
   selectDirectory(): Promise<string | null>;

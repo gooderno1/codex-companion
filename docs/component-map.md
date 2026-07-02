@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.3`
+- 当前适用版本：`v0.3.4-dev.1`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、设置页
 
 ## 总览页
@@ -19,12 +19,14 @@
 | 项目表头排序 | `ProjectSortHeader` | 页面级 | `name / token / cost / code / commits / sessions / recent`、`asc / desc` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
 | 刷新反馈条 | `refresh-feedback` | 全局复用 | `refreshing / done / error`、约 `5s` 自动隐藏 | `snapshot.sourceHealth.refresh` |
+| 提醒中心 | `NotificationCenter` | 全局复用 | `DashboardNotificationEntry[]`、未读数、详情弹层、标记已读、查看页面 | `notifications:get`、`notifications:updated`、`notifications:mark-read`；展示同一条提醒的标题、正文、类别、级别和触发时间 |
 | 首次加载检测 | `FirstLoadPanel` / `DataSourceStatusPanel` | 全局复用 | `generatedFrom=pending`、Codex 检测、Git 检测 | `snapshot.sourceHealth`、`snapshot.repositories.summary`、`preferences` |
 | 数据源手动提示 | `setup-banner` | 全局复用 | Codex 或 Git 未检测到时引导打开设置 | `snapshot.sourceHealth.sourceStatus`、`snapshot.repositories.summary.totalTracked` |
 | 页脚数据来源 | `FooterNote` / `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
+| Windows 托盘图标 | `createTrayIcon` / `createTrayPngBuffer` | 主进程复用 | 32px PNG `nativeImage` | 主进程运行时生成蓝青渐变 PNG，避免 Windows 托盘使用 SVG DataURL 时出现空白 |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
-| 系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 去重、点击打开总览页 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；赠送重置到期或无法反推、5H / 周额度低于 `20% / 10%` 时触发 |
+| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 去重、已读状态、点击打开总览页 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；赠送重置到期或无法反推、5H / 周额度低于 `20% / 10%` 时触发；系统通知之外同步进入应用内提醒中心 |
 | Codex 增量缓存 | `CodexSessionCacheStore` / `collectCodexData` | 主进程复用 | `size`、`mtimeMs`、解析结果 | `%APPDATA%/codex-companion/codex-session-cache.json` |
 
 ## 设置页
@@ -71,6 +73,7 @@
 - 设置页 `Codex 数据目录` 支持手动输入、系统目录选择和恢复默认；保存后通过 `preferences:update` 写入本机配置并立即刷新，路径只用于读取本机 Codex sessions、archived_sessions 和 rate_limits。
 - 设置页 `仓库根目录` 支持手动输入、系统目录选择、移除和恢复默认；保存后通过 `preferences:update` 写入本机配置并立即刷新，路径只用于本地 Git 仓库扫描和 Codex 会话归因。
 - 左侧品牌图标使用 `src/renderer/icons.tsx` 中的 `BrandMark` SVG，必须保持非官方自定义资产，不使用 OpenAI / Codex 官方 logo。
+- Windows 托盘图标使用主进程运行时生成的 PNG `nativeImage`，不要回退为 SVG DataURL；托盘图标仍保持非官方自定义蓝青图形。
 - 左侧导航图标使用 `src/renderer/icons.tsx` 中的 `Glyph` SVG：总览为首页图标，账本为文档账本图标，代码仓库为代码方块图标，设置为齿轮图标；图标本身不使用额外白色胶囊背景。
 - 左侧导航项遵循设计稿的单行结构，只显示图标和主标签；`总览 / Codex 账本 / 代码仓库 / 设置` 不在导航行内显示二级说明文案。
 - `5H / 周额度窗口` 统一复用 `QuotaWindowCard`，不额外派生其他布局。
@@ -89,7 +92,8 @@
 - 顶部时间视角属于中部页面控制区，不能被 `space-between` 推到右侧操作区旁边，也不能因 `flex-start` 偏到标题组旁边；顶栏桌面态使用左 / 中 / 右三列布局，中部视角控件几何居中，右侧状态、刷新和快照贴右。
 - 页面级截图支持通过 hash 查询参数设置初始 `overviewMode`，用于生成自然时间和计费时间两种真实 Electron 截图；普通用户默认进入计费时间。
 - 主进程默认每 `5` 分钟后台采集一次 `DashboardSnapshot` 并通过 `dashboard:updated` 广播；启动时优先显示缓存快照，延迟后台刷新，手动刷新完成后也必须广播，渲染端通过 `window.codexCompanion.onDashboardUpdated` 静默更新页面。
-- 系统通知只在 live 快照生成后检查：赠送重置临近 `safeEstimatedExpiresAt`、预计过期、首次观测前已有 credit 无法反推时提醒；5H / 周额度剩余量低于 `20%` 或 `10%` 时提醒；同一 credit 状态或同一额度周期阈值通过 `notification-state.json` 去重。
+- 提醒中心位于顶栏操作区，铃铛按钮显示未读数；点击后展开最近提醒详情，支持查看对应页面和标记已读；详情只展示聚合后的提醒正文，不展示原始会话或 app-server 响应。
+- 系统通知只在 live 快照生成后检查：赠送重置临近 `safeEstimatedExpiresAt`、预计过期、首次观测前已有 credit 无法反推时提醒；5H / 周额度剩余量低于 `20%` 或 `10%` 时提醒；同一 credit 状态或同一额度周期阈值通过 `notification-state.json` 去重并进入应用内提醒中心。
 - 顶部工具栏状态胶囊只显示状态文字，不额外显示状态图标；额度卡和指标卡内状态标签也保持文字-only。
 - 顶部工具栏不显示 `桌面总控台` 等额外眉标，页面标题与副标题横向组成同一信息组。
 - 左侧品牌区必须保持产品图标和 `Codex Companion` 标题顶线对齐，说明文字放在标题下方，图标与标题间距接近设计稿；文字组允许少量基线补偿，避免标题高于图标造成错位。

@@ -376,6 +376,171 @@ svg {
   flex-wrap: nowrap;
 }
 
+.notification-center {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.notification-trigger {
+  position: relative;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+}
+
+.notification-trigger.has-unread {
+  color: var(--accent-blue);
+  box-shadow: inset 0 0 0 1px rgba(15, 111, 255, 0.22);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  color: #ffffff;
+  background: var(--accent-rose);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 0 0 2px rgba(248, 251, 255, 0.96);
+}
+
+.notification-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(420px, calc(100vw - 330px));
+  max-height: min(560px, calc(100vh - 120px));
+  padding: 12px;
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 22px 60px rgba(23, 32, 51, 0.18),
+    inset 0 0 0 1px rgba(15, 111, 255, 0.12);
+}
+
+.notification-popover-head,
+.notification-item-head,
+.notification-item-actions {
+  display: flex;
+  align-items: center;
+}
+
+.notification-popover-head {
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.notification-popover-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.notification-popover-head span,
+.notification-item-head span,
+.notification-item-head time,
+.notification-item p,
+.notification-empty {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.notification-read-all {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.notification-list {
+  display: grid;
+  gap: 9px;
+  min-height: 0;
+  overflow: auto;
+  padding-top: 10px;
+}
+
+.notification-item {
+  display: grid;
+  gap: 8px;
+  padding: 11px;
+  border-radius: var(--radius-card);
+  background: rgba(248, 251, 255, 0.74);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+.notification-item.is-unread {
+  background: rgba(240, 247, 255, 0.92);
+}
+
+.notification-warning.is-unread {
+  box-shadow: inset 3px 0 0 rgba(245, 158, 11, 0.78), inset 0 0 0 1px rgba(245, 158, 11, 0.16);
+}
+
+.notification-danger.is-unread {
+  box-shadow: inset 3px 0 0 rgba(214, 103, 97, 0.86), inset 0 0 0 1px rgba(214, 103, 97, 0.18);
+}
+
+.notification-item-head {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notification-item-head div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.notification-item-head strong {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-item-head time {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+}
+
+.notification-item p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.notification-item-actions {
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.notification-item-actions .secondary-button {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.notification-empty {
+  padding: 14px;
+  border: 1px dashed var(--line-soft);
+  border-radius: var(--radius-card);
+  line-height: 1.5;
+}
+
 .action-button,
 .snapshot-label,
 .status-pill {
