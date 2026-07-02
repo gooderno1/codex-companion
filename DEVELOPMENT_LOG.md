@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.6-dev.1 fix: 修正图标、重置口径和设置页结构
+
+- 开发原因：用户反馈应用图标仍不像软件设定图标；3 次赠送重置里不应多次显示无法确认时间；设置页分栏重排观感不自然，应该回到以前单列配置流，完整刷新历史放到独立页面分页查看。
+- 实现方式：将应用版本提升到 `0.3.6-dev.1`；新增 `scripts/generate-app-icon.mjs` 生成 `build/app-icon.ico` 和预览 PNG；`electron-builder` Windows 配置、主窗口和托盘统一优先使用该 `.ico`，缺失时才回退运行时品牌 PNG；调用 `@lifeinhand/codex-usage-core@0.1.0-dev.7` 时显式把 `2026-06-11` Codex banking 上线 free reset 的公开 seed `matchByDefault` 打开，保留 `2026-06-30` 补偿 seed，并把未匹配 seed 的首次已有 credit 展示为“无法反推”；通知服务允许“未知待确认”和“已知过期里程碑”同时生成且各自一次性去重；渲染层新增 `refresh-history` 页面，支持刷新来源筛选和每页 `12` 条分页；设置页回到单列卡片流，只保留最近 `5` 条刷新摘要和“查看全部”入口；同步更新 README、Roadmap、数据契约、组件映射和 banked reset 展示方案。
+- 当前结果：Windows 安装包、主窗口和托盘图标均使用本项目自定义 BrandMark 图标资产；隔离采集下当前 3 次赠送重置识别为 `existing-at-first-observation=1`、`public-grant=2`，其中公开 seed 分别估算为 `2026-07-11` 和 `2026-07-30` 过期；设置页恢复单列，刷新历史可在独立页面分页查看。
+- 验证方式：执行 `git pull --rebase`，确认远端已最新；执行 `git ls-remote --tags https://github.com/gooderno1/codex-usage-core.git`，确认核心包最新 tag 仍为 `v0.1.0-dev.7`；执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `91%`、周额度余量 `49%`；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；执行隔离 `DashboardService.getSnapshot(true, "manual")`，确认 `available=3` 且 basis 计数为 `1` 个首次观测前未知、`2` 个公开发放估算；执行通知服务合成验证，确认同一快照下候选 key 为 `banked-reset:expiration:7d:2026-07-11T00:00:00.000Z` 和 `banked-reset:unknown:1:2026-07-01T20:43:24.280Z`，首次发送 `2` 条、第二次发送 `0` 条；使用 Electron 生成 `local_dev_work/settings-1360x900-v0.3.6-dev1.png` 和 `local_dev_work/refresh-history-1360x900-v0.3.6-dev1.png`，确认设置页单列和刷新历史分页页正常；执行 `npm run package:win` 成功生成 `release/Codex Companion Setup 0.3.6-dev.1.exe`，打包日志未再出现默认 Electron 图标提示；Electron 截图时仍输出本机 GPU cache 权限告警，但应用启动、截图和退出正常。
+- 遗留问题：当前机器仍有已安装的旧版 `Codex Companion.exe` 后台运行，会继续写入全局 `%APPDATA%/codex-companion/snapshot.json`；本轮验证使用临时 userData 隔离新版采集结果，后续安装 `v0.3.6-dev.1` 后全局快照会按新口径刷新。
+
 ## [2026-07-02] v0.3.5 release: 内部正式版
 
 - 开发原因：用户要求将通知页、设置页重排、Git 本机状态、托盘品牌图标和一次性通知里程碑收敛为正式内部版本；最新 GitHub Release 仍为 `v0.3.4`，需要把 `v0.3.5-dev.1` 至 `v0.3.5-dev.2` 发布为 `v0.3.5`。

@@ -5,6 +5,7 @@ export type AppPage =
   | "ledger"
   | "repositories"
   | "notifications"
+  | "refresh-history"
   | "settings"
   | "widget";
 export type WidgetPreset = "signal-bar" | "mini-capsule";

@@ -1,6 +1,6 @@
 {
   "name": "codex-companion",
-  "version": "0.3.5",
+  "version": "0.3.6-dev.1",
   "private": true,
   "description": "非官方 Codex 额度、Token 与代码活动桌面伴侣",
   "license": "MIT",
@@ -26,6 +26,7 @@
     "dev:renderer": "vite --host 127.0.0.1 --port 5173",
     "dev:main": "tsc -p tsconfig.main.json --watch --preserveWatchOutput",
     "dev:electron": "wait-on tcp:5173 dist-electron/main/index.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electronmon .",
+    "generate:icon": "node scripts/generate-app-icon.mjs",
     "build": "npm run lint && npm run typecheck && npm run build:renderer && npm run build:main",
     "build:renderer": "vite build",
     "build:main": "tsc -p tsconfig.main.json",
@@ -38,7 +39,7 @@
     "verify:ledger": "node scripts/verify-ledger-page.mjs",
     "verify:overview": "node scripts/verify-overview-readiness.mjs",
     "verify:quota": "node scripts/verify-quota-snapshot.mjs",
-    "package:win": "npm run build && electron-builder --win nsis"
+    "package:win": "npm run generate:icon && npm run build && electron-builder --win nsis"
   },
   "build": {
     "appId": "com.gooderno1.codex-companion",
@@ -56,7 +57,14 @@
     "extraMetadata": {
       "main": "dist-electron/main/index.js"
     },
+    "extraResources": [
+      {
+        "from": "build/app-icon.ico",
+        "to": "app-icon.ico"
+      }
+    ],
     "win": {
+      "icon": "build/app-icon.ico",
       "target": [
         "nsis"
       ],

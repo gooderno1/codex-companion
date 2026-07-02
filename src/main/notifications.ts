@@ -228,6 +228,8 @@ function pruneSentNotifications(
 function normalizeNotificationPage(value: unknown): AppPage {
   return value === "ledger" ||
     value === "repositories" ||
+    value === "notifications" ||
+    value === "refresh-history" ||
     value === "settings" ||
     value === "widget" ||
     value === "overview"
@@ -488,24 +490,21 @@ function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNo
     }
   );
 
-  if (expirationNotifications.length > 0) {
-    return expirationNotifications;
-  }
+  const unknownNotifications =
+    unknown.length > 0
+      ? [
+          {
+            key: buildBankedResetGroupKey("unknown", unknown),
+            title: "赠送重置过期时间待确认",
+            body: `有 ${unknown.length} 次赠送重置早于首次观测获得，无法反推过期时间；建议优先确认或使用。`,
+            page: "overview" as AppPage,
+            category: "banked-reset" as const,
+            tone: "warning" as const
+          }
+        ]
+      : [];
 
-  if (unknown.length > 0) {
-    return [
-      {
-        key: buildBankedResetGroupKey("unknown", unknown),
-        title: "赠送重置过期时间待确认",
-        body: `有 ${unknown.length} 次赠送重置早于首次观测获得，无法反推过期时间；建议优先确认或使用。`,
-        page: "overview",
-        category: "banked-reset",
-        tone: "warning"
-      }
-    ];
-  }
-
-  return [];
+  return [...expirationNotifications, ...unknownNotifications];
 }
 
 export function buildDashboardNotificationCandidates(

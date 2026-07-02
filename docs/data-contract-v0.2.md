@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.3.5`
+- 对应版本：`v0.3.6-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -112,8 +112,8 @@
   - `activeCredits[]`：逐个可用 credit 明细，包含 `acquiredAt / firstObservedAt / estimatedExpiresAt / safeEstimatedExpiresAt / estimateBasis`。
   - `estimatedExpiresAt`：按公开 seed 或本应用采样到 `availableCount` 增加时的获取观测时间加 `30d` 推断。
   - `safeEstimatedExpiresAt`：默认比 `estimatedExpiresAt` 提前 `1d`，总览页优先展示该字段作为保守使用提醒。
-  - `estimateBasis=public-grant`：表示首次采样时的 credit 匹配到允许默认匹配的公开发放事件 seed，例如 `2026-06-30` 异常消耗修复补偿 reset；`2026-06-11` Codex banking 上线 free reset 可能已在监控前被使用，核心包默认不再自动归因到当前库存。
-  - `estimateBasis=existing-at-first-observation`：表示首次采样时已经存在的 credit，无法反推获取时间和真实过期时间；页面展示为“早于首次观测获得 / 建议尽快使用”。
+  - `estimateBasis=public-grant`：表示首次采样时的 credit 匹配到公开发放事件 seed。核心包默认匹配 `2026-06-30` 异常消耗修复补偿 reset；本桌面端从 `v0.3.6-dev.1` 起调用核心包时显式把 `2026-06-11` Codex banking 上线 free reset 的 `matchByDefault` 打开，用于把当前仍可用库存中可解释的公开发放次数从“无法反推”改为公开发放估算。
+  - `estimateBasis=existing-at-first-observation`：表示首次采样时已经存在且未匹配公开 seed 或后续新增观测的 credit，无法反推获取时间和真实过期时间；页面展示为“早于首次观测获得 / 无法反推”，通知只生成一次待确认提醒。
   - `events[]`：仅保存 `grant / use / expiration / decrease-unknown` 的脱敏推断摘要，不保存原始 app-server 响应、账号、邮箱或余额。
   - `observations[]`：仅保存继续推断所需的脱敏观测历史，保留 `observedAt / availableCount / rateLimits` 的窗口百分比和 reset 时间，不保存 `credits.balance`。
 - `overview.bankedResetCredits` 不得混入 `quotaEvidence.resetCount`，也不得称为现金充值、API credit 或账单余额。
@@ -151,7 +151,7 @@
   - `codexFilesParsed`：本次实际重新解析的 JSONL 文件数
   - `codexFilesReused`：本次从增量缓存复用的 JSONL 文件数
   - `codexCachePruned`：本次清理出缓存窗口的旧文件数
-- 每次 live 刷新或缓存回退必须向 `sourceHealth.refreshHistory` 追加一条记录，最多保留最近 `30` 条，用于设置页展示手动、自动、启动和后台刷新情况。
+- 每次 live 刷新或缓存回退必须向 `sourceHealth.refreshHistory` 追加一条记录，最多保留最近 `30` 条；设置页只展示最近 `5` 条摘要，完整刷新历史页按 `manual / auto / startup / background` 筛选并分页查看。
 - 顶部刷新反馈条只是临时状态提示，刷新完成或失败后约 `5s` 消失；长期追溯以 `sourceHealth.refreshHistory` 为准。
 - 读取旧版 `snapshot.json` 时如果缺少 `sourceHealth.refresh`，主进程必须补齐默认结构，避免升级后首屏渲染异常。
 
@@ -165,7 +165,7 @@
   - `quiet`：保留应用内通知历史，但不弹系统通知；同一 key 只生成一次。
   - `off`：不生成新的提醒；已有历史仍可查看和标记已读。
 - 触发范围：
-  - 赠送重置：对可估算 `estimatedExpiresAt` 的 credit，按预计过期时间提前 `7d / 3d / 1d / 12h / 1h` 生成里程碑提醒；如果应用首次观测时已过期，可生成一次 `expired` 补偿提醒；`estimateBasis=existing-at-first-observation` 无法反推过期时间时只生成一次待确认提醒。
+  - 赠送重置：对可估算 `estimatedExpiresAt` 的 credit，按预计过期时间提前 `7d / 3d / 1d / 12h / 1h` 生成里程碑提醒；如果应用首次观测时已过期，可生成一次 `expired` 补偿提醒；`estimateBasis=existing-at-first-observation` 无法反推过期时间时只生成一次待确认提醒，且待确认提醒可与已知过期里程碑同时存在。
   - 额度提醒：`5H 额度` 或 `周额度` 当前周期 `remainingPercent <= 20%` 时生成一次 warning；`remainingPercent <= 10%` 时按同一周期生成一次 danger。
 - 排除条件：
   - `sourceStatus=pending / unobserved` 的赠送重置不提醒。

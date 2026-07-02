@@ -90,6 +90,7 @@ function resolveInitialPage(): AppPage {
     capturePage === "ledger" ||
     capturePage === "repositories" ||
     capturePage === "notifications" ||
+    capturePage === "refresh-history" ||
     capturePage === "settings" ||
     capturePage === "widget"
   ) {
@@ -353,8 +354,26 @@ function createTrayPngBuffer(size = 32): Buffer {
   ]);
 }
 
+function resolveAppIconPath() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "app-icon.ico")
+    : path.join(app.getAppPath(), "build", "app-icon.ico");
+}
+
+function createAppIcon() {
+  const icon = nativeImage.createFromPath(resolveAppIconPath());
+  if (!icon.isEmpty()) {
+    icon.setTemplateImage(false);
+    return icon;
+  }
+
+  const fallbackIcon = nativeImage.createFromBuffer(createTrayPngBuffer(32));
+  fallbackIcon.setTemplateImage(false);
+  return fallbackIcon;
+}
+
 function createTrayIcon() {
-  const icon = nativeImage.createFromBuffer(createTrayPngBuffer(32));
+  const icon = createAppIcon();
   icon.setTemplateImage(false);
   return icon;
 }
@@ -736,6 +755,7 @@ function createMainWindow() {
     minWidth: 1080,
     minHeight: 720,
     title: "Codex Companion",
+    icon: createAppIcon(),
     backgroundColor: "#F5FAFF",
     autoHideMenuBar: true,
     webPreferences: {

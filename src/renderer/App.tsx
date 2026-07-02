@@ -43,7 +43,7 @@ const NAV_ITEMS: Array<{
 ];
 
 const PAGE_META: Record<
-  Extract<AppPage, "overview" | "ledger" | "repositories" | "notifications" | "settings">,
+  Extract<AppPage, "overview" | "ledger" | "repositories" | "notifications" | "refresh-history" | "settings">,
   { title: string; subtitle: string }
 > = {
   overview: {
@@ -62,9 +62,13 @@ const PAGE_META: Record<
     title: "通知",
     subtitle: "额度提醒、赠送重置和通知历史"
   },
+  "refresh-history": {
+    title: "刷新历史",
+    subtitle: "手动、自动和启动刷新记录"
+  },
   settings: {
     title: "设置",
-    subtitle: "数据源、通知策略、Git 状态与本机边界"
+    subtitle: "数据源、通知策略、计费口径与本机边界"
   }
 };
 
@@ -120,6 +124,7 @@ function resolvePageFromHash(): AppPage {
     hash === "ledger" ||
     hash === "repositories" ||
     hash === "notifications" ||
+    hash === "refresh-history" ||
     hash === "settings" ||
     hash === "widget"
   ) {
@@ -348,6 +353,12 @@ function bankedResetCreditSortTime(credit: DashboardSnapshot["overview"]["banked
   return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
 }
 
+function isUnknownBankedResetCredit(
+  credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
+) {
+  return credit.estimateBasis === "existing-at-first-observation";
+}
+
 function formatBankedResetExpiryLine(summary: DashboardSnapshot["overview"]["bankedResetCredits"]) {
   const count = summary.availableCount ?? 0;
   if (summary.sourceStatus === "pending") {
@@ -369,8 +380,19 @@ function formatBankedResetExpiryLine(summary: DashboardSnapshot["overview"]["ban
     return "过期时间待后续采样确认";
   }
 
-  if (earliest.estimateBasis === "existing-at-first-observation") {
-    return "最早过期无法反推，建议尽快使用";
+  const unknownCount = summary.activeCredits.filter(isUnknownBankedResetCredit).length;
+  const earliestKnown = [...summary.activeCredits]
+    .filter((credit) => !isUnknownBankedResetCredit(credit))
+    .sort((left, right) => bankedResetCreditSortTime(left) - bankedResetCreditSortTime(right))[0];
+
+  if (unknownCount > 0) {
+    if (earliestKnown) {
+      return `${unknownCount} 次过期无法反推；最早已知建议 ${formatDateTime(
+        earliestKnown.safeEstimatedExpiresAt
+      )} 前使用`;
+    }
+
+    return "过期时间无法反推，建议尽快使用";
   }
 
   return `最早建议 ${formatDateTime(earliest.safeEstimatedExpiresAt)} 前使用`;
@@ -401,8 +423,8 @@ function formatBankedResetCreditExpiry(
 function formatBankedResetCreditSafeExpiry(
   credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
 ) {
-  if (credit.estimateBasis === "existing-at-first-observation") {
-    return formatDateTime(credit.safeEstimatedExpiresAt ?? credit.firstObservedAt);
+  if (isUnknownBankedResetCredit(credit)) {
+    return "无法反推";
   }
 
   return formatDateTime(credit.safeEstimatedExpiresAt);
@@ -1164,6 +1186,104 @@ function RefreshHistoryTable({
   );
 }
 
+type RefreshTriggerFilter = "all" | RefreshTrigger;
+
+function RefreshHistoryPage({ snapshot }: { snapshot: DashboardSnapshot }) {
+  const [triggerFilter, setTriggerFilter] = useState<RefreshTriggerFilter>("all");
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageSize = 12;
+  const history = snapshot.sourceHealth.refreshHistory;
+  const filteredHistory = useMemo(
+    () =>
+      history.filter((entry) =>
+        triggerFilter === "all" ? true : entry.trigger === triggerFilter
+      ),
+    [history, triggerFilter]
+  );
+  const pageCount = Math.max(1, Math.ceil(filteredHistory.length / pageSize));
+  const safePageIndex = Math.min(pageIndex, pageCount - 1);
+  const pagedHistory = filteredHistory.slice(
+    safePageIndex * pageSize,
+    safePageIndex * pageSize + pageSize
+  );
+  const latestRefresh = history[0] ?? null;
+  const liveCount = history.filter((entry) => entry.generatedFrom === "live").length;
+  const fallbackCount = history.filter((entry) => entry.generatedFrom !== "live").length;
+
+  function changeTriggerFilter(value: RefreshTriggerFilter) {
+    setTriggerFilter(value);
+    setPageIndex(0);
+  }
+
+  return (
+    <div className="history-page">
+      <section className="history-summary-grid">
+        <article>
+          <span>全部刷新</span>
+          <strong>{formatNumber(history.length)}</strong>
+        </article>
+        <article>
+          <span>实时快照</span>
+          <strong>{formatNumber(liveCount)}</strong>
+        </article>
+        <article>
+          <span>缓存或待采集</span>
+          <strong>{formatNumber(fallbackCount)}</strong>
+        </article>
+      </section>
+
+      <SectionCard className="history-workbench">
+        <div className="history-page-toolbar">
+          <div>
+            <h3>刷新记录</h3>
+            <p>
+              {latestRefresh
+                ? `最近一次：${refreshTriggerLabel(latestRefresh.trigger)} · ${formatDateTime(latestRefresh.completedAt)}`
+                : "暂无刷新记录"}
+            </p>
+          </div>
+          <TextTabs<RefreshTriggerFilter>
+            items={[
+              { value: "all", label: "全部" },
+              { value: "manual", label: "手动" },
+              { value: "auto", label: "自动" },
+              { value: "startup", label: "启动" },
+              { value: "background", label: "后台" }
+            ]}
+            value={triggerFilter}
+            onChange={changeTriggerFilter}
+            variant="chip"
+          />
+        </div>
+
+        <RefreshHistoryTable history={pagedHistory} />
+
+        <div className="history-pagination">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={safePageIndex === 0}
+            onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+          >
+            上一页
+          </button>
+          <span>
+            第 {safePageIndex + 1} / {pageCount} 页 · 共 {formatNumber(filteredHistory.length)} 条
+          </span>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={safePageIndex >= pageCount - 1}
+            onClick={() => setPageIndex((current) => Math.min(pageCount - 1, current + 1))}
+          >
+            下一页
+          </button>
+        </div>
+      </SectionCard>
+    </div>
+  );
+}
+
 function normalizeRepoRootsList(values: string[]) {
   const normalized: string[] = [];
   for (const value of values) {
@@ -1729,277 +1849,267 @@ function SettingsPage({
   const latestRefresh = refreshHistory[0] ?? null;
 
   return (
-    <div className="settings-page">
-      <section className="settings-overview-grid">
-        <article className={`settings-status-card ${detectionClass(isCodexDetected, pendingDetection)}`}>
-          <span>Codex 数据</span>
-          <strong>{detectionLabel(isCodexDetected, pendingDetection)}</strong>
-          <p>{snapshot ? `${formatNumber((snapshot.sourceHealth.sessionFilesScanned ?? 0) + (snapshot.sourceHealth.archivedFilesScanned ?? 0))} 个会话文件` : "等待快照"}</p>
-        </article>
-        <article className={`settings-status-card ${detectionClass(isGitDetected, pendingDetection)}`}>
-          <span>Git 仓库</span>
-          <strong>{detectionLabel(isGitDetected, pendingDetection)}</strong>
-          <p>{snapshot ? `${formatNumber(snapshot.repositories.summary.totalTracked)} 个仓库` : "等待快照"}</p>
-        </article>
-        <article className="settings-status-card">
-          <span>通知策略</span>
-          <strong>{notificationDeliveryModeLabel(notificationMode)}</strong>
-          <p>{notificationDeliveryModeDetail(notificationMode)}</p>
-        </article>
-        <article className={`settings-status-card ${gitStatus?.available ? "is-ok" : "is-missing"}`}>
-          <span>Git 身份</span>
-          <strong>{gitIdentityLabel(gitStatus)}</strong>
-          <p>{gitStatus?.version ?? "等待检测"}</p>
-        </article>
-      </section>
-
-      <section className="settings-layout">
-        <div className="settings-main-column">
-          <SectionCard className="settings-panel">
-            <div className="section-toolbar">
-              <div>
-                <h3>数据源</h3>
-                <p>Codex 和 Git 路径只保存在本机，用于刷新快照和项目归因。</p>
-              </div>
-            </div>
-            <div className="settings-fieldset">
-              <div className="settings-field-head">
-                <div>
-                  <strong>Codex 数据目录</strong>
-                  <span>读取 sessions、archived_sessions 和 rate_limits。</span>
-                </div>
-                <span className={`detection-pill ${detectionClass(isCodexDetected, pendingDetection)}`}>
-                  {detectionLabel(isCodexDetected, pendingDetection)}
-                </span>
-              </div>
-              <div className="repo-root-input-row">
-                <input
-                  type="text"
-                  value={draftCodexHome}
-                  placeholder="选择或输入 .codex 目录"
-                  onChange={(event) => setDraftCodexHome(event.target.value)}
-                />
-                <button type="button" className="secondary-button" onClick={() => void chooseCodexHome()}>
-                  选择目录
-                </button>
-              </div>
-              <div className="settings-action-row">
-                <button
-                  type="button"
-                  className="action-button"
-                  disabled={!canSaveCodexHome}
-                  onClick={() => void saveCodexHome()}
-                >
-                  {codexSaving ? "保存中" : "保存并刷新 Codex"}
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  disabled={codexSaving}
-                  onClick={() => void saveCodexHome("")}
-                >
-                  恢复默认路径
-                </button>
-              </div>
-            </div>
-
-            <div className="settings-fieldset">
-              <div className="settings-field-head">
-                <div>
-                  <strong>仓库根目录</strong>
-                  <span>扫描本机 Git 仓库，并把 Codex 会话归因到具体项目。</span>
-                </div>
-                <span className={`detection-pill ${detectionClass(isGitDetected, pendingDetection)}`}>
-                  {detectionLabel(isGitDetected, pendingDetection)}
-                </span>
-              </div>
-              <div className="repo-root-input-row">
-                <input
-                  type="text"
-                  value={draftRepoRootInput}
-                  placeholder="输入目录路径；多个路径可用分号或换行分隔"
-                  onChange={(event) => setDraftRepoRootInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      addDraftRepoRootInput();
-                    }
-                  }}
-                />
-                <button type="button" className="action-button" onClick={addDraftRepoRootInput}>
-                  添加
-                </button>
-                <button type="button" className="secondary-button" onClick={() => void chooseRepoRoot()}>
-                  选择目录
-                </button>
-              </div>
-
-              <div className="repo-root-list">
-                {normalizedDraftRepoRoots.length > 0 ? (
-                  normalizedDraftRepoRoots.map((root) => (
-                    <div className="repo-root-item" key={root}>
-                      <strong>{root}</strong>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDraftRepoRoots((current) => current.filter((item) => item !== root))
-                        }
-                      >
-                        移除
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="repo-root-empty">当前列表为空；保存后会回到自动发现路径。</div>
-                )}
-              </div>
-
-              <div className="settings-action-row">
-                <button
-                  type="button"
-                  className="action-button"
-                  disabled={!canSaveRepoRoots}
-                  onClick={() => void saveRepoRoots()}
-                >
-                  {repoSaving ? "保存中" : "保存并刷新仓库"}
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  disabled={repoSaving || sameStringList(normalizedDraftRepoRoots, currentRepoRoots)}
-                  onClick={() => setDraftRepoRoots(currentRepoRoots)}
-                >
-                  撤销修改
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  disabled={repoSaving}
-                  onClick={() => setDraftRepoRoots([])}
-                >
-                  恢复默认目录
-                </button>
-              </div>
-            </div>
-          </SectionCard>
-
-          <SectionCard className="settings-panel">
-            <div className="section-toolbar">
-              <div>
-                <h3>通知策略</h3>
-                <p>控制应用内通知和系统弹窗的生成频率。</p>
-              </div>
-            </div>
-            <div className="notification-mode-grid">
-              {(["balanced", "important", "quiet", "off"] as NotificationDeliveryMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={`notification-mode-card${notificationMode === mode ? " active" : ""}`}
-                  disabled={notificationSaving || notificationMode === mode}
-                  onClick={() => void saveNotificationMode(mode)}
-                >
-                  <strong>{notificationDeliveryModeLabel(mode)}</strong>
-                  <span>{notificationDeliveryModeDetail(mode)}</span>
-                </button>
-              ))}
-            </div>
-          </SectionCard>
-
-          <SectionCard className="settings-panel">
-            <div className="section-toolbar">
-              <div>
-                <h3>计费口径</h3>
-                <p>用于总览页计费时间、计费月 Token 和项目概览计费月。</p>
-              </div>
-            </div>
-            <div className="settings-form-row">
-              <label htmlFor="billing-month-start">计费月起始日</label>
-              <input
-                id="billing-month-start"
-                type="number"
-                min={1}
-                max={31}
-                value={Number.isFinite(draftDay) ? draftDay : ""}
-                onChange={(event) => setDraftDay(Number(event.target.value))}
-              />
-              <button
-                type="button"
-                className="action-button"
-                disabled={!canSave}
-                onClick={() => void saveBillingDay()}
-              >
-                保存并刷新
-              </button>
-            </div>
-            <p className="settings-note">
-              当前为每月第 {currentDay} 天 00:00 起算；如果某月没有该日期，会由系统日期规则自然回落到可表示日期。
-            </p>
-          </SectionCard>
+    <div className="page-stack settings-page">
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>Codex 数据目录</h3>
+            <p>用于读取本机 Codex sessions、archived_sessions 和 rate_limits。</p>
+          </div>
+          <span className={`detection-pill ${detectionClass(isCodexDetected, pendingDetection)}`}>
+            {detectionLabel(isCodexDetected, pendingDetection)}
+          </span>
         </div>
+        <div className="repo-root-editor">
+          <div className="repo-root-input-row">
+            <input
+              type="text"
+              value={draftCodexHome}
+              placeholder="选择或输入 .codex 目录"
+              onChange={(event) => setDraftCodexHome(event.target.value)}
+            />
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void chooseCodexHome()}
+            >
+              选择目录
+            </button>
+          </div>
 
-        <aside className="settings-side-column">
-          <SectionCard className="settings-panel">
-            <div className="section-toolbar">
-              <div>
-                <h3>Git 与授权</h3>
-                <p>当前版本只读取本地 Git，不请求 GitHub token。</p>
-              </div>
-            </div>
-            <div className="settings-source-grid">
-              <span>命令状态</span>
-              <strong>{gitStatus?.available ? "可用" : "不可用或未检测"}</strong>
-              <span>Git 版本</span>
-              <strong>{gitStatus?.version ?? "等待检测"}</strong>
-              <span>user.name</span>
-              <strong>{gitStatus?.userName ?? "未配置"}</strong>
-              <span>user.email</span>
-              <strong>{gitStatus?.userEmail ?? "未配置"}</strong>
-              <span>云端授权</span>
-              <strong>当前不需要</strong>
-            </div>
-            <p className="settings-note">{gitStatus?.message ?? "正在检测本机 Git 状态。"}</p>
-          </SectionCard>
+          <div className="settings-action-row">
+            <button
+              type="button"
+              className="action-button"
+              disabled={!canSaveCodexHome}
+              onClick={() => void saveCodexHome()}
+            >
+              {codexSaving ? "保存中" : "保存并刷新 Codex"}
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={codexSaving}
+              onClick={() => void saveCodexHome("")}
+            >
+              恢复默认路径
+            </button>
+          </div>
+        </div>
+        <p className="settings-note">
+          默认路径来自 `CODEX_HOME` 或当前用户目录下的 `.codex`；配置只保存在本机。
+        </p>
+      </SectionCard>
 
-          <SectionCard className="settings-panel">
-            <div className="section-toolbar">
-              <div>
-                <h3>刷新历史</h3>
-                <p>设置页只显示最近 5 条摘要。</p>
-              </div>
-            </div>
-            {latestRefresh ? (
-              <div className="refresh-summary-card">
-                <span>{refreshTriggerLabel(latestRefresh.trigger)} · {generatedFromLabel(latestRefresh.generatedFrom)}</span>
-                <strong>{formatDurationMs(latestRefresh.durationMs)}</strong>
-                <p>新解析 {latestRefresh.codexFilesParsed} · 复用 {latestRefresh.codexFilesReused}</p>
-              </div>
-            ) : null}
-            <RefreshHistoryTable history={refreshHistory} limit={5} />
-          </SectionCard>
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>仓库根目录</h3>
+            <p>用于扫描本机 Git 仓库，并把 Codex 会话归因到具体项目。</p>
+          </div>
+          <span className={`detection-pill ${detectionClass(isGitDetected, pendingDetection)}`}>
+            {detectionLabel(isGitDetected, pendingDetection)}
+          </span>
+        </div>
+        <div className="repo-root-editor">
+          <div className="repo-root-input-row">
+            <input
+              type="text"
+              value={draftRepoRootInput}
+              placeholder="输入目录路径；多个路径可用分号或换行分隔"
+              onChange={(event) => setDraftRepoRootInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addDraftRepoRootInput();
+                }
+              }}
+            />
+            <button type="button" className="action-button" onClick={addDraftRepoRootInput}>
+              添加
+            </button>
+            <button type="button" className="secondary-button" onClick={() => void chooseRepoRoot()}>
+              选择目录
+            </button>
+          </div>
 
-          <SectionCard className="settings-panel">
-            <div className="section-toolbar">
-              <div>
-                <h3>本机数据边界</h3>
-                <p>应用独立读取本机 Codex 与 Git 数据，不使用 DevLedger 运行结果。</p>
-              </div>
-            </div>
-            <div className="settings-source-grid">
-              <span>Codex 数据</span>
-              <strong>{snapshot?.sourceHealth.codexHome || "等待快照"}</strong>
-              <span>仓库根目录</span>
-              <strong>{snapshot?.sourceHealth.repoRoots.join("；") || "等待快照"}</strong>
-              <span>本地快照</span>
-              <strong>%APPDATA%/codex-companion/snapshot.json</strong>
-              <span>增量缓存</span>
-              <strong>%APPDATA%/codex-companion/codex-session-cache.json</strong>
-              <span>通知历史</span>
-              <strong>%APPDATA%/codex-companion/notification-state.json</strong>
-            </div>
-          </SectionCard>
-        </aside>
-      </section>
+          <div className="repo-root-list">
+            {normalizedDraftRepoRoots.length > 0 ? (
+              normalizedDraftRepoRoots.map((root) => (
+                <div className="repo-root-item" key={root}>
+                  <strong>{root}</strong>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDraftRepoRoots((current) => current.filter((item) => item !== root))
+                    }
+                  >
+                    移除
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="repo-root-empty">当前列表为空；保存后会回到自动发现路径。</div>
+            )}
+          </div>
+
+          <div className="settings-action-row">
+            <button
+              type="button"
+              className="action-button"
+              disabled={!canSaveRepoRoots}
+              onClick={() => void saveRepoRoots()}
+            >
+              {repoSaving ? "保存中" : "保存并刷新仓库"}
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={repoSaving || sameStringList(normalizedDraftRepoRoots, currentRepoRoots)}
+              onClick={() => setDraftRepoRoots(currentRepoRoots)}
+            >
+              撤销修改
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={repoSaving}
+              onClick={() => setDraftRepoRoots([])}
+            >
+              恢复默认目录
+            </button>
+          </div>
+        </div>
+        <p className="settings-note">
+          建议选择包含多个 Git 项目的上级目录；路径只保存在本机 Electron userData 配置中。
+        </p>
+      </SectionCard>
+
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>通知策略</h3>
+            <p>控制应用内通知和系统弹窗的生成频率。</p>
+          </div>
+        </div>
+        <div className="notification-mode-grid">
+          {(["balanced", "important", "quiet", "off"] as NotificationDeliveryMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={`notification-mode-card${notificationMode === mode ? " active" : ""}`}
+              disabled={notificationSaving || notificationMode === mode}
+              onClick={() => void saveNotificationMode(mode)}
+            >
+              <strong>{notificationDeliveryModeLabel(mode)}</strong>
+              <span>{notificationDeliveryModeDetail(mode)}</span>
+            </button>
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>计费口径</h3>
+            <p>用于总览页计费时间、计费月 Token 和项目概览计费月。</p>
+          </div>
+        </div>
+        <div className="settings-form-row">
+          <label htmlFor="billing-month-start">计费月起始日</label>
+          <input
+            id="billing-month-start"
+            type="number"
+            min={1}
+            max={31}
+            value={Number.isFinite(draftDay) ? draftDay : ""}
+            onChange={(event) => setDraftDay(Number(event.target.value))}
+          />
+          <button
+            type="button"
+            className="action-button"
+            disabled={!canSave}
+            onClick={() => void saveBillingDay()}
+          >
+            保存并刷新
+          </button>
+        </div>
+        <p className="settings-note">
+          当前为每月第 {currentDay} 天 00:00 起算；如果某月没有该日期，会由系统日期规则自然回落到可表示日期。
+        </p>
+      </SectionCard>
+
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>Git 与授权</h3>
+            <p>当前版本只读取本地 Git，不请求 GitHub token。</p>
+          </div>
+          <span className={`detection-pill ${gitStatus?.available ? "is-ok" : "is-missing"}`}>
+            {gitIdentityLabel(gitStatus)}
+          </span>
+        </div>
+        <div className="settings-source-grid">
+          <span>命令状态</span>
+          <strong>{gitStatus?.available ? "可用" : "不可用或未检测"}</strong>
+          <span>Git 版本</span>
+          <strong>{gitStatus?.version ?? "等待检测"}</strong>
+          <span>user.name</span>
+          <strong>{gitStatus?.userName ?? "未配置"}</strong>
+          <span>user.email</span>
+          <strong>{gitStatus?.userEmail ?? "未配置"}</strong>
+          <span>云端授权</span>
+          <strong>当前不需要</strong>
+        </div>
+        <p className="settings-note">{gitStatus?.message ?? "正在检测本机 Git 状态。"}</p>
+      </SectionCard>
+
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>刷新历史</h3>
+            <p>设置页只显示最近 5 条摘要；完整记录可分页查看。</p>
+          </div>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => {
+              window.location.hash = "#/refresh-history";
+            }}
+          >
+            查看全部
+          </button>
+        </div>
+        {latestRefresh ? (
+          <div className="refresh-summary-card">
+            <span>{refreshTriggerLabel(latestRefresh.trigger)} · {generatedFromLabel(latestRefresh.generatedFrom)}</span>
+            <strong>{formatDurationMs(latestRefresh.durationMs)}</strong>
+            <p>新解析 {latestRefresh.codexFilesParsed} · 复用 {latestRefresh.codexFilesReused}</p>
+          </div>
+        ) : null}
+        <RefreshHistoryTable history={refreshHistory} limit={5} />
+      </SectionCard>
+
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>本机数据边界</h3>
+            <p>应用独立读取本机 Codex 与 Git 数据，不使用 DevLedger 运行结果。</p>
+          </div>
+        </div>
+        <div className="settings-source-grid">
+          <span>Codex 数据</span>
+          <strong>{snapshot?.sourceHealth.codexHome || "等待快照"}</strong>
+          <span>仓库根目录</span>
+          <strong>{snapshot?.sourceHealth.repoRoots.join("；") || "等待快照"}</strong>
+          <span>本地快照</span>
+          <strong>%APPDATA%/codex-companion/snapshot.json</strong>
+          <span>增量缓存</span>
+          <strong>%APPDATA%/codex-companion/codex-session-cache.json</strong>
+          <span>通知历史</span>
+          <strong>%APPDATA%/codex-companion/notification-state.json</strong>
+        </div>
+      </SectionCard>
     </div>
   );
 }
@@ -3936,16 +4046,19 @@ export default function App() {
     page === "ledger" ||
     page === "repositories" ||
     page === "notifications" ||
+    page === "refresh-history" ||
     page === "settings"
       ? page
       : "overview";
   const isFirstLoadPending =
     currentPage !== "settings" &&
     currentPage !== "notifications" &&
+    currentPage !== "refresh-history" &&
     snapshot?.generatedFrom === "pending";
   const needsDataSetup =
     currentPage !== "settings" &&
     currentPage !== "notifications" &&
+    currentPage !== "refresh-history" &&
     !isFirstLoadPending &&
     snapshot !== null &&
     (snapshot.sourceHealth.sourceStatus !== "observed" ||
@@ -4105,6 +4218,9 @@ export default function App() {
                 notifications={notifications}
                 onMarkRead={markNotificationsRead}
               />
+            ) : null}
+            {currentPage === "refresh-history" ? (
+              <RefreshHistoryPage snapshot={snapshot} />
             ) : null}
             {currentPage === "settings" ? (
               <SettingsPage

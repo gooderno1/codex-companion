@@ -22,6 +22,7 @@ import {
   analyzeQuotaObservations,
   analyzeBankedResetCreditObservations,
   createBankedResetCreditObservationFromSnapshot,
+  DEFAULT_BANKED_RESET_CREDIT_PUBLIC_GRANT_SEEDS,
   readCodexAccountRateLimits,
   type BankedResetCreditObservation as CoreBankedResetCreditObservation,
   type CodexRateLimitSnapshot,
@@ -70,6 +71,15 @@ const WEEKLY_RATE_LIMIT_WINDOW_MINUTES = 7 * 24 * 60;
 const QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS = 5 * 60 * 1000;
 const DAY_MINUTES = 24 * 60;
 const BANKED_RESET_OBSERVATION_HISTORY_LIMIT = 160;
+const BANKED_RESET_CORE_ANALYSIS_OPTIONS = {
+  validityDays: 30,
+  expirationSafetyMarginDays: 1,
+  publicGrantSeeds: DEFAULT_BANKED_RESET_CREDIT_PUBLIC_GRANT_SEEDS.map((seed) =>
+    seed.id === "codex-banking-launch-free-reset-2026-06-11"
+      ? { ...seed, matchByDefault: true }
+      : seed
+  )
+};
 
 interface CollectDashboardSnapshotOptions {
   codexSessionCacheStore?: CodexSessionCacheStoreLike;
@@ -174,16 +184,16 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.3.5"
+      clientVersion: "0.3.6-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
     );
     const observations = normalizeBankedResetObservationHistory([...history, currentObservation]);
-    const analysis = analyzeBankedResetCreditObservations(observations, {
-      validityDays: 30,
-      expirationSafetyMarginDays: 1
-    });
+    const analysis = analyzeBankedResetCreditObservations(
+      observations,
+      BANKED_RESET_CORE_ANALYSIS_OPTIONS
+    );
 
     return {
       sourceStatus: "observed",
@@ -209,15 +219,15 @@ async function collectBankedResetCreditsSummary(
       observations,
       note:
         analysis.activeCredits.some((credit) => credit.estimateBasis === "existing-at-first-observation")
-          ? "首次观测前已有的赠送重置无法反推获取时间，已按尽快使用处理。"
+          ? "首次观测前已有的赠送重置无法反推获取时间；公开发放或后续观测获得的次数按 30 天有效期估算。"
           : "过期时间按公开发放时间或获得观测时间加 30 天估算，并提前 1 天提醒。"
     };
   } catch (error) {
     if (history.length > 0) {
-      const analysis = analyzeBankedResetCreditObservations(history, {
-        validityDays: 30,
-        expirationSafetyMarginDays: 1
-      });
+      const analysis = analyzeBankedResetCreditObservations(
+        history,
+        BANKED_RESET_CORE_ANALYSIS_OPTIONS
+      );
       const latest = history.at(-1) ?? null;
 
       return {
