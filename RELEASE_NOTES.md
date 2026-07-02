@@ -1,5 +1,59 @@
 # RELEASE NOTES
 
+## [2026-07-02] v0.3.4 release: 内部正式版
+
+### Release 范围
+
+本次 Release 作为 private 仓库内部正式版，用于内测验证，不等同于公开发布。
+
+包含开发版本：
+
+- `v0.3.4-dev.1`
+
+未排除开发版本：无。
+
+### 主要变更
+
+- 顶栏新增应用内提醒中心，铃铛显示未读数，点击后可查看提醒标题、正文、类别、级别和触发时间。
+- 应用内提醒支持查看对应页面和标记已读；系统通知不可用时仍保留应用内通知详情。
+- `notification-state.json` 从单纯系统弹窗去重扩展为通知历史，保存创建时间、最近触发时间、系统通知时间和已读时间，并兼容旧版 `sent` 状态结构。
+- Windows 托盘图标从 SVG DataURL 改为主进程运行时生成 PNG `nativeImage`，避免托盘区域显示空白。
+- README、隐私说明、数据契约、组件映射和 Roadmap 已同步应用内提醒中心、通知状态和托盘图标边界。
+
+### 修复内容
+
+- 修复 `v0.3.3` 只有系统通知、应用内部无法查看提醒详情的问题。
+- 修复 Windows 托盘图标在部分环境下显示为空白的问题。
+
+### 验证结果
+
+- `npm run build`：通过，覆盖 lint、TypeScript 类型检查、renderer build 和 main build。
+- `npm run verify:quota`：通过，当前快照中 5H 额度余量 `55%`、周额度余量 `56%`，两个窗口当前均未识别新的 reset。
+- `npm run verify:ledger`：通过，账本页设计图、数据合同、采集器和页面实现关键内容一致。
+- 通知状态临时目录检查：通过，候选数 `1`、入库数 `1`、未读数 `1 -> 0`，首条通知包含标题、正文、类别和级别。
+- `npm run package:win`：通过，生成 `Codex Companion Setup 0.3.4.exe` 安装包。
+- `git diff --check`：通过，仅出现 Windows 换行转换提示。
+
+### Release 资产校验
+
+- `Codex Companion Setup 0.3.4.exe`：`SHA256 41A3FA074814B108B0720F38131A495404E69CB60CD309489031732690F46FE9`；GitHub 资产名为 `Codex.Companion.Setup.0.3.4.exe`
+
+### 升级注意事项
+
+- 应用版本号从开发版 `0.3.4-dev.1` 切换为正式版 `0.3.4`。
+- 当前继续依赖远程 Git tag `gooderno1/codex-usage-core#v0.1.0-dev.7`。
+- `notification-state.json` 会自动兼容旧版 `sent` 结构；旧系统通知记录会作为未读应用内提醒导入。
+- 应用内提醒和系统通知只使用聚合后的额度余量、赠送重置估算时间和本机快照状态；不展示账号、邮箱、原始 app-server 响应、原始 JSONL、用户输入正文或模型输出正文。
+- 本版本只提供 Windows NSIS 安装包，不提供便携版 exe。
+- API 等价成本和 Codex credits 仍为估算，不代表官方账单。
+
+### 已知边界
+
+- 当前 GitHub 仓库仍为 private，Release 资产只对有仓库读权限的成员可见。
+- Windows 包尚未配置代码签名，内测安装时可能出现系统安全提示。
+- 暂未提供自动更新。
+- `npm audit` 仍存在上游依赖漏洞提示，未在本次 release 中升级依赖树。
+
 ## [2026-07-02] v0.3.3 release: 内部正式版
 
 ### Release 范围
