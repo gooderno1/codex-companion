@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-03] v0.3.7 release: 内部正式版
+
+- 开发原因：用户要求将刷新历史返回、设置页通知策略移除、GitHub 授权边界、新用户使用路径和 Git 安装指引收敛为内部正式版。
+- 实现方式：将应用版本从 `0.3.7-dev.2` 调整为 `0.3.7`；主进程 app-server clientVersion 改为 `0.3.7`；更新 README、Roadmap、数据契约、组件映射、banked reset 展示方案和 Release notes；本次 release 继续固定远程核心包 `@lifeinhand/codex-usage-core@0.1.0-dev.8`。
+- 当前结果：发布资料已更新；`release/Codex Companion Setup 0.3.7.exe` 已生成，SHA256 为 `1D900ABBCA8CEFE26D490AD2864E3412BA97BA987FB44D41C47D1C86F0BFA4E0`；已创建 Git tag `v0.3.7` 和 GitHub Release `https://github.com/gooderno1/codex-companion/releases/tag/v0.3.7`，上传资产名为 `Codex.Companion.Setup.0.3.7.exe`。
+- 验证方式：执行 `npm run package:win`，通过图标生成、lint、TypeScript、renderer build、main build 和 Windows NSIS 打包；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `77%`、周额度余量 `39%`；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-07-03] v0.3.7-dev.2 feat: 补齐新用户 Git 使用引导
 
 - 开发原因：用户确认当前功能不需要登录 GitHub，但新用户可能没有安装本机 Git，需要明确哪些功能仍可用、哪些能力会降级，以及如何安装 Git。

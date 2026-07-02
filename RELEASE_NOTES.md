@@ -1,5 +1,65 @@
 # RELEASE NOTES
 
+## [2026-07-03] v0.3.7 release: 内部正式版
+
+### Release 范围
+
+本次 Release 作为 private 仓库内部正式版，用于内测验证，不等同于公开发布。
+
+包含开发版本：
+
+- `v0.3.7-dev.1`
+- `v0.3.7-dev.2`
+
+未排除开发版本：无。
+
+### 主要变更
+
+- 刷新历史页新增 `返回设置` 按钮，左侧设置入口在刷新历史页保持高亮。
+- 设置页移除通知策略卡片；当前提醒按固定一次性规则生成，旧 `notifications.deliveryMode` 仅保留兼容。
+- Git 与授权区明确当前不检测 GitHub 登录、不请求 GitHub token；后续接入 GitHub PR、Issue 或云端同步能力时再提供授权引导。
+- 设置页新增 `新用户使用路径`，说明先接通 Codex 数据、按需启用 Git、保存并刷新。
+- 本机未安装 Git 时，明确 Codex 用量、额度、赠送重置和通知仍可用，代码仓库页、提交数、增删行和仓库归因降级为不可用。
+- 设置页和代码仓库页新增 Git for Windows 安装指引，并提供下载入口。
+- 新增受控外部链接 IPC，仅允许打开 `https://git-scm.com/download/win`。
+- README、Roadmap、数据契约、组件映射和 banked reset 展示方案已同步正式版口径。
+
+### 修复内容
+
+- 修复刷新历史页进入后缺少返回入口的问题。
+- 修复固定一次性通知规则下设置页仍展示通知策略选项的问题。
+- 修复 GitHub 授权边界说明不够清晰的问题。
+- 修复新用户缺少本机 Git 时无法判断哪些功能仍可用的问题。
+- 修复代码仓库页在未安装 Git 或未发现仓库时只呈现弱空态的问题。
+
+### 验证结果
+
+- `npm run package:win`：通过，内部包含图标生成、lint、TypeScript 类型检查、renderer build、main build 和 Windows NSIS 打包。
+- `npm run verify:quota`：通过，当前快照中 5H 额度余量 `77%`、周额度余量 `39%`，两个窗口当前均未识别新的 reset。
+- `npm run verify:ledger`：通过，账本页设计图、数据合同、采集器和页面实现关键内容一致。
+- `npm run verify:design`：通过，设计 token 校验通过。
+- `git diff --check`：通过，仅出现 Windows 换行转换提示。
+
+### Release 资产校验
+
+- `Codex Companion Setup 0.3.7.exe`：`SHA256 1D900ABBCA8CEFE26D490AD2864E3412BA97BA987FB44D41C47D1C86F0BFA4E0`；GitHub 资产名为 `Codex.Companion.Setup.0.3.7.exe`
+
+### 升级注意事项
+
+- 应用版本号从开发版 `0.3.7-dev.2` 切换为正式版 `0.3.7`。
+- 当前继续依赖远程 Git tag `gooderno1/codex-usage-core#v0.1.0-dev.8`。
+- 当前版本无需 GitHub 登录；GitHub 云端数据仍不读取。
+- 本机 Git 不是查看 Codex 用量的前置条件，但代码仓库统计需要本机 `git` 命令。
+- 本版本只提供 Windows NSIS 安装包，不提供便携版 exe。
+- API 等价成本和 Codex credits 仍为估算，不代表官方账单。
+
+### 已知边界
+
+- 当前 GitHub 仓库仍为 private，Release 资产只对有仓库读权限的成员可见。
+- Windows 包尚未配置代码签名，内测安装时可能出现系统安全提示。
+- 暂未提供自动更新。
+- `npm audit` 仍存在上游依赖漏洞提示，未在本次 release 中升级依赖树。
+
 ## [2026-07-02] v0.3.6 release: 内部正式版
 
 ### Release 范围
