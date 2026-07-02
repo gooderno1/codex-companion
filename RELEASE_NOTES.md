@@ -1,5 +1,67 @@
 # RELEASE NOTES
 
+## [2026-07-02] v0.3.5 release: 内部正式版
+
+### Release 范围
+
+本次 Release 作为 private 仓库内部正式版，用于内测验证，不等同于公开发布。
+
+包含开发版本：
+
+- `v0.3.5-dev.1`
+- `v0.3.5-dev.2`
+
+未排除开发版本：无。
+
+### 主要变更
+
+- 新增独立通知页，支持全部 / 未读 / 已读筛选、赠送重置 / 额度筛选、分页、详情侧栏、查看关联页面和标记已读。
+- 顶部铃铛继续保留快速通知摘要，通知详情和完整历史转入通知页查看。
+- 通知频率从冷却重复提醒改为固定里程碑一次性提醒：赠送重置按预计过期前 `7d / 3d / 1d / 12h / 1h` 各提醒一次；额度按当前额度周期 `20% / 10%` 阈值各提醒一次。
+- 设置页重新组织为数据源、通知策略、计费口径、Git 与授权、刷新历史摘要和本机数据边界。
+- 设置页新增本机 Git 状态展示，读取 `git --version / user.name / user.email`，明确当前版本不需要 GitHub token。
+- Windows 托盘图标改为按应用 `BrandMark` 几何生成的运行时 PNG，保持与应用品牌图形一致。
+- README、Roadmap、数据契约和组件映射已同步通知页、一次性通知里程碑、Git 本机状态和设置页结构。
+
+### 修复内容
+
+- 修复通知按冷却期重复出现的问题；同一通知 key 已存在时不再更新最近触发时间、不重置未读状态、不重复触发系统通知。
+- 修复旧 `notification-state.json` 中相同标题、正文、类别、级别和页面的重复提醒会铺满通知页的问题；读取时会按内容合并。
+- 修复 Windows 托盘图标虽然可见但与应用品牌图标不一致的问题。
+- 修复设置页刷新历史占用过多主要配置空间的问题；设置页只显示最近 5 条摘要。
+
+### 验证结果
+
+- `npm run package:win`：通过，内部包含 `npm run build`，覆盖 lint、TypeScript 类型检查、renderer build、main build 和 Windows NSIS 打包。
+- `npm run verify:quota`：通过，当前快照中 5H 额度余量 `26%`、周额度余量 `52%`，两个窗口当前均未识别新的 reset。
+- `npm run verify:ledger`：通过，账本页设计图、数据合同、采集器和页面实现关键内容一致。
+- `npm run verify:design`：通过，设计 token 校验通过。
+- 一次性通知规则合成快照检查：通过，赠送重置生成 `5` 个过期里程碑候选，首次发送 `6` 条、第二次发送 `0` 条；同一 5H 周期 `10%` danger 首次发送 `1` 条、重复发送 `0` 条。
+- Electron 设置页截图检查：通过，`local_dev_work/settings-1360x900-dev2.png` 显示通知策略文案、Git 状态和版本号正常。
+- `git diff --check`：通过，仅出现 Windows 换行转换提示。
+
+### Release 资产校验
+
+- `Codex Companion Setup 0.3.5.exe`：`SHA256 E2E37C9B6A714FD92C8147C2B58D13BF904952A91EF8790D48BD69FDC8351202`；GitHub 资产名为 `Codex.Companion.Setup.0.3.5.exe`
+
+### 升级注意事项
+
+- 应用版本号从开发版 `0.3.5-dev.2` 切换为正式版 `0.3.5`。
+- 当前继续依赖远程 Git tag `gooderno1/codex-usage-core#v0.1.0-dev.7`。
+- `settings.json` 会自动补齐 `notifications.deliveryMode=balanced`。
+- `notification-state.json` 会继续保留历史通知，并按内容合并重复项；已读状态和系统通知时间保留在本机。
+- 当前版本只读取本机 Git 命令和全局身份配置，不请求 GitHub token，不读取 GitHub 云端元数据。
+- 本版本只提供 Windows NSIS 安装包，不提供便携版 exe。
+- API 等价成本和 Codex credits 仍为估算，不代表官方账单。
+
+### 已知边界
+
+- 当前 GitHub 仓库仍为 private，Release 资产只对有仓库读权限的成员可见。
+- Windows 包尚未配置代码签名，内测安装时可能出现系统安全提示。
+- Windows 安装包可执行文件资源图标仍未单独配置；运行时托盘图标已使用应用品牌 PNG。
+- 暂未提供自动更新。
+- `npm audit` 仍存在上游依赖漏洞提示，未在本次 release 中升级依赖树。
+
 ## [2026-07-02] v0.3.4 release: 内部正式版
 
 ### Release 范围
