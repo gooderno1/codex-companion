@@ -4,8 +4,8 @@
 
 - 开发原因：用户要求确认 `codex-companion` 是否已经 release；核查 Git tag 和 GitHub Release 后确认最新正式版仍停在 `v0.3.1`，需要把 `v0.3.2-dev.1` 至 `v0.3.2-dev.2` 收敛为内部正式版。
 - 实现方式：将应用版本从 `0.3.2-dev.2` 调整为 `0.3.2`；更新 README、Roadmap、数据契约、组件映射、banked reset 展示方案和 Release notes；主进程 app-server clientVersion 改为 `0.3.2`；本次 release 继续固定远程核心包 `@lifeinhand/codex-usage-core@0.1.0-dev.7`。
-- 当前结果：发布资料已更新；`release/Codex Companion Setup 0.3.2.exe` 已生成，SHA256 为 `E0A202A0EFAC21B969357F270016A2F813D4D1954A7B8975F99137E96C8C04F3`；将创建 Git tag `v0.3.2` 和 GitHub Release `https://github.com/gooderno1/codex-companion/releases/tag/v0.3.2`，上传资产名为 `Codex.Companion.Setup.0.3.2.exe`。
-- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `87%`、周额度余量 `61%`，两个窗口当前均未识别新的 reset；执行 `npm run verify:ledger`，确认账本页一致性通过；调用编译后的 `DashboardService.getSnapshot(true, "manual")`，确认 `bankedResetCredits.sourceStatus=observed`、`availableCount=3`、`activeCreditCount=3`，且 active 明细不再包含 `2026-06-11` public grant；执行 `npm run package:win`，确认生成 `Codex Companion Setup 0.3.2.exe`；执行 `git diff --check`，仅有 Windows 换行提示。
+- 当前结果：发布资料已更新；`release/Codex Companion Setup 0.3.2.exe` 已生成，SHA256 为 `E0A202A0EFAC21B969357F270016A2F813D4D1954A7B8975F99137E96C8C04F3`；已创建 Git tag `v0.3.2` 和 GitHub Release `https://github.com/gooderno1/codex-companion/releases/tag/v0.3.2`，上传资产名为 `Codex.Companion.Setup.0.3.2.exe`。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `87%`、周额度余量 `61%`，两个窗口当前均未识别新的 reset；执行 `npm run verify:ledger`，确认账本页一致性通过；调用编译后的 `DashboardService.getSnapshot(true, "manual")`，确认 `bankedResetCredits.sourceStatus=observed`、`availableCount=3`、`activeCreditCount=3`，且 active 明细不再包含 `2026-06-11` public grant；执行 `npm run package:win`，确认生成 `Codex Companion Setup 0.3.2.exe`；执行 `git diff --check`，仅有 Windows 换行提示；执行 `gh release view v0.3.2`，确认 release 资产已上传且 digest 与本地 SHA256 一致。
 
 ## [2026-07-02] v0.3.2-dev.2 fix: 避免默认匹配已用 launch reset
 
