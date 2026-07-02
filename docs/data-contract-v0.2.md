@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.3.6-dev.2`
+- 对应版本：`v0.3.6-dev.3`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -111,7 +111,7 @@
   - `availableCount`：当前可用赠送重置次数。
   - `activeCredits[]`：逐个可用 credit 明细，包含 `acquiredAt / firstObservedAt / estimatedExpiresAt / safeEstimatedExpiresAt / estimateBasis`。
   - `estimatedExpiresAt`：按调用方初始 seed、公开 seed 或本应用采样到 `availableCount` 增加时的获取观测时间加 `30d` 推断。
-  - `safeEstimatedExpiresAt`：默认比 `estimatedExpiresAt` 提前 `1d`，总览页优先展示该字段作为保守使用提醒。
+  - `safeEstimatedExpiresAt`：默认比 `estimatedExpiresAt` 提前 `1d`，总览页展示为建议使用时间；用户可见文案必须把 `estimatedExpiresAt` 明确标注为预计过期时间，不能只显示裸日期。
   - `estimateBasis=public-grant`：表示首次采样时的 credit 匹配到公开发放事件 seed。核心包默认匹配 `2026-06-30` 异常消耗修复补偿 reset；`2026-06-11` Codex banking 上线 free reset 默认不匹配，因为用户确认该次很可能已使用。
   - `estimateBasis=assumed-grant`：表示本项目按用户确认口径传入的假定初始 credit。当前首次未知 credit 统一假定获取时间为 `2026-06-14T00:00:00.000Z`，按 `2026-07-14T00:00:00.000Z` 估算过期。
   - `estimateBasis=observed-grant`：表示本项目曾经观测到 `availableCount` 增加。当前第三次 credit 以 `2026-07-01T19:58:24.705Z` 的本地观测新增为准；即使滚动历史裁剪掉早期 `2 -> 3` 差分，也通过核心包 `activeCreditBaseline` 延续该明细。

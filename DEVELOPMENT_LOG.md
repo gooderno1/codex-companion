@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.6-dev.3 fix: 明确赠送重置预计过期文案
+
+- 开发原因：用户反馈总览核心位置显示的是预期过期时间，但用户可见文案没有明确写明这是“过期时间”，容易把过期时间、保守提醒时间和建议使用时间混在一起。
+- 实现方式：将应用版本从 `0.3.6-dev.2` 提升到 `0.3.6-dev.3`；总览页 `BankedResetCreditStrip` 普通态改为同时显示“最早预计过期”和“建议 ... 前使用”；展开详情卡主标题改为 `预计过期 ...`，次级行改为 `建议 ... 前使用`；同步更新 README、Roadmap、数据契约、组件映射和 banked reset 展示方案。
+- 适用范围：仅影响 `overview.bankedResetCredits` 的用户可见文案和 clientVersion；不修改 `@lifeinhand/codex-usage-core` 依赖版本、赠送重置归因、通知候选、额度 reset 检测、Token 聚合或刷新历史。
+- 当前结果：已知过期时间的赠送重置会在总览普通态显示类似 `最早预计过期 07/14 08:00；建议 07/13 08:00 前使用`；首次观测前已有且无法反推的 credit 继续显示“过期时间无法反推，建议尽快使用”。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `59%`、周额度余量 `44%`；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；执行 `git diff --check`，仅有 Windows 换行提示；尝试执行 `npm run capture:overview` 时 Electron 启动阶段仍输出本机 GPU cache 权限告警，脚本内部 `spawnSync node.exe` 超时，未生成本轮总览截图。
+
 ## [2026-07-02] v0.3.6-dev.2 fix: 对齐赠送重置假定和观测延续口径
 
 - 开发原因：用户确认本项目此前在 `2026-07-02 04:58:24` 前已经准确观测到第三次 banked reset credit；第一次首次观测前已有 credit 无法反推真实时间，本轮按用户确认假定为 `2026-06-14`；`2026-06-11` launch free reset 已使用，不应继续强制匹配。

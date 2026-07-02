@@ -383,19 +383,42 @@ function formatBankedResetExpiryLine(summary: DashboardSnapshot["overview"]["ban
   const unknownCount = summary.activeCredits.filter(isUnknownBankedResetCredit).length;
   const earliestKnown = [...summary.activeCredits]
     .filter((credit) => !isUnknownBankedResetCredit(credit))
-    .sort((left, right) => bankedResetCreditSortTime(left) - bankedResetCreditSortTime(right))[0];
+    .sort((left, right) => bankedResetCreditExpirySortTime(left) - bankedResetCreditExpirySortTime(right))[0];
 
   if (unknownCount > 0) {
     if (earliestKnown) {
-      return `${unknownCount} 次过期无法反推；最早已知建议 ${formatDateTime(
-        earliestKnown.safeEstimatedExpiresAt
-      )} 前使用`;
+      return `${unknownCount} 次过期时间无法反推；${formatBankedResetKnownExpirySummary(
+        earliestKnown,
+        "最早已知预计过期"
+      )}`;
     }
 
     return "过期时间无法反推，建议尽快使用";
   }
 
-  return `最早建议 ${formatDateTime(earliest.safeEstimatedExpiresAt)} 前使用`;
+  return formatBankedResetKnownExpirySummary(earliest, "最早预计过期");
+}
+
+function bankedResetCreditExpirySortTime(
+  credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
+) {
+  const value = credit.estimatedExpiresAt ?? credit.safeEstimatedExpiresAt ?? credit.firstObservedAt;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
+}
+
+function formatBankedResetKnownExpirySummary(
+  credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number],
+  label: string
+) {
+  const expiryText = credit.estimatedExpiresAt
+    ? formatDateTime(credit.estimatedExpiresAt)
+    : "待后续采样确认";
+  if (credit.safeEstimatedExpiresAt) {
+    return `${label} ${expiryText}；建议 ${formatDateTime(credit.safeEstimatedExpiresAt)} 前使用`;
+  }
+
+  return `${label} ${expiryText}`;
 }
 
 function formatBankedResetCreditAcquire(
@@ -419,7 +442,7 @@ function formatBankedResetCreditExpiry(
   credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
 ) {
   if (credit.estimateBasis === "existing-at-first-observation") {
-    return "无法反推，建议尽快使用";
+    return "预计过期 无法反推";
   }
 
   let suffix = "";
@@ -429,17 +452,17 @@ function formatBankedResetCreditExpiry(
   if (credit.estimateBasis === "assumed-grant") {
     suffix = "（按假定获取时间 + 30 天估算）";
   }
-  return `${formatDateTime(credit.estimatedExpiresAt)}${suffix}`;
+  return `预计过期 ${formatDateTime(credit.estimatedExpiresAt)}${suffix}`;
 }
 
-function formatBankedResetCreditSafeExpiry(
+function formatBankedResetCreditSafeUse(
   credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
 ) {
   if (isUnknownBankedResetCredit(credit)) {
-    return "无法反推";
+    return "建议尽快使用";
   }
 
-  return formatDateTime(credit.safeEstimatedExpiresAt);
+  return `建议 ${formatDateTime(credit.safeEstimatedExpiresAt)} 前使用`;
 }
 
 function BankedResetCreditStrip({
@@ -476,9 +499,9 @@ function BankedResetCreditStrip({
               activeCredits.map((credit, index) => (
                 <article className="banked-reset-detail-item" key={credit.id}>
                   <span>赠送重置 #{index + 1}</span>
-                  <strong>{formatBankedResetCreditSafeExpiry(credit)}</strong>
+                  <strong>{formatBankedResetCreditExpiry(credit)}</strong>
                   <p>获取 {formatBankedResetCreditAcquire(credit)}</p>
-                  <p>预计过期 {formatBankedResetCreditExpiry(credit)}</p>
+                  <p>{formatBankedResetCreditSafeUse(credit)}</p>
                 </article>
               ))
             ) : (
