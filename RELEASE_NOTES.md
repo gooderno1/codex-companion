@@ -1,5 +1,58 @@
 # RELEASE NOTES
 
+## [2026-07-02] v0.3.3 release: 内部正式版
+
+### Release 范围
+
+本次 Release 作为 private 仓库内部正式版，用于内测验证，不等同于公开发布。
+
+包含开发版本：
+
+- `v0.3.3-dev.1`
+
+未排除开发版本：无。
+
+### 主要变更
+
+- 新增本机系统通知能力，覆盖启动刷新、后台自动刷新和手动刷新后的 live 快照。
+- 赠送重置次数支持系统提醒：预计已过期、到达保守提醒时间、距离保守提醒时间不超过 `24h`，或首次观测前已有而无法反推真实过期时间时提醒。
+- 5H / 周额度支持低余量提醒：当前周期剩余量 `<=20%` 时提醒，`<=10%` 时使用更高优先级提醒。
+- 新增本机 `notification-state.json` 去重状态，避免 5 分钟自动刷新重复弹出同一提醒。
+- 设置页数据边界新增通知去重文件说明；README、隐私说明、数据契约、组件映射和 Roadmap 已同步系统通知边界。
+
+### 修复内容
+
+- 将首次观测前已有赠送重置从精确到期提醒分支中排除，避免在无法反推过期时间时显示“预计过期时间待确认”的错误语义。
+- 系统通知在截图模式、缓存快照和 pending 快照下不触发，避免自动截图和缓存回退制造误提醒。
+
+### 验证结果
+
+- `npm run build`：通过，覆盖 lint、TypeScript 类型检查、renderer build 和 main build。
+- `npm run verify:quota`：通过，当前快照中 5H 额度余量 `72%`、周额度余量 `59%`，两个窗口当前均未识别新的 reset。
+- `npm run verify:ledger`：通过，账本页设计图、数据合同、采集器和页面实现关键内容一致。
+- 通知候选只读检查：通过，当前本机快照只生成 `banked-reset:unknown` 候选；低额度候选未触发。
+- `npm run package:win`：通过，生成 `Codex Companion Setup 0.3.3.exe` 安装包。
+- `git diff --check`：通过，仅出现 Windows 换行转换提示。
+
+### Release 资产校验
+
+- `Codex Companion Setup 0.3.3.exe`：`SHA256 0F36A84D68F96BE1A62BA6139128C17873191F3623DD8CC0B56CEB9A1D89798D`；GitHub 资产名为 `Codex.Companion.Setup.0.3.3.exe`
+
+### 升级注意事项
+
+- 应用版本号从开发版 `0.3.3-dev.1` 切换为正式版 `0.3.3`。
+- 当前继续依赖远程 Git tag `gooderno1/codex-usage-core#v0.1.0-dev.7`。
+- 系统通知只使用聚合后的额度余量、赠送重置估算时间和本机快照状态；不展示账号、邮箱、原始 app-server 响应、原始 JSONL、用户输入正文或模型输出正文。
+- 本版本只提供 Windows NSIS 安装包，不提供便携版 exe。
+- API 等价成本和 Codex credits 仍为估算，不代表官方账单。
+
+### 已知边界
+
+- 当前 GitHub 仓库仍为 private，Release 资产只对有仓库读权限的成员可见。
+- Windows 包尚未配置代码签名，内测安装时可能出现系统安全提示。
+- 暂未提供自动更新。
+- `npm audit` 仍存在上游依赖漏洞提示，未在本次 release 中升级依赖树。
+
 ## [2026-07-02] v0.3.2 release: 内部正式版
 
 ### Release 范围

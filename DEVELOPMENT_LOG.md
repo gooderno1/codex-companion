@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.3 release: 内部正式版
+
+- 开发原因：用户要求将已完成的系统通知开发版发布为正式内部版本；最新 GitHub Release 仍为 `v0.3.2`，需要把 `v0.3.3-dev.1` 收敛为 `v0.3.3`。
+- 实现方式：将应用版本从 `0.3.3-dev.1` 调整为 `0.3.3`；主进程 app-server clientVersion 改为 `0.3.3`；更新 README、Roadmap、数据契约、组件映射和 Release notes；本次 release 继续固定远程核心包 `@lifeinhand/codex-usage-core@0.1.0-dev.7`。
+- 当前结果：发布资料已更新；`release/Codex Companion Setup 0.3.3.exe` 已生成，SHA256 为 `0F36A84D68F96BE1A62BA6139128C17873191F3623DD8CC0B56CEB9A1D89798D`；待创建 Git tag `v0.3.3` 和 GitHub Release，上传资产名为 `Codex.Companion.Setup.0.3.3.exe`。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `72%`、周额度余量 `59%`，两个窗口当前均未识别新的 reset；执行 `npm run verify:ledger`，确认账本页一致性通过；执行编译后的 `buildDashboardNotificationCandidates(snapshot)` 只读检查，确认当前候选为 `banked-reset:unknown`，不会触发低额度候选；执行 `npm run package:win`，确认生成 `Codex Companion Setup 0.3.3.exe`；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-07-02] v0.3.3-dev.1 feat: 增加本机系统通知
 
 - 开发原因：用户要求先确认项目最新进展，并增加类似赠送重置次数到期、额度不足的通知能力；当前最新正式进展已同步到 `v0.3.2`，重点是赠送重置次数的公开发放估算和保守过期提醒。
