@@ -1,10 +1,10 @@
 # Codex banked reset 展示实施方案
 
-本文档记录 `codex-companion v0.3.2` 对 `codex-usage-core v0.1.0-dev.7` banked reset credit 字段的实际接入方式。
+本文档记录 `codex-companion v0.3.6-dev.2` 对 `codex-usage-core v0.1.0-dev.8` banked reset credit 字段的实际接入方式。
 
 ## 数据来源
 
-- 核心包：`@lifeinhand/codex-usage-core@v0.1.0-dev.7`
+- 核心包：`@lifeinhand/codex-usage-core@v0.1.0-dev.8`
 - 只读方法：`readCodexAccountRateLimits()`
 - Codex 本地接口：`account/rateLimits/read`
 - 主字段：`rateLimitResetCredits.availableCount`
@@ -30,7 +30,7 @@ interface BankedResetCreditsSummary {
     firstObservedAt: string;
     estimatedExpiresAt: string | null;
     safeEstimatedExpiresAt: string | null;
-    estimateBasis: "observed-grant" | "public-grant" | "existing-at-first-observation";
+    estimateBasis: "observed-grant" | "public-grant" | "assumed-grant" | "existing-at-first-observation";
   }>;
   events: Array<{ kind: "grant" | "use" | "expiration" | "decrease-unknown"; at: string; count: number }>;
   observations: BankedResetCreditObservation[];
@@ -46,11 +46,11 @@ interface BankedResetCreditsSummary {
 - 交互：点击整行展开。
 - 展开态：逐个显示每次可用 credit：
   - 编号：`赠送重置 #1`
-- 获取时间：`acquiredAt`；如果是 `public-grant`，显示为公开发放估算；如果是首次观测前已有且未匹配公开 seed，则显示 `早于 firstObservedAt`
+- 获取时间：`acquiredAt`；如果是 `public-grant`，显示为公开发放估算；如果是 `assumed-grant`，显示为按确认口径假定；如果是首次观测前已有且未匹配 seed，则显示 `早于 firstObservedAt`
   - 预计过期：`estimatedExpiresAt`
   - 保守提醒时间：`safeEstimatedExpiresAt`
 
-过期提醒优先使用 `safeEstimatedExpiresAt`，默认比 `estimatedExpiresAt` 早 `1` 天。核心包默认保留但不自动匹配 `2026-06-11` Codex banking 上线 free reset，因为该 reset 可能在开始监控前已被用户手动使用；从 `v0.3.6-dev.1` 起，桌面端调用核心包时显式将该 seed 的 `matchByDefault` 打开，用于把当前仍可用库存中可解释的公开发放次数展示为 `public-grant`。当前可匹配的公开 seed 包括 `2026-06-11` Codex banking 上线 free reset 和 `2026-06-30` 异常消耗修复补偿 reset；首次采样前已经存在且未匹配公开 seed 的 credit 仍无法反推真实获取和过期时间，页面显示为“无法反推 / 建议尽快使用”。
+过期提醒优先使用 `safeEstimatedExpiresAt`，默认比 `estimatedExpiresAt` 早 `1` 天。核心包默认保留但不自动匹配 `2026-06-11` Codex banking 上线 free reset，因为用户已确认该次很可能已经使用；桌面端不再显式打开该 seed。当前口径为：第一条首次未知 credit 按 `2026-06-14T00:00:00.000Z` 假定为 `assumed-grant`，`2026-06-30` 异常消耗修复补偿 reset 展示为 `public-grant`，本项目此前观测到的 `2026-07-01T19:58:24.705Z` 新增展示为 `observed-grant`。采集器会把上一轮 `activeCredits[]` 作为核心包 `activeCreditBaseline` 传入，避免滚动历史裁剪后丢失已识别出的观测新增。
 
 ## 边界
 

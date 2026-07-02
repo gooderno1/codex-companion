@@ -402,7 +402,13 @@ function formatBankedResetCreditAcquire(
   credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
 ) {
   if (credit.acquiredAt) {
-    const suffix = credit.estimateBasis === "public-grant" ? "（公开发放估算）" : "";
+    let suffix = "";
+    if (credit.estimateBasis === "public-grant") {
+      suffix = "（公开发放估算）";
+    }
+    if (credit.estimateBasis === "assumed-grant") {
+      suffix = "（按确认口径假定）";
+    }
     return `${formatDateTime(credit.acquiredAt)}${suffix}`;
   }
 
@@ -416,7 +422,13 @@ function formatBankedResetCreditExpiry(
     return "无法反推，建议尽快使用";
   }
 
-  const suffix = credit.estimateBasis === "public-grant" ? "（按公开发放时间 + 30 天估算）" : "";
+  let suffix = "";
+  if (credit.estimateBasis === "public-grant") {
+    suffix = "（按公开发放时间 + 30 天估算）";
+  }
+  if (credit.estimateBasis === "assumed-grant") {
+    suffix = "（按假定获取时间 + 30 天估算）";
+  }
   return `${formatDateTime(credit.estimatedExpiresAt)}${suffix}`;
 }
 

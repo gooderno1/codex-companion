@@ -24,6 +24,7 @@ import {
   createBankedResetCreditObservationFromSnapshot,
   DEFAULT_BANKED_RESET_CREDIT_PUBLIC_GRANT_SEEDS,
   readCodexAccountRateLimits,
+  type BankedResetCreditInitialGrantSeed,
   type BankedResetCreditObservation as CoreBankedResetCreditObservation,
   type CodexRateLimitSnapshot,
   type QuotaCycleObservation
@@ -71,21 +72,32 @@ const WEEKLY_RATE_LIMIT_WINDOW_MINUTES = 7 * 24 * 60;
 const QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS = 5 * 60 * 1000;
 const DAY_MINUTES = 24 * 60;
 const BANKED_RESET_OBSERVATION_HISTORY_LIMIT = 160;
+const BANKED_RESET_INITIAL_GRANT_SEEDS: BankedResetCreditInitialGrantSeed[] = [
+  {
+    id: "codex-companion-assumed-first-banked-reset-2026-06-14",
+    acquiredAt: "2026-06-14T00:00:00.000Z",
+    sourceId: "user-confirmed-assumption",
+    estimateBasis: "assumed-grant"
+  },
+  {
+    id: "codex-companion-observed-banked-reset-2026-07-01",
+    acquiredAt: "2026-07-01T19:58:24.705Z",
+    sourceId: "codex-companion-v0.3.2-dev.2-local-observation",
+    estimateBasis: "observed-grant"
+  }
+];
 const BANKED_RESET_CORE_ANALYSIS_OPTIONS = {
   validityDays: 30,
   expirationSafetyMarginDays: 1,
-  publicGrantSeeds: DEFAULT_BANKED_RESET_CREDIT_PUBLIC_GRANT_SEEDS.map((seed) =>
-    seed.id === "codex-banking-launch-free-reset-2026-06-11"
-      ? { ...seed, matchByDefault: true }
-      : seed
-  )
+  publicGrantSeeds: DEFAULT_BANKED_RESET_CREDIT_PUBLIC_GRANT_SEEDS,
+  initialGrantSeeds: BANKED_RESET_INITIAL_GRANT_SEEDS
 };
 
 interface CollectDashboardSnapshotOptions {
   codexSessionCacheStore?: CodexSessionCacheStoreLike;
   trigger?: RefreshTrigger;
   refreshHistory?: RefreshHistoryEntry[];
-  previousBankedResetCreditObservations?: BankedResetCreditObservation[];
+  previousBankedResetCredits?: BankedResetCreditsSummary | null;
 }
 
 function emptyBankedResetCreditsSummary(sourceStatus: SourceStatus, note: string | null): BankedResetCreditsSummary {
@@ -177,14 +189,22 @@ function normalizeBankedResetObservationHistory(
 }
 
 async function collectBankedResetCreditsSummary(
-  previousObservations: BankedResetCreditObservation[] = []
+  previousSummary: BankedResetCreditsSummary | null = null
 ): Promise<BankedResetCreditsSummary> {
+  const previousObservations = previousSummary?.observations ?? [];
   const history = normalizeBankedResetObservationHistory(previousObservations);
+  const activeCreditBaseline =
+    previousSummary?.observedAt && previousSummary.activeCredits.length > 0
+      ? {
+          observedAt: previousSummary.observedAt,
+          activeCredits: previousSummary.activeCredits
+        }
+      : undefined;
 
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.3.6-dev.1"
+      clientVersion: "0.3.6-dev.2"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -192,7 +212,10 @@ async function collectBankedResetCreditsSummary(
     const observations = normalizeBankedResetObservationHistory([...history, currentObservation]);
     const analysis = analyzeBankedResetCreditObservations(
       observations,
-      BANKED_RESET_CORE_ANALYSIS_OPTIONS
+      {
+        ...BANKED_RESET_CORE_ANALYSIS_OPTIONS,
+        activeCreditBaseline
+      }
     );
 
     return {
@@ -219,14 +242,17 @@ async function collectBankedResetCreditsSummary(
       observations,
       note:
         analysis.activeCredits.some((credit) => credit.estimateBasis === "existing-at-first-observation")
-          ? "首次观测前已有的赠送重置无法反推获取时间；公开发放或后续观测获得的次数按 30 天有效期估算。"
-          : "过期时间按公开发放时间或获得观测时间加 30 天估算，并提前 1 天提醒。"
+          ? "首次观测前仍有未匹配的赠送重置无法反推获取时间；已确认初始、公开发放或后续观测获得的次数按 30 天有效期估算。"
+          : "过期时间按 6 月 14 日假定时间、公开发放时间或获得观测时间加 30 天估算，并提前 1 天提醒。"
     };
   } catch (error) {
     if (history.length > 0) {
       const analysis = analyzeBankedResetCreditObservations(
         history,
-        BANKED_RESET_CORE_ANALYSIS_OPTIONS
+        {
+          ...BANKED_RESET_CORE_ANALYSIS_OPTIONS,
+          activeCreditBaseline
+        }
       );
       const latest = history.at(-1) ?? null;
 
@@ -1588,7 +1614,7 @@ async function collectDashboardSnapshot(
   });
   const codexDurationMs = Date.now() - codexStartedMs;
   const bankedResetCredits = await collectBankedResetCreditsSummary(
-    options.previousBankedResetCreditObservations
+    options.previousBankedResetCredits ?? null
   );
   const primaryQuotaUsage = buildQuotaWindowUsage({
     latestRateSnapshot: codex.latestRateSnapshot,
@@ -2271,8 +2297,8 @@ export class DashboardService {
           codexSessionCacheStore: this.codexSessionCacheStore,
           trigger,
           refreshHistory: previousHistory,
-          previousBankedResetCreditObservations:
-            cachedBeforeCollect?.overview.bankedResetCredits?.observations ?? []
+          previousBankedResetCredits:
+            cachedBeforeCollect?.overview.bankedResetCredits ?? null
         }),
         previousHistory
       );

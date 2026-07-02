@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.3.6-dev.1`
+- 对应版本：`v0.3.6-dev.2`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -51,7 +51,7 @@
 
 ### 2.2 额度
 
-- Codex 用量、额度周期、reset 检测和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.7`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.7`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。
+- Codex 用量、额度周期、reset 检测和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.8`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.8`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。
 - `5 小时额度` 使用 `rate_limits.primary`
 - `周额度` 使用 `rate_limits.secondary`
 - 如果同一台机器同时观测到多个 Codex `rate_limits` 池，页面可见的 `5 小时额度 / 周额度` 必须优先选择主额度池 `rate_limits.limit_id = codex`；模型或实验池，例如 `codex_bengalfox`，不能因为观测时间更新而覆盖主额度显示。
@@ -110,9 +110,11 @@
 - `DashboardSnapshot.overview.bankedResetCredits` 独立于普通额度窗口 reset，来自 Codex app-server 只读方法 `account/rateLimits/read` 的 `rateLimitResetCredits.availableCount`：
   - `availableCount`：当前可用赠送重置次数。
   - `activeCredits[]`：逐个可用 credit 明细，包含 `acquiredAt / firstObservedAt / estimatedExpiresAt / safeEstimatedExpiresAt / estimateBasis`。
-  - `estimatedExpiresAt`：按公开 seed 或本应用采样到 `availableCount` 增加时的获取观测时间加 `30d` 推断。
+  - `estimatedExpiresAt`：按调用方初始 seed、公开 seed 或本应用采样到 `availableCount` 增加时的获取观测时间加 `30d` 推断。
   - `safeEstimatedExpiresAt`：默认比 `estimatedExpiresAt` 提前 `1d`，总览页优先展示该字段作为保守使用提醒。
-  - `estimateBasis=public-grant`：表示首次采样时的 credit 匹配到公开发放事件 seed。核心包默认匹配 `2026-06-30` 异常消耗修复补偿 reset；本桌面端从 `v0.3.6-dev.1` 起调用核心包时显式把 `2026-06-11` Codex banking 上线 free reset 的 `matchByDefault` 打开，用于把当前仍可用库存中可解释的公开发放次数从“无法反推”改为公开发放估算。
+  - `estimateBasis=public-grant`：表示首次采样时的 credit 匹配到公开发放事件 seed。核心包默认匹配 `2026-06-30` 异常消耗修复补偿 reset；`2026-06-11` Codex banking 上线 free reset 默认不匹配，因为用户确认该次很可能已使用。
+  - `estimateBasis=assumed-grant`：表示本项目按用户确认口径传入的假定初始 credit。当前首次未知 credit 统一假定获取时间为 `2026-06-14T00:00:00.000Z`，按 `2026-07-14T00:00:00.000Z` 估算过期。
+  - `estimateBasis=observed-grant`：表示本项目曾经观测到 `availableCount` 增加。当前第三次 credit 以 `2026-07-01T19:58:24.705Z` 的本地观测新增为准；即使滚动历史裁剪掉早期 `2 -> 3` 差分，也通过核心包 `activeCreditBaseline` 延续该明细。
   - `estimateBasis=existing-at-first-observation`：表示首次采样时已经存在且未匹配公开 seed 或后续新增观测的 credit，无法反推获取时间和真实过期时间；页面展示为“早于首次观测获得 / 无法反推”，通知只生成一次待确认提醒。
   - `events[]`：仅保存 `grant / use / expiration / decrease-unknown` 的脱敏推断摘要，不保存原始 app-server 响应、账号、邮箱或余额。
   - `observations[]`：仅保存继续推断所需的脱敏观测历史，保留 `observedAt / availableCount / rateLimits` 的窗口百分比和 reset 时间，不保存 `credits.balance`。

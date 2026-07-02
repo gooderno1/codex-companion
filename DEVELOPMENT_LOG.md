@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.6-dev.2 fix: 对齐赠送重置假定和观测延续口径
+
+- 开发原因：用户确认本项目此前在 `2026-07-02 04:58:24` 前已经准确观测到第三次 banked reset credit；第一次首次观测前已有 credit 无法反推真实时间，本轮按用户确认假定为 `2026-06-14`；`2026-06-11` launch free reset 已使用，不应继续强制匹配。
+- 实现方式：将应用版本从 `0.3.6-dev.1` 提升到 `0.3.6-dev.2`；把远程核心包升级到 `@lifeinhand/codex-usage-core@0.1.0-dev.8`；移除桌面端对 `2026-06-11` public seed 的 `matchByDefault=true` 覆盖；向核心包传入 `initialGrantSeeds`：`2026-06-14T00:00:00.000Z` 的 `assumed-grant` 和 `2026-07-01T19:58:24.705Z` 的 `observed-grant`；采集时把上一轮 `activeCredits[]` 作为 `activeCreditBaseline` 传给核心包，避免滚动历史裁剪后丢失已经识别出的观测新增。
+- 适用范围：仅影响 `overview.bankedResetCredits` 的逐条获取时间、预计过期时间、保守提醒时间和通知候选；普通 5H / 周额度 reset 检测、Token 聚合、Git 归因和刷新历史页面不变。
+- 触发条件：首次库存匹配时，`2026-06-14` 假定 seed 与 `2026-06-30` public seed 在有效期内参与归因；如果保留有 `2 -> 3` 差分，则第三次按差分观测输出；如果滚动历史已裁剪该差分，则通过 `activeCreditBaseline` 或 `2026-07-01T19:58:24.705Z` 初始 observed seed 恢复该明细。
+- 排除条件：`2026-06-11` launch free reset 不再参与默认匹配；没有 seed、baseline 或相邻差分支撑的库存仍显示为首次观测前已有且无法反推。
+- 当前结果：当前 3 次赠送重置的目标归因为 1 条 `2026-06-14 -> 2026-07-14` 的 `assumed-grant`、1 条 `2026-06-30 -> 2026-07-30` 的 `public-grant`、1 条 `2026-07-01T19:58:24.705Z -> 2026-07-31T19:58:24.705Z` 的 `observed-grant`；总览页会把 `assumed-grant` 标注为按确认口径假定。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `70%`、周额度余量 `46%`；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；使用临时 userData 调用编译后的 `DashboardService.getSnapshot(true, "manual")`，确认 live 读取 `availableCount=3`，三条 active 明细分别为 `2026-06-14 assumed-grant`、`2026-06-30 public-grant`、`2026-07-01T19:58:24.705Z observed-grant`；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-07-02] v0.3.6-dev.1 fix: 修正图标、重置口径和设置页结构
 
 - 开发原因：用户反馈应用图标仍不像软件设定图标；3 次赠送重置里不应多次显示无法确认时间；设置页分栏重排观感不自然，应该回到以前单列配置流，完整刷新历史放到独立页面分页查看。
