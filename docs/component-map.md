@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.7-dev.1`
+- 当前适用版本：`v0.3.7-dev.2`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
 
 ## 总览页
@@ -21,7 +21,7 @@
 | 刷新反馈条 | `refresh-feedback` | 全局复用 | `refreshing / done / error`、约 `5s` 自动隐藏 | `snapshot.sourceHealth.refresh` |
 | 提醒中心 | `NotificationCenter` | 全局复用 | `DashboardNotificationEntry[]`、未读数、最近 8 条详情弹层、标记已读、查看全部 | `notifications:get`、`notifications:updated`、`notifications:mark-read`；展示同一条提醒的标题、正文、类别、级别和触发时间 |
 | 通知页 | `NotificationPage` | 页面级 | 全部 / 未读 / 已读筛选、赠送重置 / 额度筛选、每页 10 条、详情侧栏 | `DashboardNotificationEntry[]`；支持查看关联页面和标记已读 |
-| 首次加载检测 | `FirstLoadPanel` / `DataSourceStatusPanel` | 全局复用 | `generatedFrom=pending`、Codex 检测、Git 检测 | `snapshot.sourceHealth`、`snapshot.repositories.summary`、`preferences` |
+| 首次加载检测 | `FirstLoadPanel` / `DataSourceStatusPanel` | 全局复用 | `generatedFrom=pending`、Codex 检测、Git 命令状态、Git 仓库检测 | `snapshot.sourceHealth`、`snapshot.repositories.summary`、`preferences`、`git:status` |
 | 数据源手动提示 | `setup-banner` | 全局复用 | Codex 或 Git 未检测到时引导打开设置 | `snapshot.sourceHealth.sourceStatus`、`snapshot.repositories.summary.totalTracked` |
 | 页脚数据来源 | `FooterNote` / `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
@@ -38,12 +38,14 @@
 | 刷新记录筛选 | `RefreshHistoryPage` `TextTabs` | 页面级 | `all / manual / auto / startup / background` | 本地页面状态 |
 | 刷新记录分页 | `RefreshHistoryPage` / `RefreshHistoryTable` | 可复用 | 每页 `12` 条、上一页 / 下一页 | `snapshot.sourceHealth.refreshHistory` |
 | 返回设置 | `RefreshHistoryPage` `history-toolbar-actions` | 页面级 | 返回设置按钮、左侧设置入口高亮 | 本地路由 hash `#/settings` |
+| Git 安装指引 | `GitInstallGuide` | 页面级复用 | Git for Windows 下载按钮、安装后刷新说明、无需 GitHub 登录说明 | `app:open-external`，仅允许打开 `https://git-scm.com/download/win` |
 
 ## 设置页
 
 | 设计区块 | 代码组件 / 位置 | 复用性 | 关键 props / 状态 | 数据来源 |
 | --- | --- | --- | --- | --- |
 | 设置页壳层 | `SettingsPage` `page-stack settings-page` | 页面级 | 单列卡片流 | 本地路由 hash |
+| 新用户使用路径 | `SettingsPage` `onboarding-guide` | 页面级 | Codex 数据目录、按需启用 Git、保存并刷新三步说明 | 用户可见引导文案 |
 | Codex 数据目录 | `SettingsPage` `repo-root-editor` | 页面级 | 手动输入、选择目录、恢复默认、保存并刷新 | `preferences.codexHome`、`app:select-directory`、`preferences:update` |
 | 仓库根目录 | `SettingsPage` `repo-root-editor` | 页面级 | 手动输入、选择目录、移除、恢复默认、保存并刷新 | `preferences.repoRoots`、`app:select-directory`、`preferences:update` |
 | 计费口径 | `SettingsPage` `settings-form-row` | 页面级 | `billingMonthStartDay`、保存并刷新 | `preferences.billingMonthStartDay`、`preferences:update` |
@@ -126,6 +128,6 @@
 - 项目概览表格需要保留轻量横向和纵向网格线；纵向线只用于增强列扫读，不应变成强边框。
 - 总览页的页脚数据来源必须归入项目概览卡底部，视觉上属于同一张底部表格卡；账本页和仓库页可继续在页面底部复用同一 `FooterNote`。
 - 页脚必须展示本地数据来源与 `session / archived / 仓库` 统计 chip。
-- 设置页当前按单列卡片流展示 Codex 数据目录、仓库根目录、计费口径、Git 与授权、刷新历史摘要和本机数据边界；刷新历史在设置页只显示最近 5 条摘要，完整记录进入 `RefreshHistoryPage` 分页查看，并提供返回设置入口。
+- 设置页当前按单列卡片流展示新用户使用路径、Codex 数据目录、仓库根目录、计费口径、Git 与授权、刷新历史摘要和本机数据边界；刷新历史在设置页只显示最近 5 条摘要，完整记录进入 `RefreshHistoryPage` 分页查看，并提供返回设置入口。
 - 挂件入口不再放在主页面工具栏，保持默认关闭策略。
 - 页面提交前必须用真实 Electron 窗口截图验证 `1360 x 900` 和 `1080 x 720`，截图通过后再进入 Git 提交。

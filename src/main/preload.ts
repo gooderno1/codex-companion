@@ -52,6 +52,7 @@ const api: CodexCompanionApi = {
     };
   },
   openPage: (page) => ipcRenderer.invoke("app:open-page", page),
+  openExternal: (url) => ipcRenderer.invoke("app:open-external", url),
   selectDirectory: () => ipcRenderer.invoke("app:select-directory"),
   showWidget: () => ipcRenderer.invoke("widget:show"),
   hideWidget: () => ipcRenderer.invoke("widget:hide")

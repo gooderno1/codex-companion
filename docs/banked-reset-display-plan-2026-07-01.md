@@ -1,6 +1,6 @@
 # Codex banked reset 展示实施方案
 
-本文档记录 `codex-companion v0.3.7-dev.1` 对 `codex-usage-core v0.1.0-dev.8` banked reset credit 字段的实际接入方式。
+本文档记录 `codex-companion v0.3.7-dev.2` 对 `codex-usage-core v0.1.0-dev.8` banked reset credit 字段的实际接入方式。
 
 ## 数据来源
 

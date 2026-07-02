@@ -487,6 +487,7 @@ export interface CodexCompanionApi {
     listener: (notifications: DashboardNotificationEntry[]) => void
   ): () => void;
   openPage(page: AppPage): Promise<void>;
+  openExternal(url: string): Promise<void>;
   selectDirectory(): Promise<string | null>;
   showWidget(): Promise<void>;
   hideWidget(): Promise<void>;

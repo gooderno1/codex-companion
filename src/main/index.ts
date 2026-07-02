@@ -7,6 +7,7 @@ import {
   nativeImage,
   Notification,
   screen,
+  shell,
   Tray
 } from "electron";
 import { writeFile } from "node:fs/promises";
@@ -46,6 +47,7 @@ let dashboardRefreshTask: Promise<DashboardSnapshot> | null = null;
 let startupRefreshTimer: NodeJS.Timeout | null = null;
 
 const preloadPath = path.join(__dirname, "preload.js");
+const ALLOWED_EXTERNAL_URLS = new Set(["https://git-scm.com/download/win"]);
 
 if (process.platform === "win32") {
   app.setAppUserModelId("com.gooderno1.codex-companion");
@@ -868,6 +870,12 @@ function registerIpcHandlers() {
   );
   ipcMain.handle("app:open-page", async (_event, page: AppPage) => {
     await openPage(page);
+  });
+  ipcMain.handle("app:open-external", async (_event, url: string) => {
+    if (!ALLOWED_EXTERNAL_URLS.has(url)) {
+      throw new Error("不允许打开未登记的外部链接。");
+    }
+    await shell.openExternal(url);
   });
   ipcMain.handle("app:select-directory", async () => {
     const options = {

@@ -1128,6 +1128,106 @@ svg {
   background: rgba(245, 158, 11, 0.12);
 }
 
+.onboarding-step-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.onboarding-step-grid article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 10px;
+  align-content: start;
+  min-width: 0;
+}
+
+.onboarding-step-grid article > span {
+  display: inline-grid;
+  place-items: center;
+  grid-row: span 2;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--accent-blue);
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(15, 111, 255, 0.1);
+}
+
+.onboarding-step-grid strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.onboarding-step-grid p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.git-install-guide {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.settings-panel .git-install-guide {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.git-install-guide > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.git-install-guide strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.git-install-guide p,
+.git-install-guide li,
+.git-install-actions span {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.git-install-guide p {
+  margin: 0;
+}
+
+.git-install-guide ol {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.git-install-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.repo-git-empty {
+  display: grid;
+  gap: 14px;
+}
+
+.repo-git-empty-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .refresh-feedback-loading,
 .refresh-feedback-refreshing {
   box-shadow: inset 0 0 0 1px rgba(11, 111, 242, 0.16);
@@ -3728,6 +3828,7 @@ svg {
   .settings-form-row,
   .settings-source-grid,
   .setup-status-grid,
+  .onboarding-step-grid,
   .settings-overview-grid,
   .notification-summary-grid,
   .notification-detail-grid div {

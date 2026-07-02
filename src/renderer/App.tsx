@@ -71,6 +71,8 @@ const PAGE_META: Record<
   }
 };
 
+const GIT_FOR_WINDOWS_DOWNLOAD_URL = "https://git-scm.com/download/win";
+
 type OverviewMode = "natural" | "billing";
 type NaturalProjectPeriod = "day" | "week" | "month";
 type BillingProjectPeriod = "fiveHour" | "weekLimit" | "billingMonth";
@@ -1361,17 +1363,28 @@ function detectionClass(detected: boolean, pending: boolean) {
 
 function DataSourceStatusPanel({
   snapshot,
-  preferences
+  preferences,
+  gitStatus
 }: {
   snapshot: DashboardSnapshot | null;
   preferences: AppPreferences | null;
+  gitStatus: GitIntegrationStatus | null;
 }) {
   const pending = snapshot?.generatedFrom === "pending";
   const isCodexDetected = codexDetected(snapshot);
   const isGitDetected = gitDetected(snapshot);
+  const isGitCommandMissing = gitStatus?.available === false;
   const codexFileCount =
     (snapshot?.sourceHealth.sessionFilesScanned ?? 0) +
     (snapshot?.sourceHealth.archivedFilesScanned ?? 0);
+  const gitStatusText = isGitCommandMissing
+    ? "未安装 Git"
+    : detectionLabel(isGitDetected, pending);
+  const gitHelpText = isGitCommandMissing
+    ? "未安装 Git 时，代码仓库页和提交改动统计会暂不可用"
+    : isGitDetected
+      ? `已发现 ${formatNumber(snapshot?.repositories.summary.totalTracked ?? 0)} 个仓库`
+      : "未命中时请手动选择代码项目上级目录";
 
   return (
     <div className="setup-status-grid">
@@ -1388,8 +1401,8 @@ function DataSourceStatusPanel({
           <span>Git 仓库根目录</span>
           <strong>{(preferences?.repoRoots ?? snapshot?.sourceHealth.repoRoots ?? []).join("；") || "等待检测"}</strong>
         </div>
-        <em>{detectionLabel(isGitDetected, pending)}</em>
-        <small>{isGitDetected ? `已发现 ${formatNumber(snapshot?.repositories.summary.totalTracked ?? 0)} 个仓库` : "未命中时请手动选择代码项目上级目录"}</small>
+        <em>{gitStatusText}</em>
+        <small>{gitHelpText}</small>
       </article>
     </div>
   );
@@ -1397,19 +1410,56 @@ function DataSourceStatusPanel({
 
 function FirstLoadPanel({
   snapshot,
-  preferences
+  preferences,
+  gitStatus
 }: {
   snapshot: DashboardSnapshot | null;
   preferences: AppPreferences | null;
+  gitStatus: GitIntegrationStatus | null;
 }) {
   return (
     <section className="first-load-panel">
       <div className="first-load-copy">
         <h3>正在首次自动检测本机数据源</h3>
-        <p>应用会先尝试默认 Codex 目录和常见代码目录。首次扫描需要解析 Codex 会话并遍历 Git 仓库，耗时可能明显长于后续刷新。</p>
+        <p>应用会先尝试默认 Codex 目录和常见代码目录。Codex 用量不依赖 Git；如果本机没有 Git，只会影响代码仓库统计和提交改动归因。</p>
       </div>
-      <DataSourceStatusPanel snapshot={snapshot} preferences={preferences} />
+      <DataSourceStatusPanel snapshot={snapshot} preferences={preferences} gitStatus={gitStatus} />
     </section>
+  );
+}
+
+function GitInstallGuide({
+  title = "安装 Git 后启用代码仓库统计",
+  compact = false
+}: {
+  title?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`git-install-guide${compact ? " is-compact" : ""}`}>
+      <div>
+        <strong>{title}</strong>
+        <p>
+          Codex 用量、额度和通知不依赖 Git；代码仓库页、提交数、增删行和仓库归因需要本机
+          Git 命令。
+        </p>
+      </div>
+      <ol>
+        <li>安装 Git for Windows。</li>
+        <li>重启 Codex Companion，或安装后点击刷新。</li>
+        <li>在设置页确认仓库根目录指向代码项目的上级目录。</li>
+      </ol>
+      <div className="git-install-actions">
+        <button
+          type="button"
+          className="action-button"
+          onClick={() => void window.codexCompanion.openExternal(GIT_FOR_WINDOWS_DOWNLOAD_URL)}
+        >
+          下载 Git for Windows
+        </button>
+        <span>无需登录 GitHub；安装的是本机 Git 命令。</span>
+      </div>
+    </div>
   );
 }
 
@@ -1860,6 +1910,32 @@ function SettingsPage({
 
   return (
     <div className="page-stack settings-page">
+      <SectionCard className="settings-panel onboarding-guide">
+        <div className="section-toolbar">
+          <div>
+            <h3>新用户使用路径</h3>
+            <p>先接通 Codex 本机数据；如果需要代码仓库统计，再准备本机 Git。</p>
+          </div>
+        </div>
+        <div className="onboarding-step-grid">
+          <article>
+            <span>1</span>
+            <strong>确认 Codex 数据目录</strong>
+            <p>默认读取 `CODEX_HOME` 或用户目录下的 `.codex`，用于用量、额度和赠送重置。</p>
+          </article>
+          <article>
+            <span>2</span>
+            <strong>按需启用 Git 仓库统计</strong>
+            <p>没有 Git 也能看 Codex 用量；安装 Git 后才能读取本地仓库提交和改动。</p>
+          </article>
+          <article>
+            <span>3</span>
+            <strong>保存并刷新</strong>
+            <p>配置 Codex 数据目录和仓库根目录后刷新，后续自动复用本机缓存。</p>
+          </article>
+        </div>
+      </SectionCard>
+
       <SectionCard className="settings-panel">
         <div className="section-toolbar">
           <div>
@@ -2051,6 +2127,7 @@ function SettingsPage({
         <p className="settings-note">
           {gitStatus?.message ?? "正在检测本机 Git 状态。"} 后续如果加入 GitHub PR、Issue 或云端同步能力，再在这里提供登录检测和授权引导。
         </p>
+        {gitStatus?.available === false ? <GitInstallGuide compact /> : null}
       </SectionCard>
 
       <SectionCard className="settings-panel">
@@ -3444,7 +3521,13 @@ function LedgerPage({ snapshot }: { snapshot: DashboardSnapshot }) {
   );
 }
 
-function RepositoriesPage({ snapshot }: { snapshot: DashboardSnapshot }) {
+function RepositoriesPage({
+  snapshot,
+  gitStatus
+}: {
+  snapshot: DashboardSnapshot;
+  gitStatus: GitIntegrationStatus | null;
+}) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<RepoSortState>({
     key: "recentCommit",
@@ -3474,6 +3557,7 @@ function RepositoriesPage({ snapshot }: { snapshot: DashboardSnapshot }) {
   );
   const selectedRepo =
     sortedRepos.find((repo) => repo.id === selectedRepoId) ?? sortedRepos[0] ?? null;
+  const isGitCommandMissing = gitStatus?.available === false;
 
   const handleRepoSort = (key: RepoSort) => {
     setSort((current) => ({
@@ -3484,6 +3568,44 @@ function RepositoriesPage({ snapshot }: { snapshot: DashboardSnapshot }) {
 
   return (
     <div className="repositories-layout">
+      {isGitCommandMissing ? (
+        <SectionCard className="repo-git-empty">
+          <GitInstallGuide title="未检测到本机 Git，代码仓库统计暂不可用" />
+          <div className="repo-git-empty-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void window.codexCompanion.openPage("settings")}
+            >
+              打开设置
+            </button>
+          </div>
+        </SectionCard>
+      ) : snapshot.repositories.items.length === 0 ? (
+        <SectionCard className="repo-git-empty">
+          <div className="git-install-guide is-compact">
+            <div>
+              <strong>还没有发现本地 Git 仓库</strong>
+              <p>如果已经安装 Git，请在设置页把仓库根目录指向代码项目的上级目录，然后刷新。</p>
+            </div>
+            <ol>
+              <li>选择包含多个项目的目录，例如 `Documents\\Code` 或 `source`。</li>
+              <li>保存后应用会重新扫描本地 Git 仓库。</li>
+              <li>Codex 会话会按工作目录归因到对应仓库。</li>
+            </ol>
+          </div>
+          <div className="repo-git-empty-actions">
+            <button
+              type="button"
+              className="action-button"
+              onClick={() => void window.codexCompanion.openPage("settings")}
+            >
+              配置仓库根目录
+            </button>
+          </div>
+        </SectionCard>
+      ) : null}
+
       <div className="repo-page-toolbar">
         <label className="search-box repo-search-box">
           <span>搜索仓库</span>
@@ -4031,7 +4153,9 @@ export default function App() {
   const setupMessage =
     snapshot && !codexDetected(snapshot)
       ? "未检测到 Codex 会话数据，请确认 Codex 数据目录是否指向本机 .codex。"
-      : "未检测到 Git 仓库，请确认仓库根目录是否包含本机代码项目。";
+      : gitStatus?.available === false
+        ? "未检测到本机 Git 命令；Codex 用量仍可查看，代码仓库统计需要先安装 Git。"
+        : "未检测到 Git 仓库，请确认仓库根目录是否包含本机代码项目。";
 
   return (
     <div className="app-shell">
@@ -4150,7 +4274,7 @@ export default function App() {
         {loading && !snapshot ? <div className="loading-card">正在读取本机 Codex 与 Git 数据…</div> : null}
         {isPending ? <div className="loading-hint">界面正在切换到最新快照…</div> : null}
         {isFirstLoadPending ? (
-          <FirstLoadPanel snapshot={snapshot} preferences={preferences} />
+          <FirstLoadPanel snapshot={snapshot} preferences={preferences} gitStatus={gitStatus} />
         ) : null}
         {needsDataSetup ? (
           <div className="setup-banner">
@@ -4177,7 +4301,9 @@ export default function App() {
               <OverviewPage snapshot={snapshot} mode={overviewMode} footer={<FooterNote snapshot={snapshot} />} />
             ) : null}
             {currentPage === "ledger" ? <LedgerPage snapshot={snapshot} /> : null}
-            {currentPage === "repositories" ? <RepositoriesPage snapshot={snapshot} /> : null}
+            {currentPage === "repositories" ? (
+              <RepositoriesPage snapshot={snapshot} gitStatus={gitStatus} />
+            ) : null}
             {currentPage === "notifications" ? (
               <NotificationPage
                 notifications={notifications}

@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-03] v0.3.7-dev.2 feat: 补齐新用户 Git 使用引导
+
+- 开发原因：用户确认当前功能不需要登录 GitHub，但新用户可能没有安装本机 Git，需要明确哪些功能仍可用、哪些能力会降级，以及如何安装 Git。
+- 实现方式：将应用版本从 `0.3.7-dev.1` 提升到 `0.3.7-dev.2`；设置页新增 `新用户使用路径`，说明先接通 Codex 数据、按需启用 Git、保存并刷新；新增 `GitInstallGuide`，在设置页和代码仓库页复用；主进程新增受控 `app:open-external` IPC，仅允许打开 `https://git-scm.com/download/win`；首次检测面板和全局数据源提示区区分“未安装 Git”和“未发现仓库”；代码仓库页在未安装 Git 或未发现仓库时显示明确空态和下一步；同步 README、Roadmap、数据契约、组件映射和 banked reset 展示方案版本。
+- 适用范围：影响新用户引导、设置页、代码仓库页空态、Git 安装外链和用户可见文档；不改变 Codex 用量、额度、赠送重置、通知规则、Git 扫描口径或 `@lifeinhand/codex-usage-core` 依赖版本。
+- 当前结果：本机无 Git 时，应用明确说明 Codex 用量、额度、赠送重置和通知仍可用，代码仓库页、提交数、增删行和仓库归因暂不可用；用户可从设置页或代码仓库页打开 Git for Windows 下载页。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `86%`、周额度余量 `40%`；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；执行 `git diff --check`，仅有 Windows 换行提示；使用 Electron 截图生成 `local_dev_work/settings-1360x900-dev2.png` 和 `local_dev_work/repositories-1360x900-dev2.png`，确认设置页新用户使用路径和仓库页正常布局；使用受控 `PATH` 调用编译后的 `readGitIntegrationStatus()`，确认缺少 `git` 命令时返回 `available=false`；截图时仍输出本机 GPU cache 权限告警，但应用启动、截图和退出正常。
+
 ## [2026-07-02] v0.3.7-dev.1 fix: 修正刷新历史返回和设置页授权口径
 
 - 开发原因：用户反馈刷新历史页面无法返回；通知策略在固定一次性提醒规则下已经没有明确用户价值；GitHub 未登录时设置页缺少后续授权引导说明。
