@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.3.6`
+- 对应版本：`v0.3.7-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -30,7 +30,7 @@
 - 配置的本地仓库根目录递归扫描
 - 仓库根目录可在设置页维护，也可通过 `CODEX_COMPANION_REPO_ROOTS` 作为首次默认候选；保存后写入 Electron `userData/settings.json`
 - 如果用户在设置页清空仓库根目录并保存，应用回退到默认自动发现路径；不会保存一个导致仓库扫描永久为空的配置
-- 设置页 `Git 与授权` 只读取本机 `git --version`、`git config --global user.name` 和 `git config --global user.email` 状态；当前版本不读取 GitHub 远端 API，也不保存 GitHub token。
+- 设置页 `Git 与授权` 只读取本机 `git --version`、`git config --global user.name` 和 `git config --global user.email` 状态；当前版本不检测 GitHub 登录、不读取 GitHub 远端 API，也不保存 GitHub token；后续接入 GitHub 云端能力时再提供授权引导。
 - 重点命令：
   - `git rev-list --count --since=... HEAD`
   - `git log --numstat --format=tformat:`
@@ -161,11 +161,7 @@
 
 - 提醒只在主进程处理 `generatedFrom=live` 的 `DashboardSnapshot` 后触发；缓存快照、pending 快照和截图模式不触发新提醒。
 - 提醒只消费现有聚合字段，不重新解析 Codex session，也不改变 `codex-usage-core` 的 reset 检测口径。
-- 通知频率偏好写入 Electron `userData/settings.json` 的 `notifications.deliveryMode`：
-  - `balanced`：默认值；保留所有赠送重置过期里程碑和额度阈值提醒；同一 key 只生成一次，不重复弹系统通知、不重置未读状态、不更新最近触发时间。
-  - `important`：只保留 `danger`、赠送重置 `12h / 1h` 到期里程碑和额度 `10%` 紧急提醒；同一 key 只生成一次。
-  - `quiet`：保留应用内通知历史，但不弹系统通知；同一 key 只生成一次。
-  - `off`：不生成新的提醒；已有历史仍可查看和标记已读。
+- 通知按固定一次性规则生成；设置页不再展示通知策略入口。`notifications.deliveryMode` 仅为兼容旧版 `settings.json` 保留，默认按 `balanced` 处理。
 - 触发范围：
   - 赠送重置：对可估算 `estimatedExpiresAt` 的 credit，按预计过期时间提前 `7d / 3d / 1d / 12h / 1h` 生成里程碑提醒；如果应用首次观测时已过期，可生成一次 `expired` 补偿提醒；`estimateBasis=existing-at-first-observation` 无法反推过期时间时只生成一次待确认提醒，且待确认提醒可与已知过期里程碑同时存在。
   - 额度提醒：`5H 额度` 或 `周额度` 当前周期 `remainingPercent <= 20%` 时生成一次 warning；`remainingPercent <= 10%` 时按同一周期生成一次 danger。

@@ -19,7 +19,6 @@ import type {
   LedgerTimeBucket,
   LimitWindow,
   ModelMetric,
-  NotificationDeliveryMode,
   OverviewProjectItem,
   PeriodMetric,
   RepoMetric,
@@ -68,7 +67,7 @@ const PAGE_META: Record<
   },
   settings: {
     title: "设置",
-    subtitle: "数据源、通知策略、计费口径与本机边界"
+    subtitle: "数据源、计费口径、Git 与本机边界"
   }
 };
 
@@ -604,28 +603,6 @@ function notificationToneLabel(tone: DashboardNotificationEntry["tone"]) {
   };
 
   return mapping[tone];
-}
-
-function notificationDeliveryModeLabel(mode: NotificationDeliveryMode) {
-  const mapping: Record<NotificationDeliveryMode, string> = {
-    balanced: "均衡",
-    important: "重要",
-    quiet: "安静",
-    off: "关闭"
-  };
-
-  return mapping[mode];
-}
-
-function notificationDeliveryModeDetail(mode: NotificationDeliveryMode) {
-  const mapping: Record<NotificationDeliveryMode, string> = {
-    balanced: "默认策略。记录全部里程碑提醒；每个过期里程碑和额度阈值只提醒一次。",
-    important: "只保留紧急额度、1 小时和 12 小时过期提醒。",
-    quiet: "保留应用内通知历史，不弹出系统通知；每个提醒仍只生成一次。",
-    off: "不再生成新的提醒；已有历史仍可查看和标记已读。"
-  };
-
-  return mapping[mode];
 }
 
 function notificationToneClass(tone: DashboardNotificationEntry["tone"]) {
@@ -1277,18 +1254,29 @@ function RefreshHistoryPage({ snapshot }: { snapshot: DashboardSnapshot }) {
                 : "暂无刷新记录"}
             </p>
           </div>
-          <TextTabs<RefreshTriggerFilter>
-            items={[
-              { value: "all", label: "全部" },
-              { value: "manual", label: "手动" },
-              { value: "auto", label: "自动" },
-              { value: "startup", label: "启动" },
-              { value: "background", label: "后台" }
-            ]}
-            value={triggerFilter}
-            onChange={changeTriggerFilter}
-            variant="chip"
-          />
+          <div className="history-toolbar-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                window.location.hash = "#/settings";
+              }}
+            >
+              返回设置
+            </button>
+            <TextTabs<RefreshTriggerFilter>
+              items={[
+                { value: "all", label: "全部" },
+                { value: "manual", label: "手动" },
+                { value: "auto", label: "自动" },
+                { value: "startup", label: "启动" },
+                { value: "background", label: "后台" }
+              ]}
+              value={triggerFilter}
+              onChange={changeTriggerFilter}
+              variant="chip"
+            />
+          </div>
         </div>
 
         <RefreshHistoryTable history={pagedHistory} />
@@ -1779,8 +1767,7 @@ function SettingsPage({
   gitStatus,
   onSaveBillingMonthStartDay,
   onSaveCodexHome,
-  onSaveRepoRoots,
-  onSaveNotificationMode
+  onSaveRepoRoots
 }: {
   snapshot: DashboardSnapshot | null;
   preferences: AppPreferences | null;
@@ -1788,7 +1775,6 @@ function SettingsPage({
   onSaveBillingMonthStartDay: (day: number) => Promise<void>;
   onSaveCodexHome: (codexHome: string) => Promise<void>;
   onSaveRepoRoots: (roots: string[]) => Promise<void>;
-  onSaveNotificationMode: (mode: NotificationDeliveryMode) => Promise<void>;
 }) {
   const currentDay = preferences?.billingMonthStartDay ?? 1;
   const currentCodexHome = preferences?.codexHome ?? snapshot?.sourceHealth.codexHome ?? "";
@@ -1802,7 +1788,6 @@ function SettingsPage({
   const [saving, setSaving] = useState(false);
   const [codexSaving, setCodexSaving] = useState(false);
   const [repoSaving, setRepoSaving] = useState(false);
-  const [notificationSaving, setNotificationSaving] = useState(false);
 
   async function saveBillingDay() {
     setSaving(true);
@@ -1859,15 +1844,6 @@ function SettingsPage({
     }
   }
 
-  async function saveNotificationMode(mode: NotificationDeliveryMode) {
-    setNotificationSaving(true);
-    try {
-      await onSaveNotificationMode(mode);
-    } finally {
-      setNotificationSaving(false);
-    }
-  }
-
   const safeDraftDay = Number.isFinite(draftDay) ? draftDay : currentDay;
   const normalizedDraftDay = Math.max(1, Math.min(31, Math.trunc(safeDraftDay)));
   const canSave = normalizedDraftDay !== currentDay && !saving;
@@ -1879,7 +1855,6 @@ function SettingsPage({
   const pendingDetection = snapshot?.generatedFrom === "pending";
   const isCodexDetected = codexDetected(snapshot);
   const isGitDetected = gitDetected(snapshot);
-  const notificationMode = preferences?.notifications.deliveryMode ?? "balanced";
   const refreshHistory = snapshot?.sourceHealth.refreshHistory ?? [];
   const latestRefresh = refreshHistory[0] ?? null;
 
@@ -2023,29 +1998,6 @@ function SettingsPage({
       <SectionCard className="settings-panel">
         <div className="section-toolbar">
           <div>
-            <h3>通知策略</h3>
-            <p>控制应用内通知和系统弹窗的生成频率。</p>
-          </div>
-        </div>
-        <div className="notification-mode-grid">
-          {(["balanced", "important", "quiet", "off"] as NotificationDeliveryMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              className={`notification-mode-card${notificationMode === mode ? " active" : ""}`}
-              disabled={notificationSaving || notificationMode === mode}
-              onClick={() => void saveNotificationMode(mode)}
-            >
-              <strong>{notificationDeliveryModeLabel(mode)}</strong>
-              <span>{notificationDeliveryModeDetail(mode)}</span>
-            </button>
-          ))}
-        </div>
-      </SectionCard>
-
-      <SectionCard className="settings-panel">
-        <div className="section-toolbar">
-          <div>
             <h3>计费口径</h3>
             <p>用于总览页计费时间、计费月 Token 和项目概览计费月。</p>
           </div>
@@ -2078,7 +2030,7 @@ function SettingsPage({
         <div className="section-toolbar">
           <div>
             <h3>Git 与授权</h3>
-            <p>当前版本只读取本地 Git，不请求 GitHub token。</p>
+            <p>当前版本只读取本机 Git；不检测 GitHub 登录，也不请求 GitHub token。</p>
           </div>
           <span className={`detection-pill ${gitStatus?.available ? "is-ok" : "is-missing"}`}>
             {gitIdentityLabel(gitStatus)}
@@ -2094,9 +2046,11 @@ function SettingsPage({
           <span>user.email</span>
           <strong>{gitStatus?.userEmail ?? "未配置"}</strong>
           <span>云端授权</span>
-          <strong>当前不需要</strong>
+          <strong>当前无需 GitHub 授权</strong>
         </div>
-        <p className="settings-note">{gitStatus?.message ?? "正在检测本机 Git 状态。"}</p>
+        <p className="settings-note">
+          {gitStatus?.message ?? "正在检测本机 Git 状态。"} 后续如果加入 GitHub PR、Issue 或云端同步能力，再在这里提供登录检测和授权引导。
+        </p>
       </SectionCard>
 
       <SectionCard className="settings-panel">
@@ -3980,30 +3934,6 @@ export default function App() {
     setNotifications(nextNotifications);
   }
 
-  async function saveNotificationMode(mode: NotificationDeliveryMode) {
-    try {
-      const nextPreferences = await window.codexCompanion.updatePreferences({
-        notifications: {
-          deliveryMode: mode
-        }
-      });
-      setPreferences(nextPreferences);
-      showRefreshFeedback({
-        phase: "done",
-        title: "通知策略已更新",
-        detail: notificationDeliveryModeDetail(mode)
-      }, true);
-    } catch (reason) {
-      const message = reason instanceof Error ? reason.message : "保存通知策略失败";
-      setError(message);
-      showRefreshFeedback({
-        phase: "error",
-        title: "保存通知策略失败",
-        detail: message
-      }, true);
-    }
-  }
-
   async function saveCodexHome(codexHome: string) {
     try {
       setLoading(true);
@@ -4140,7 +4070,7 @@ export default function App() {
         <div className="sidebar-bottom">
           <button
             type="button"
-            className={`settings-entry${currentPage === "settings" ? " active" : ""}`}
+            className={`settings-entry${currentPage === "settings" || currentPage === "refresh-history" ? " active" : ""}`}
             onClick={() => {
               window.location.hash = "#/settings";
             }}
@@ -4266,7 +4196,6 @@ export default function App() {
                 onSaveBillingMonthStartDay={saveBillingMonthStartDay}
                 onSaveCodexHome={saveCodexHome}
                 onSaveRepoRoots={saveRepoRoots}
-                onSaveNotificationMode={saveNotificationMode}
               />
             ) : null}
 

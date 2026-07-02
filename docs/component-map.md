@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.6`
+- 当前适用版本：`v0.3.7-dev.1`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
 
 ## 总览页
@@ -27,7 +27,7 @@
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
 | Windows 应用图标 | `build/app-icon.ico` / `createAppIcon` / `scripts/generate-app-icon.mjs` | 打包与主进程复用 | `.ico` 资产、打包前生成、缺失时运行时 PNG 兜底 | 使用本项目 `BrandMark` 品牌几何生成，接入 Windows 可执行文件、主窗口和托盘图标，避免使用默认 Electron 图标 |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
-| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 一次性去重、已读状态、通知模式筛选、点击打开关联页面 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；赠送重置按过期前 `7d / 3d / 1d / 12h / 1h` 各提醒一次，5H / 周额度低于 `20% / 10%` 时按周期阈值各提醒一次 |
+| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 一次性去重、已读状态、点击打开关联页面 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；赠送重置按过期前 `7d / 3d / 1d / 12h / 1h` 各提醒一次，5H / 周额度低于 `20% / 10%` 时按周期阈值各提醒一次；设置页不再展示通知策略入口 |
 | Codex 增量缓存 | `CodexSessionCacheStore` / `collectCodexData` | 主进程复用 | `size`、`mtimeMs`、解析结果 | `%APPDATA%/codex-companion/codex-session-cache.json` |
 
 ## 刷新历史页
@@ -37,6 +37,7 @@
 | 刷新历史摘要 | `RefreshHistoryPage` `history-summary-grid` | 页面级 | 全部刷新、实时快照、缓存或待采集数量 | `snapshot.sourceHealth.refreshHistory` |
 | 刷新记录筛选 | `RefreshHistoryPage` `TextTabs` | 页面级 | `all / manual / auto / startup / background` | 本地页面状态 |
 | 刷新记录分页 | `RefreshHistoryPage` / `RefreshHistoryTable` | 可复用 | 每页 `12` 条、上一页 / 下一页 | `snapshot.sourceHealth.refreshHistory` |
+| 返回设置 | `RefreshHistoryPage` `history-toolbar-actions` | 页面级 | 返回设置按钮、左侧设置入口高亮 | 本地路由 hash `#/settings` |
 
 ## 设置页
 
@@ -45,9 +46,8 @@
 | 设置页壳层 | `SettingsPage` `page-stack settings-page` | 页面级 | 单列卡片流 | 本地路由 hash |
 | Codex 数据目录 | `SettingsPage` `repo-root-editor` | 页面级 | 手动输入、选择目录、恢复默认、保存并刷新 | `preferences.codexHome`、`app:select-directory`、`preferences:update` |
 | 仓库根目录 | `SettingsPage` `repo-root-editor` | 页面级 | 手动输入、选择目录、移除、恢复默认、保存并刷新 | `preferences.repoRoots`、`app:select-directory`、`preferences:update` |
-| 通知策略 | `SettingsPage` `notification-mode-grid` | 页面级 | `balanced / important / quiet / off` | `preferences.notifications.deliveryMode`、`preferences:update` |
 | 计费口径 | `SettingsPage` `settings-form-row` | 页面级 | `billingMonthStartDay`、保存并刷新 | `preferences.billingMonthStartDay`、`preferences:update` |
-| Git 与授权 | `SettingsPage` `settings-source-grid` | 页面级 | git 命令状态、版本、user.name、user.email、云端授权边界 | `git:status`；当前只读取本机 Git，不请求 GitHub token |
+| Git 与授权 | `SettingsPage` `settings-source-grid` | 页面级 | git 命令状态、版本、user.name、user.email、GitHub 授权边界说明 | `git:status`；当前只读取本机 Git，不检测 GitHub 登录、不请求 GitHub token；后续接入 GitHub 云端能力时再提供授权引导 |
 | 刷新历史摘要 | `RefreshHistoryTable` | 页面级 | 设置页最近 `5` 条刷新摘要、查看全部入口 | `snapshot.sourceHealth.refreshHistory`、`#/refresh-history` |
 | 数据边界 | `SettingsPage` `settings-source-grid` | 页面级 | Codex home、仓库根、本地快照、增量缓存、通知历史 | `snapshot.sourceHealth`、本项目独立采集约定、`notification-state.json` |
 
@@ -126,6 +126,6 @@
 - 项目概览表格需要保留轻量横向和纵向网格线；纵向线只用于增强列扫读，不应变成强边框。
 - 总览页的页脚数据来源必须归入项目概览卡底部，视觉上属于同一张底部表格卡；账本页和仓库页可继续在页面底部复用同一 `FooterNote`。
 - 页脚必须展示本地数据来源与 `session / archived / 仓库` 统计 chip。
-- 设置页当前按单列卡片流展示 Codex 数据目录、仓库根目录、通知策略、计费口径、Git 与授权、刷新历史摘要和本机数据边界；刷新历史在设置页只显示最近 5 条摘要，完整记录进入 `RefreshHistoryPage` 分页查看。
+- 设置页当前按单列卡片流展示 Codex 数据目录、仓库根目录、计费口径、Git 与授权、刷新历史摘要和本机数据边界；刷新历史在设置页只显示最近 5 条摘要，完整记录进入 `RefreshHistoryPage` 分页查看，并提供返回设置入口。
 - 挂件入口不再放在主页面工具栏，保持默认关闭策略。
 - 页面提交前必须用真实 Electron 窗口截图验证 `1360 x 900` 和 `1080 x 720`，截图通过后再进入 Git 提交。

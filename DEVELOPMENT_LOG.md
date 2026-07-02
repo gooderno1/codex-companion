@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.7-dev.1 fix: 修正刷新历史返回和设置页授权口径
+
+- 开发原因：用户反馈刷新历史页面无法返回；通知策略在固定一次性提醒规则下已经没有明确用户价值；GitHub 未登录时设置页缺少后续授权引导说明。
+- 实现方式：将应用版本从 `0.3.6` 提升到 `0.3.7-dev.1`；刷新历史页工具栏新增 `返回设置` 按钮，左侧设置入口在刷新历史页保持高亮；移除设置页 `通知策略` 卡片、保存入口和渲染层相关样式；底层 `notifications.deliveryMode` 仅保留旧配置兼容；Git 与授权区改为明确说明当前不检测 GitHub 登录、不请求 GitHub token，后续接入 GitHub PR、Issue 或云端同步能力时再提供登录检测和授权引导；同步 README、Roadmap、数据契约、组件映射和 banked reset 展示方案版本。
+- 适用范围：影响设置页、刷新历史页、Git 与授权说明和用户可见文档；不改变通知候选生成规则、应用内通知历史、系统通知发送、Codex session 采集、Git 本地扫描或 `@lifeinhand/codex-usage-core` 依赖版本。
+- 当前结果：刷新历史页可直接返回设置；设置页不再出现通知策略选项；Git 与授权区清楚表达当前阶段无需 GitHub 授权且后续云端能力会补授权引导。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `97%`、周额度余量 `42%`；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；执行 `git diff --check`，仅有 Windows 换行提示；使用 Electron 截图生成 `local_dev_work/settings-1360x900-dev1.png` 和 `local_dev_work/refresh-history-1360x900-dev1.png`，确认设置页已移除通知策略卡、GitHub 授权边界文案可见，刷新历史页有 `返回设置` 按钮且左侧设置入口高亮；截图时仍输出本机 GPU cache 权限告警，但应用启动、截图和退出正常。
+
 ## [2026-07-02] v0.3.6 release: 内部正式版
 
 - 开发原因：用户要求将 `v0.3.6-dev.1` 至 `v0.3.6-dev.3` 的图标、设置页、刷新历史、赠送重置归因和过期时间文案改动收敛为内部正式版。

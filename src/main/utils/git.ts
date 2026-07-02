@@ -86,7 +86,7 @@ export async function readGitIntegrationStatus(): Promise<GitIntegrationStatus> 
     cloudAuth: "not-required",
     message:
       userName && userEmail
-        ? "已检测到本机 Git 身份；当前版本只读取本地仓库，不需要 GitHub 登录或 token。"
+        ? "已检测到本机 Git 身份；当前版本只读取本地仓库，不检测 GitHub 登录，也不需要 GitHub token。"
         : "已检测到 git 命令，但全局 user.name 或 user.email 未配置；本地扫描仍可运行，提交身份建议在 Git 中补齐。"
   };
 }
