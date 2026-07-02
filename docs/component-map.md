@@ -1,8 +1,8 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.4`
-- 当前覆盖页面：总览页、Codex 账本页、代码仓库页、设置页
+- 当前适用版本：`v0.3.5-dev.1`
+- 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、设置页
 
 ## 总览页
 
@@ -19,25 +19,29 @@
 | 项目表头排序 | `ProjectSortHeader` | 页面级 | `name / token / cost / code / commits / sessions / recent`、`asc / desc` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
 | 刷新反馈条 | `refresh-feedback` | 全局复用 | `refreshing / done / error`、约 `5s` 自动隐藏 | `snapshot.sourceHealth.refresh` |
-| 提醒中心 | `NotificationCenter` | 全局复用 | `DashboardNotificationEntry[]`、未读数、详情弹层、标记已读、查看页面 | `notifications:get`、`notifications:updated`、`notifications:mark-read`；展示同一条提醒的标题、正文、类别、级别和触发时间 |
+| 提醒中心 | `NotificationCenter` | 全局复用 | `DashboardNotificationEntry[]`、未读数、最近 8 条详情弹层、标记已读、查看全部 | `notifications:get`、`notifications:updated`、`notifications:mark-read`；展示同一条提醒的标题、正文、类别、级别和触发时间 |
+| 通知页 | `NotificationPage` | 页面级 | 全部 / 未读 / 已读筛选、赠送重置 / 额度筛选、每页 10 条、详情侧栏 | `DashboardNotificationEntry[]`；支持查看关联页面和标记已读 |
 | 首次加载检测 | `FirstLoadPanel` / `DataSourceStatusPanel` | 全局复用 | `generatedFrom=pending`、Codex 检测、Git 检测 | `snapshot.sourceHealth`、`snapshot.repositories.summary`、`preferences` |
 | 数据源手动提示 | `setup-banner` | 全局复用 | Codex 或 Git 未检测到时引导打开设置 | `snapshot.sourceHealth.sourceStatus`、`snapshot.repositories.summary.totalTracked` |
 | 页脚数据来源 | `FooterNote` / `footer-note` | 全局复用 | `sessionFilesScanned`、`archivedFilesScanned`、`repoCount` | `snapshot.sourceHealth`、`snapshot.pricingMeta` |
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
-| Windows 托盘图标 | `createTrayIcon` / `createTrayPngBuffer` | 主进程复用 | 32px PNG `nativeImage` | 主进程运行时生成蓝青渐变 PNG，避免 Windows 托盘使用 SVG DataURL 时出现空白 |
+| Windows 托盘图标 | `createTrayIcon` / `createTrayPngBuffer` | 主进程复用 | 32px PNG `nativeImage` | 主进程运行时按 `BrandMark` 品牌几何生成蓝青 PNG，避免 Windows 托盘使用 SVG DataURL 时出现空白或图标不一致 |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
-| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 去重、已读状态、点击打开总览页 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；赠送重置到期或无法反推、5H / 周额度低于 `20% / 10%` 时触发；系统通知之外同步进入应用内提醒中心 |
+| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 去重、已读状态、通知模式冷却、点击打开关联页面 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；赠送重置到期或无法反推、5H / 周额度低于 `20% / 10%` 时触发；默认 `balanced` 同一提醒 `12h` 冷却 |
 | Codex 增量缓存 | `CodexSessionCacheStore` / `collectCodexData` | 主进程复用 | `size`、`mtimeMs`、解析结果 | `%APPDATA%/codex-companion/codex-session-cache.json` |
 
 ## 设置页
 
 | 设计区块 | 代码组件 / 位置 | 复用性 | 关键 props / 状态 | 数据来源 |
 | --- | --- | --- | --- | --- |
-| Codex 数据目录 | `SettingsPage` `repo-root-editor` | 页面级 | 手动输入、选择目录、恢复默认、保存并刷新 | `preferences.codexHome`、`app:select-directory`、`preferences:update` |
+| 设置概览 | `SettingsPage` `settings-overview-grid` | 页面级 | Codex 检测、Git 仓库检测、通知策略、Git 身份 | `snapshot.sourceHealth`、`snapshot.repositories.summary`、`preferences.notifications`、`git:status` |
+| Codex 数据目录 | `SettingsPage` `settings-fieldset` | 页面级 | 手动输入、选择目录、恢复默认、保存并刷新 | `preferences.codexHome`、`app:select-directory`、`preferences:update` |
+| 仓库根目录 | `SettingsPage` `settings-fieldset` | 页面级 | 手动输入、选择目录、移除、恢复默认、保存并刷新 | `preferences.repoRoots`、`app:select-directory`、`preferences:update` |
+| 通知策略 | `SettingsPage` `notification-mode-grid` | 页面级 | `balanced / important / quiet / off` | `preferences.notifications.deliveryMode`、`preferences:update` |
 | 计费口径 | `SettingsPage` `settings-form-row` | 页面级 | `billingMonthStartDay`、保存并刷新 | `preferences.billingMonthStartDay`、`preferences:update` |
-| 仓库根目录 | `SettingsPage` `repo-root-editor` | 页面级 | 手动输入、选择目录、移除、保存并刷新 | `preferences.repoRoots`、`app:select-directory`、`preferences:update` |
-| 刷新历史 | `RefreshHistoryTable` | 页面级 | 最近 `30` 条刷新记录 | `snapshot.sourceHealth.refreshHistory` |
-| 数据边界 | `SettingsPage` `settings-source-grid` | 页面级 | Codex home、仓库根、本地快照、增量缓存、通知去重 | `snapshot.sourceHealth`、本项目独立采集约定、`notification-state.json` |
+| Git 与授权 | `SettingsPage` `settings-source-grid` | 页面级 | git 命令状态、版本、user.name、user.email、云端授权边界 | `git:status`；当前只读取本机 Git，不请求 GitHub token |
+| 刷新历史 | `RefreshHistoryTable` | 页面级 | 设置页最近 `5` 条刷新摘要 | `snapshot.sourceHealth.refreshHistory` |
+| 数据边界 | `SettingsPage` `settings-source-grid` | 页面级 | Codex home、仓库根、本地快照、增量缓存、通知历史 | `snapshot.sourceHealth`、本项目独立采集约定、`notification-state.json` |
 
 ## Codex 账本页
 
@@ -93,7 +97,7 @@
 - 页面级截图支持通过 hash 查询参数设置初始 `overviewMode`，用于生成自然时间和计费时间两种真实 Electron 截图；普通用户默认进入计费时间。
 - 主进程默认每 `5` 分钟后台采集一次 `DashboardSnapshot` 并通过 `dashboard:updated` 广播；启动时优先显示缓存快照，延迟后台刷新，手动刷新完成后也必须广播，渲染端通过 `window.codexCompanion.onDashboardUpdated` 静默更新页面。
 - 提醒中心位于顶栏操作区，铃铛按钮显示未读数；点击后展开最近提醒详情，支持查看对应页面和标记已读；详情只展示聚合后的提醒正文，不展示原始会话或 app-server 响应。
-- 系统通知只在 live 快照生成后检查：赠送重置临近 `safeEstimatedExpiresAt`、预计过期、首次观测前已有 credit 无法反推时提醒；5H / 周额度剩余量低于 `20%` 或 `10%` 时提醒；同一 credit 状态或同一额度周期阈值通过 `notification-state.json` 去重并进入应用内提醒中心。
+- 系统通知只在 live 快照生成后检查：赠送重置临近 `safeEstimatedExpiresAt`、预计过期、首次观测前已有 credit 无法反推时提醒；5H / 周额度剩余量低于 `20%` 或 `10%` 时提醒；同一提醒默认 `12h` 冷却，`important` 模式 `24h` 冷却，`quiet` 只进入应用内通知页，`off` 不生成新提醒。
 - 顶部工具栏状态胶囊只显示状态文字，不额外显示状态图标；额度卡和指标卡内状态标签也保持文字-only。
 - 顶部工具栏不显示 `桌面总控台` 等额外眉标，页面标题与副标题横向组成同一信息组。
 - 左侧品牌区必须保持产品图标和 `Codex Companion` 标题顶线对齐，说明文字放在标题下方，图标与标题间距接近设计稿；文字组允许少量基线补偿，避免标题高于图标造成错位。
@@ -114,6 +118,6 @@
 - 项目概览表格需要保留轻量横向和纵向网格线；纵向线只用于增强列扫读，不应变成强边框。
 - 总览页的页脚数据来源必须归入项目概览卡底部，视觉上属于同一张底部表格卡；账本页和仓库页可继续在页面底部复用同一 `FooterNote`。
 - 页脚必须展示本地数据来源与 `session / archived / 仓库` 统计 chip。
-- 当前 `设置` 仅作为壳层保留入口，正式设置页待后续单独设计。
+- 设置页当前按数据源、通知策略、计费口径、Git 与授权、刷新历史摘要和本机数据边界组织；刷新历史在设置页只显示最近 5 条摘要，避免挤占主要配置区。
 - 挂件入口不再放在主页面工具栏，保持默认关闭策略。
 - 页面提交前必须用真实 Electron 窗口截图验证 `1360 x 900` 和 `1080 x 720`，截图通过后再进入 Git 提交。

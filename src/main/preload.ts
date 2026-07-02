@@ -6,6 +6,7 @@ const api: CodexCompanionApi = {
   getDashboard: (force) => ipcRenderer.invoke("dashboard:get", force),
   getNotifications: () => ipcRenderer.invoke("notifications:get"),
   markNotificationsRead: (keys) => ipcRenderer.invoke("notifications:mark-read", keys),
+  getGitIntegrationStatus: () => ipcRenderer.invoke("git:status"),
   getPreferences: () => ipcRenderer.invoke("preferences:get"),
   updatePreferences: (patch) => ipcRenderer.invoke("preferences:update", patch),
   refreshDashboard: () => ipcRenderer.invoke("dashboard:refresh"),

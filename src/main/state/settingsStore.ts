@@ -1,7 +1,12 @@
 import os from "node:os";
 import path from "node:path";
 
-import type { AppPreferences, WidgetPreferences } from "../../shared/contracts";
+import type {
+  AppPreferences,
+  NotificationDeliveryMode,
+  NotificationPreferences,
+  WidgetPreferences
+} from "../../shared/contracts";
 import { pathExists, readJsonFile, writeJsonFile } from "../utils/fs";
 
 const SETTINGS_FILE_NAME = "settings.json";
@@ -103,6 +108,42 @@ function normalizeWidgetPreferences(
   };
 }
 
+function normalizeNotificationDeliveryMode(
+  value: unknown,
+  fallback: NotificationDeliveryMode
+): NotificationDeliveryMode {
+  return value === "balanced" ||
+    value === "important" ||
+    value === "quiet" ||
+    value === "off"
+    ? value
+    : fallback;
+}
+
+function normalizeNotificationPreferences(
+  value: unknown,
+  fallback: NotificationPreferences
+): NotificationPreferences {
+  const record = value && typeof value === "object" ? value : {};
+  const deliveryMode =
+    "deliveryMode" in record
+      ? (record as { deliveryMode?: unknown }).deliveryMode
+      : undefined;
+
+  return {
+    deliveryMode: normalizeNotificationDeliveryMode(
+      deliveryMode,
+      fallback.deliveryMode
+    )
+  };
+}
+
+function defaultNotificationPreferences(): NotificationPreferences {
+  return {
+    deliveryMode: "balanced"
+  };
+}
+
 export class SettingsStore {
   private readonly settingsPath: string;
 
@@ -115,7 +156,8 @@ export class SettingsStore {
       codexHome: resolveDefaultCodexHome(),
       repoRoots: await resolveDefaultRepoRoots(),
       billingMonthStartDay: DEFAULT_BILLING_MONTH_START_DAY,
-      widget: defaultWidgetPreferences()
+      widget: defaultWidgetPreferences(),
+      notifications: defaultNotificationPreferences()
     };
 
     const stored = await readJsonFile<Partial<AppPreferences>>(this.settingsPath);
@@ -131,7 +173,11 @@ export class SettingsStore {
         stored.billingMonthStartDay,
         fallback.billingMonthStartDay
       ),
-      widget: normalizeWidgetPreferences(stored.widget, fallback.widget)
+      widget: normalizeWidgetPreferences(stored.widget, fallback.widget),
+      notifications: normalizeNotificationPreferences(
+        stored.notifications,
+        fallback.notifications
+      )
     };
 
     await writeJsonFile(this.settingsPath, merged);
@@ -146,7 +192,8 @@ export class SettingsStore {
       codexHome: resolveDefaultCodexHome(),
       repoRoots: await resolveDefaultRepoRoots(),
       billingMonthStartDay: DEFAULT_BILLING_MONTH_START_DAY,
-      widget: defaultWidgetPreferences()
+      widget: defaultWidgetPreferences(),
+      notifications: defaultNotificationPreferences()
     };
     const next = updater(current);
     const normalized: AppPreferences = {
@@ -156,7 +203,11 @@ export class SettingsStore {
         next.billingMonthStartDay,
         current.billingMonthStartDay
       ),
-      widget: normalizeWidgetPreferences(next.widget, current.widget)
+      widget: normalizeWidgetPreferences(next.widget, current.widget),
+      notifications: normalizeNotificationPreferences(
+        next.notifications,
+        current.notifications
+      )
     };
     await writeJsonFile(this.settingsPath, normalized);
     return normalized;

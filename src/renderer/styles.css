@@ -444,6 +444,13 @@ svg {
   border-bottom: 1px solid var(--line-soft);
 }
 
+.notification-popover-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .notification-popover-head h3 {
   margin: 0;
   font-size: 15px;
@@ -539,6 +546,233 @@ svg {
   border: 1px dashed var(--line-soft);
   border-radius: var(--radius-card);
   line-height: 1.5;
+}
+
+.notifications-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 13px;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.notification-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.notification-summary-grid article {
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+.notification-summary-grid span,
+.notification-page-toolbar p,
+.notification-page-row em,
+.notification-pagination,
+.notification-detail-head p,
+.notification-detail-grid dt,
+.notification-detail-grid dd {
+  color: var(--text-secondary);
+}
+
+.notification-summary-grid strong {
+  color: var(--text-primary);
+  font-size: 24px;
+}
+
+.notifications-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 14px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.notifications-list-panel,
+.notification-detail-panel {
+  min-height: 0;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.56);
+  box-shadow: inset 0 0 0 1px rgba(23, 32, 51, 0.08);
+}
+
+.notifications-list-panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 14px;
+}
+
+.notification-page-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notification-page-toolbar h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.notification-page-toolbar p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.notification-page-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.notification-page-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.notification-page-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: var(--radius-card);
+  text-align: left;
+  cursor: pointer;
+  background: rgba(248, 251, 255, 0.78);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+.notification-page-row.is-selected {
+  background: rgba(239, 247, 255, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(15, 111, 255, 0.22);
+}
+
+.notification-page-row.is-unread.notification-warning {
+  box-shadow: inset 3px 0 0 rgba(245, 158, 11, 0.78), inset 0 0 0 1px rgba(245, 158, 11, 0.16);
+}
+
+.notification-page-row.is-unread.notification-danger {
+  box-shadow: inset 3px 0 0 rgba(214, 103, 97, 0.86), inset 0 0 0 1px rgba(214, 103, 97, 0.18);
+}
+
+.notification-page-row span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.notification-page-row strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-page-row em,
+.notification-page-row time {
+  font-style: normal;
+  font-size: 12px;
+}
+
+.notification-page-row time {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.notification-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.notification-detail-panel {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 16px;
+  overflow: auto;
+}
+
+.notification-detail-head {
+  display: grid;
+  gap: 9px;
+}
+
+.notification-detail-head strong {
+  color: var(--text-primary);
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.notification-detail-head p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.notification-tone-pill {
+  justify-self: start;
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.notification-tone-pill.notification-info {
+  color: var(--accent-blue);
+  background: rgba(15, 111, 255, 0.1);
+}
+
+.notification-tone-pill.notification-warning {
+  color: var(--accent-amber);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.notification-tone-pill.notification-danger {
+  color: var(--accent-rose);
+  background: rgba(214, 103, 97, 0.12);
+}
+
+.notification-detail-grid {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.notification-detail-grid div {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.notification-detail-grid dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.notification-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .action-button,
@@ -832,12 +1066,175 @@ svg {
 }
 
 .settings-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 13px;
+  min-height: 0;
+  height: 100%;
   overflow: auto;
   padding-right: 2px;
 }
 
 .settings-panel {
   padding: 18px;
+}
+
+.settings-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-status-card {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+.settings-status-card span,
+.settings-status-card p,
+.settings-field-head span {
+  color: var(--text-secondary);
+}
+
+.settings-status-card strong {
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.settings-status-card p {
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.settings-status-card.is-ok {
+  box-shadow: inset 3px 0 0 rgba(16, 163, 91, 0.76), inset 0 0 0 1px rgba(16, 163, 91, 0.14);
+}
+
+.settings-status-card.is-pending {
+  box-shadow: inset 3px 0 0 rgba(15, 111, 255, 0.72), inset 0 0 0 1px rgba(15, 111, 255, 0.14);
+}
+
+.settings-status-card.is-missing {
+  box-shadow: inset 3px 0 0 rgba(245, 158, 11, 0.76), inset 0 0 0 1px rgba(245, 158, 11, 0.14);
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.65fr);
+  gap: 13px;
+  min-height: 0;
+}
+
+.settings-main-column,
+.settings-side-column {
+  display: grid;
+  align-content: start;
+  gap: 13px;
+  min-width: 0;
+}
+
+.settings-fieldset {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: inset 0 0 0 1px rgba(23, 32, 51, 0.08);
+}
+
+.settings-fieldset + .settings-fieldset {
+  margin-top: 12px;
+}
+
+.settings-field-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-field-head > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.settings-field-head strong {
+  color: var(--text-primary);
+}
+
+.settings-field-head span {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.notification-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.notification-mode-card {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-height: 116px;
+  padding: 13px;
+  border-radius: var(--radius-card);
+  text-align: left;
+  cursor: pointer;
+  background: rgba(248, 251, 255, 0.72);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+.notification-mode-card.active {
+  background: rgba(239, 247, 255, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(15, 111, 255, 0.24);
+}
+
+.notification-mode-card:disabled {
+  cursor: default;
+}
+
+.notification-mode-card strong {
+  color: var(--text-primary);
+}
+
+.notification-mode-card span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.refresh-summary-card {
+  display: grid;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-card);
+  background: rgba(248, 251, 255, 0.72);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+.refresh-summary-card span,
+.refresh-summary-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.refresh-summary-card strong {
+  color: var(--text-primary);
+  font-size: 18px;
 }
 
 .settings-panel .section-toolbar p {
@@ -3146,6 +3543,11 @@ svg {
   .repositories-workbench {
     grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.95fr);
   }
+
+  .settings-overview-grid,
+  .notification-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1500px), (max-height: 960px) {
@@ -3201,8 +3603,15 @@ svg {
   .metric-grid,
   .ledger-period-grid,
   .repo-detail-stats,
-  .repo-codex-overview {
+  .repo-codex-overview,
+  .settings-layout,
+  .notifications-workbench {
     grid-template-columns: 1fr;
+  }
+
+  .settings-overview-grid,
+  .notification-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .repositories-layout {
@@ -3280,7 +3689,11 @@ svg {
 
   .settings-form-row,
   .settings-source-grid,
-  .setup-status-grid {
+  .setup-status-grid,
+  .settings-overview-grid,
+  .notification-summary-grid,
+  .notification-mode-grid,
+  .notification-detail-grid div {
     grid-template-columns: 1fr;
   }
 

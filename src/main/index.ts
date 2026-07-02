@@ -27,6 +27,7 @@ import { CodexSessionCacheStore } from "./state/codexSessionCacheStore";
 import { DashboardNotificationService } from "./notifications";
 import { SettingsStore } from "./state/settingsStore";
 import { SnapshotStore } from "./state/snapshotStore";
+import { readGitIntegrationStatus } from "./utils/git";
 
 let mainWindow: BrowserWindow | null = null;
 let widgetWindow: BrowserWindow | null = null;
@@ -88,6 +89,7 @@ function resolveInitialPage(): AppPage {
     capturePage === "overview" ||
     capturePage === "ledger" ||
     capturePage === "repositories" ||
+    capturePage === "notifications" ||
     capturePage === "settings" ||
     capturePage === "widget"
   ) {
@@ -196,50 +198,135 @@ function setPixel(
   pixels[index + 3] = color[3];
 }
 
+function distanceToSegment(
+  x: number,
+  y: number,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number
+) {
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const lengthSquared = dx * dx + dy * dy;
+  const t =
+    lengthSquared === 0
+      ? 0
+      : Math.max(
+          0,
+          Math.min(1, ((x - startX) * dx + (y - startY) * dy) / lengthSquared)
+        );
+  const projectedX = startX + t * dx;
+  const projectedY = startY + t * dy;
+  return Math.hypot(x - projectedX, y - projectedY);
+}
+
+function scaledPoint(size: number, x: number, y: number): [number, number] {
+  return [(x / 64) * size, (y / 64) * size];
+}
+
+function drawStroke(
+  pixels: Buffer,
+  size: number,
+  points: Array<[number, number]>,
+  width: number,
+  color: [number, number, number, number]
+) {
+  const radius = width / 2;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const px = x + 0.5;
+      const py = y + 0.5;
+      const nearPoint = points.some(
+        ([pointX, pointY]) => Math.hypot(px - pointX, py - pointY) <= radius
+      );
+      const nearSegment = points.slice(0, -1).some((point, index) => {
+        const next = points[index + 1];
+        return distanceToSegment(px, py, point[0], point[1], next[0], next[1]) <= radius;
+      });
+
+      if (nearPoint || nearSegment) {
+        setPixel(pixels, size, x, y, color);
+      }
+    }
+  }
+}
+
+function drawCircle(
+  pixels: Buffer,
+  size: number,
+  centerX: number,
+  centerY: number,
+  radius: number,
+  fill: [number, number, number, number],
+  stroke?: [number, number, number, number],
+  strokeWidth = 0
+) {
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const distance = Math.hypot(x + 0.5 - centerX, y + 0.5 - centerY);
+      if (distance <= radius) {
+        setPixel(pixels, size, x, y, fill);
+      }
+      if (stroke && distance >= radius - strokeWidth && distance <= radius) {
+        setPixel(pixels, size, x, y, stroke);
+      }
+    }
+  }
+}
+
 function createTrayPngBuffer(size = 32): Buffer {
   const pixels = Buffer.alloc(size * size * 4);
-  const center = (size - 1) / 2;
-  const outerRadius = size * 0.43;
-  const ringOuter = size * 0.29;
-  const ringInner = size * 0.19;
   const blue: [number, number, number, number] = [37, 99, 235, 255];
   const teal: [number, number, number, number] = [6, 182, 212, 255];
   const white: [number, number, number, number] = [255, 255, 255, 255];
+  const ink: [number, number, number, number] = [17, 24, 39, 255];
+  const strokeWide = Math.max(2, size * 0.078);
+  const strokeMid = Math.max(2, size * 0.07);
 
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      const dx = x - center;
-      const dy = y - center;
-      const distance = Math.hypot(dx, dy);
-
-      if (distance <= outerRadius) {
-        const mix = Math.max(0, Math.min(1, (x + y) / (size * 2)));
-        setPixel(pixels, size, x, y, [
-          Math.round(blue[0] * (1 - mix) + teal[0] * mix),
-          Math.round(blue[1] * (1 - mix) + teal[1] * mix),
-          Math.round(blue[2] * (1 - mix) + teal[2] * mix),
-          255
-        ]);
-      }
-
-      const inRing = distance >= ringInner && distance <= ringOuter;
-      const openRight = dx > 0 && Math.abs(dy) < ringInner * 0.72;
-      if (inRing && !openRight) {
-        setPixel(pixels, size, x, y, white);
-      }
-    }
-  }
-
-  const dotRadius = Math.max(2, size * 0.09);
-  const dotCenterX = Math.round(size * 0.72);
-  const dotCenterY = Math.round(size * 0.5);
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      if (Math.hypot(x - dotCenterX, y - dotCenterY) <= dotRadius) {
-        setPixel(pixels, size, x, y, teal);
-      }
-    }
-  }
+  drawStroke(
+    pixels,
+    size,
+    [
+      scaledPoint(size, 43, 8),
+      scaledPoint(size, 55, 15),
+      scaledPoint(size, 55, 26)
+    ],
+    strokeWide,
+    teal
+  );
+  drawStroke(
+    pixels,
+    size,
+    [
+      scaledPoint(size, 43, 56),
+      scaledPoint(size, 22, 56),
+      scaledPoint(size, 8, 48),
+      scaledPoint(size, 8, 16),
+      scaledPoint(size, 22, 8),
+      scaledPoint(size, 43, 8)
+    ],
+    strokeWide,
+    blue
+  );
+  drawStroke(
+    pixels,
+    size,
+    [
+      scaledPoint(size, 39, 22),
+      scaledPoint(size, 31, 18),
+      scaledPoint(size, 22, 23),
+      scaledPoint(size, 22, 41),
+      scaledPoint(size, 31, 46),
+      scaledPoint(size, 39, 42)
+    ],
+    strokeMid,
+    teal
+  );
+  drawCircle(pixels, size, ...scaledPoint(size, 55, 28), size * 0.07, white, teal, size * 0.035);
+  drawCircle(pixels, size, ...scaledPoint(size, 44, 8), size * 0.062, white, blue, size * 0.03);
+  drawCircle(pixels, size, ...scaledPoint(size, 44, 56), size * 0.062, white, blue, size * 0.03);
+  drawCircle(pixels, size, ...scaledPoint(size, 31, 32), size * 0.055, ink);
 
   const scanlines = Buffer.alloc(size * (size * 4 + 1));
   for (let y = 0; y < size; y += 1) {
@@ -418,7 +505,10 @@ async function showDashboardNotifications(snapshot: DashboardSnapshot) {
 
   try {
     const notifications =
-      await dashboardNotificationService.takeUnsentNotifications(snapshot);
+      await dashboardNotificationService.takeUnsentNotifications(
+        snapshot,
+        currentPreferences?.notifications
+      );
     await broadcastDashboardNotifications();
 
     if (!Notification.isSupported()) {
@@ -737,6 +827,7 @@ function registerIpcHandlers() {
     await broadcastDashboardNotifications();
     return notifications;
   });
+  ipcMain.handle("git:status", async () => readGitIntegrationStatus());
   ipcMain.handle("preferences:get", async () => dashboardService.getPreferences());
   ipcMain.handle(
     "preferences:update",

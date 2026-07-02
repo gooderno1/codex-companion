@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.5-dev.1 feat: 重设计通知与设置页
+
+- 开发原因：用户反馈通知过于频繁、只有顶部下拉没有独立通知页、设置页刷新历史过重、Git 登录授权入口不清晰，以及 Windows 托盘图标虽然可见但不是应用品牌图标。
+- 实现方式：将应用版本提升到 `v0.3.5-dev.1`；共享合同新增 `notifications` 路由、`NotificationPreferences.deliveryMode` 和 `GitIntegrationStatus`；设置存储为旧 `settings.json` 自动补齐默认 `balanced` 通知模式；主进程通知服务新增 `balanced / important / quiet / off` 四种模式，默认同一提醒 `12h` 冷却，`important` 模式 `24h` 冷却，`quiet` 只进应用内历史，`off` 不生成新提醒；赠送重置通知 key 改为按状态、数量和估算时间生成，并在读取旧 `notification-state.json` 时按标题、正文、类别、级别和页面合并重复历史；新增 `git:status` IPC 读取本机 `git --version / user.name / user.email`，明确当前不需要 GitHub token；渲染层新增通知页，支持筛选、分页、详情侧栏、查看关联页面和标记已读；设置页重排为数据源、通知策略、计费口径、Git 与授权、刷新历史摘要和本机数据边界；托盘 PNG 生成逻辑改为复用 `BrandMark` 的蓝青品牌几何。
+- 触发条件：提醒仍只在 `generatedFrom=live` 快照后检查；额度提醒仍限 5H / 周额度剩余 `<=20%` 或 `<=10%`；赠送重置提醒仍限预计过期、到达保守使用时间、24 小时内到达保守使用时间或首次观测前已有 credit 无法反推；重复提醒未过冷却期时只更新标题正文，不更新最近触发时间、不重置未读、不弹系统通知。
+- 当前结果：通知页真实运行态中旧重复的 `赠送重置过期时间待确认` 已合并为 1 条；顶部铃铛仍显示未读数，通知页展示完整详情；设置页可查看通知模式和本机 Git 身份，刷新历史只显示最近 5 条摘要；Windows 托盘图标使用与左侧品牌一致的自定义几何。
+- 验证方式：执行 `npm run build`，通过 lint、TypeScript、renderer build 和 main build；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `42%`、周额度余量 `54%`；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；使用编译后的 `DashboardNotificationService` 临时目录验证 `balanced` 模式首次系统通知 `1` 条、第二次 `0` 条，`quiet` 模式系统通知 `0` 条但入库 `1` 条；使用旧重复通知状态验证读取后合并为 `1` 条，后续同候选不再重复弹系统通知，并迁移到稳定 key；执行编译后的 `readGitIntegrationStatus()`，确认本机 Git 可用且当前不需要 GitHub token；使用 Electron 生成 `local_dev_work/notifications-1360x900-dev1.png`、`local_dev_work/notifications-1080x720-dev1.png`、`local_dev_work/settings-1360x900-dev1.png`、`local_dev_work/settings-1080x720-dev1.png`，确认通知页、设置页布局正常；截图时 Electron 仍输出本机 GPU cache 权限告警，但应用启动、截图和退出正常。
+
 ## [2026-07-02] v0.3.4 release: 内部正式版
 
 - 开发原因：用户要求将应用内提醒中心、通知详情和 Windows 托盘图标修复发布为正式内部版本；最新 GitHub Release 仍为 `v0.3.3`，需要把 `v0.3.4-dev.1` 收敛为 `v0.3.4`。

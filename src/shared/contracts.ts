@@ -1,10 +1,17 @@
 export type SourceStatus = "observed" | "pending" | "unobserved" | "stale";
 
-export type AppPage = "overview" | "ledger" | "repositories" | "settings" | "widget";
+export type AppPage =
+  | "overview"
+  | "ledger"
+  | "repositories"
+  | "notifications"
+  | "settings"
+  | "widget";
 export type WidgetPreset = "signal-bar" | "mini-capsule";
 export type RefreshTrigger = "manual" | "auto" | "startup" | "background";
 export type DashboardNotificationCategory = "banked-reset" | "quota";
 export type DashboardNotificationTone = "info" | "warning" | "danger";
+export type NotificationDeliveryMode = "balanced" | "important" | "quiet" | "off";
 
 export interface TokenBreakdown {
   input: number;
@@ -419,11 +426,16 @@ export interface WidgetPreferences {
   } | null;
 }
 
+export interface NotificationPreferences {
+  deliveryMode: NotificationDeliveryMode;
+}
+
 export interface AppPreferences {
   codexHome: string;
   repoRoots: string[];
   billingMonthStartDay: number;
   widget: WidgetPreferences;
+  notifications: NotificationPreferences;
 }
 
 export interface DashboardNotificationEntry {
@@ -439,10 +451,21 @@ export interface DashboardNotificationEntry {
   readAt: string | null;
 }
 
+export interface GitIntegrationStatus {
+  available: boolean;
+  version: string | null;
+  userName: string | null;
+  userEmail: string | null;
+  checkedAt: string;
+  cloudAuth: "not-required";
+  message: string;
+}
+
 export interface CodexCompanionApi {
   getDashboard(force?: boolean): Promise<DashboardSnapshot>;
   getNotifications(): Promise<DashboardNotificationEntry[]>;
   markNotificationsRead(keys?: string[]): Promise<DashboardNotificationEntry[]>;
+  getGitIntegrationStatus(): Promise<GitIntegrationStatus>;
   getPreferences(): Promise<AppPreferences>;
   updatePreferences(patch: Partial<AppPreferences>): Promise<AppPreferences>;
   refreshDashboard(): Promise<DashboardSnapshot>;

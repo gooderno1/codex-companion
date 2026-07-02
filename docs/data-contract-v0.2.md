@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.3.4`
+- 对应版本：`v0.3.5-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -30,6 +30,7 @@
 - 配置的本地仓库根目录递归扫描
 - 仓库根目录可在设置页维护，也可通过 `CODEX_COMPANION_REPO_ROOTS` 作为首次默认候选；保存后写入 Electron `userData/settings.json`
 - 如果用户在设置页清空仓库根目录并保存，应用回退到默认自动发现路径；不会保存一个导致仓库扫描永久为空的配置
+- 设置页 `Git 与授权` 只读取本机 `git --version`、`git config --global user.name` 和 `git config --global user.email` 状态；当前版本不读取 GitHub 远端 API，也不保存 GitHub token。
 - 重点命令：
   - `git rev-list --count --since=... HEAD`
   - `git log --numstat --format=tformat:`
@@ -158,6 +159,11 @@
 
 - 提醒只在主进程处理 `generatedFrom=live` 的 `DashboardSnapshot` 后触发；缓存快照、pending 快照和截图模式不触发新提醒。
 - 提醒只消费现有聚合字段，不重新解析 Codex session，也不改变 `codex-usage-core` 的 reset 检测口径。
+- 通知频率偏好写入 Electron `userData/settings.json` 的 `notifications.deliveryMode`：
+  - `balanced`：默认值；保留 warning / danger 提醒；同一提醒 `12h` 内不重复弹系统通知、不重置未读状态、不更新最近触发时间。
+  - `important`：只保留 `danger`、赠送重置已到保守使用时间和赠送重置可能已过期；同一提醒 `24h` 冷却。
+  - `quiet`：保留应用内通知历史，但不弹系统通知；同一提醒仍按 `12h` 冷却重新进入未读。
+  - `off`：不生成新的提醒；已有历史仍可查看和标记已读。
 - 触发范围：
   - 赠送重置：`overview.bankedResetCredits.activeCredits[]` 中存在预计已过期、已到 `safeEstimatedExpiresAt`、距离 `safeEstimatedExpiresAt` 不超过 `24h`，或 `estimateBasis=existing-at-first-observation` 无法反推过期时间的 credit。
   - 额度提醒：`5H 额度` 或 `周额度` 当前周期 `remainingPercent <= 20%` 时提醒；`remainingPercent <= 10%` 时使用更高优先级提醒。
@@ -166,8 +172,8 @@
   - `LimitWindow.sourceStatus` 非 `observed` 的额度窗口不提醒。
   - `可观测月额度` 暂不触发提醒，因为当前月额度字段仍未稳定观测。
 - 状态存储：写入 Electron `userData/notification-state.json`，保存通知 key、标题、正文、页面、类别、级别、创建时间、最近触发时间、系统通知时间和已读时间。
-- 展示方式：渲染层通过 `notifications:get` 读取应用内提醒中心列表，通过 `notifications:updated` 接收更新，通过 `notifications:mark-read` 标记已读；系统通知只是同一条应用内提醒的外部提示。
-- 去重方式：同一 credit 同一到期状态、同一额度周期同一阈值只创建一条提醒；重复刷新只更新最近触发时间，不重复创建系统弹窗。
+- 展示方式：渲染层通过 `notifications:get` 读取应用内提醒，顶部铃铛展示最近 8 条快速摘要，通知页展示完整历史、筛选、分页和详情；通过 `notifications:updated` 接收更新，通过 `notifications:mark-read` 标记已读；系统通知只是同一条应用内提醒的外部提示。
+- 去重方式：同一赠送重置状态按状态、数量和估算时间生成稳定 key，不再依赖可能变化的逐项内部 id；同一额度周期同一阈值只创建一条提醒；重复刷新未过冷却期时只更新标题和正文，不更新最近触发时间，也不重复创建系统弹窗。
 - 隐私边界：提醒正文只包含聚合后的剩余百分比、周期范围和赠送重置估算时间，不展示账号、邮箱、原始 app-server 响应、余额字段、原始 JSONL、用户输入正文或模型输出正文。
 
 ## 3. 状态字段

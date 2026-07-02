@@ -7,6 +7,8 @@ import type {
   DashboardNotificationTone,
   DashboardSnapshot,
   LimitWindow,
+  NotificationDeliveryMode,
+  NotificationPreferences,
   PeriodMetric
 } from "../shared/contracts";
 import { readJsonFile, writeJsonFile } from "./utils/fs";
@@ -17,6 +19,8 @@ const BANKED_RESET_NOTICE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const LOW_QUOTA_WARNING_THRESHOLD = 20;
 const LOW_QUOTA_DANGER_THRESHOLD = 10;
 const NOTIFICATION_HISTORY_LIMIT = 80;
+const BALANCED_REPEAT_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+const IMPORTANT_REPEAT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 export interface DashboardNotification {
   key: string;
@@ -29,6 +33,21 @@ export interface DashboardNotification {
 
 interface NotificationState {
   notifications: DashboardNotificationEntry[];
+}
+
+function normalizeNotificationPreferences(
+  preferences?: NotificationPreferences | null
+): NotificationPreferences {
+  const deliveryMode = preferences?.deliveryMode;
+  return {
+    deliveryMode:
+      deliveryMode === "important" ||
+      deliveryMode === "quiet" ||
+      deliveryMode === "off" ||
+      deliveryMode === "balanced"
+        ? deliveryMode
+        : "balanced"
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -76,7 +95,7 @@ function normalizeNotificationState(value: unknown): NotificationState {
   }
 
   if (notifications.length > 0) {
-    return { notifications: sortNotifications(notifications) };
+    return { notifications: collapseDuplicateNotifications(notifications) };
   }
 
   const legacySent = isRecord(value) && isRecord(value.sent) ? value.sent : {};
@@ -104,7 +123,77 @@ function normalizeNotificationState(value: unknown): NotificationState {
     });
   }
 
-  return { notifications: sortNotifications(notifications) };
+  return { notifications: collapseDuplicateNotifications(notifications) };
+}
+
+function latestIso(left: string | null, right: string | null): string | null {
+  const leftMs = dateMs(left);
+  const rightMs = dateMs(right);
+  if (leftMs === null) {
+    return right;
+  }
+  if (rightMs === null) {
+    return left;
+  }
+  return rightMs > leftMs ? right : left;
+}
+
+function earliestIso(left: string, right: string): string {
+  const leftMs = dateMs(left);
+  const rightMs = dateMs(right);
+  if (leftMs === null) {
+    return right;
+  }
+  if (rightMs === null) {
+    return left;
+  }
+  return rightMs < leftMs ? right : left;
+}
+
+function notificationContentKey(
+  notification: Pick<
+    DashboardNotificationEntry,
+    "title" | "body" | "page" | "category" | "tone"
+  >
+): string {
+  return [
+    notification.page,
+    notification.category,
+    notification.tone,
+    notification.title,
+    notification.body
+  ].join("\u001f");
+}
+
+function collapseDuplicateNotifications(
+  notifications: DashboardNotificationEntry[]
+): DashboardNotificationEntry[] {
+  const byContent = new Map<string, DashboardNotificationEntry>();
+
+  for (const notification of sortNotifications(notifications)) {
+    const contentKey = notificationContentKey(notification);
+    const existing = byContent.get(contentKey);
+    if (!existing) {
+      byContent.set(contentKey, notification);
+      continue;
+    }
+
+    byContent.set(contentKey, {
+      ...existing,
+      key: existing.key.length <= notification.key.length ? existing.key : notification.key,
+      createdAt: earliestIso(existing.createdAt, notification.createdAt),
+      lastTriggeredAt:
+        latestIso(existing.lastTriggeredAt, notification.lastTriggeredAt) ??
+        existing.lastTriggeredAt,
+      systemNotifiedAt: latestIso(existing.systemNotifiedAt, notification.systemNotifiedAt),
+      readAt:
+        existing.readAt && notification.readAt
+          ? latestIso(existing.readAt, notification.readAt)
+          : null
+    });
+  }
+
+  return sortNotifications([...byContent.values()]).slice(0, NOTIFICATION_HISTORY_LIMIT);
 }
 
 function pruneSentNotifications(
@@ -122,7 +211,7 @@ function pruneSentNotifications(
     kept.push(notification);
   }
 
-  return sortNotifications(kept).slice(0, NOTIFICATION_HISTORY_LIMIT);
+  return collapseDuplicateNotifications(kept);
 }
 
 function normalizeNotificationPage(value: unknown): AppPage {
@@ -272,13 +361,11 @@ function buildBankedResetGroupKey(
   kind: string,
   credits: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"]
 ): string {
-  return `banked-reset:${kind}:${credits
-    .map(
-      (credit) =>
-        `${credit.id}:${credit.safeEstimatedExpiresAt ?? credit.estimatedExpiresAt ?? credit.firstObservedAt}`
-    )
+  const stableDates = credits
+    .map((credit) => credit.safeEstimatedExpiresAt ?? credit.estimatedExpiresAt ?? credit.firstObservedAt)
     .sort()
-    .join("|")}`;
+    .join("|");
+  return `banked-reset:${kind}:${credits.length}:${stableDates}`;
 }
 
 function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNotification[] {
@@ -398,6 +485,71 @@ export function buildDashboardNotificationCandidates(
   ];
 }
 
+function notificationRepeatCooldownMs(mode: NotificationDeliveryMode): number {
+  if (mode === "important") {
+    return IMPORTANT_REPEAT_COOLDOWN_MS;
+  }
+
+  return BALANCED_REPEAT_COOLDOWN_MS;
+}
+
+function isImportantNotification(candidate: DashboardNotification): boolean {
+  return (
+    candidate.tone === "danger" ||
+    candidate.key.startsWith("banked-reset:due") ||
+    candidate.key.startsWith("banked-reset:expired")
+  );
+}
+
+function shouldStoreCandidate(
+  candidate: DashboardNotification,
+  mode: NotificationDeliveryMode
+): boolean {
+  if (mode === "off") {
+    return false;
+  }
+
+  if (mode === "important") {
+    return isImportantNotification(candidate);
+  }
+
+  return true;
+}
+
+function shouldShowSystemNotification(
+  candidate: DashboardNotification,
+  mode: NotificationDeliveryMode
+): boolean {
+  if (mode === "off" || mode === "quiet") {
+    return false;
+  }
+
+  if (mode === "important") {
+    return isImportantNotification(candidate);
+  }
+
+  return true;
+}
+
+function isCooldownElapsed(lastIso: string | null, nowMs: number, cooldownMs: number): boolean {
+  const lastMs = dateMs(lastIso);
+  return lastMs === null || nowMs - lastMs >= cooldownMs;
+}
+
+function findEquivalentNotification(
+  existingByKey: Map<string, DashboardNotificationEntry>,
+  candidate: DashboardNotification
+): [string, DashboardNotificationEntry] | null {
+  const candidateContentKey = notificationContentKey(candidate);
+  for (const entry of existingByKey.entries()) {
+    if (notificationContentKey(entry[1]) === candidateContentKey) {
+      return entry;
+    }
+  }
+
+  return null;
+}
+
 export class DashboardNotificationService {
   private readonly statePath: string;
 
@@ -432,17 +584,27 @@ export class DashboardNotificationService {
   }
 
   public async takeUnsentNotifications(
-    snapshot: DashboardSnapshot
+    snapshot: DashboardSnapshot,
+    preferences?: NotificationPreferences | null
   ): Promise<DashboardNotificationEntry[]> {
-    const candidates = buildDashboardNotificationCandidates(snapshot);
+    const normalizedPreferences = normalizeNotificationPreferences(preferences);
+    const candidates = buildDashboardNotificationCandidates(snapshot).filter(
+      (candidate) =>
+        shouldStoreCandidate(candidate, normalizedPreferences.deliveryMode)
+    );
     if (candidates.length === 0) {
       return [];
     }
 
     const now = new Date();
+    const nowIso = now.toISOString();
+    const nowMs = now.getTime();
+    const cooldownMs = notificationRepeatCooldownMs(
+      normalizedPreferences.deliveryMode
+    );
     const state = await this.readState();
     const existingByKey = new Map(
-      pruneSentNotifications(state.notifications, now.getTime()).map((notification) => [
+      pruneSentNotifications(state.notifications, nowMs).map((notification) => [
         notification.key,
         notification
       ])
@@ -450,37 +612,62 @@ export class DashboardNotificationService {
     const unsent: DashboardNotificationEntry[] = [];
 
     for (const candidate of candidates) {
-      const existing = existingByKey.get(candidate.key);
+      const equivalent = findEquivalentNotification(existingByKey, candidate);
+      const existing = existingByKey.get(candidate.key) ?? equivalent?.[1];
       if (existing) {
+        if (equivalent && equivalent[0] !== candidate.key) {
+          existingByKey.delete(equivalent[0]);
+        }
+        const canRepeat = isCooldownElapsed(
+          existing.lastTriggeredAt,
+          nowMs,
+          cooldownMs
+        );
+        const canShowSystem =
+          canRepeat &&
+          shouldShowSystemNotification(
+            candidate,
+            normalizedPreferences.deliveryMode
+          ) &&
+          isCooldownElapsed(existing.systemNotifiedAt, nowMs, cooldownMs);
         existingByKey.set(candidate.key, {
           ...existing,
+          key: candidate.key,
           title: candidate.title,
           body: candidate.body,
           page: candidate.page,
           category: candidate.category,
           tone: candidate.tone,
-          lastTriggeredAt: now.toISOString()
+          lastTriggeredAt: canRepeat ? nowIso : existing.lastTriggeredAt,
+          systemNotifiedAt: canShowSystem ? nowIso : existing.systemNotifiedAt,
+          readAt: canRepeat ? null : existing.readAt
         });
+        if (canShowSystem) {
+          unsent.push(existingByKey.get(candidate.key) as DashboardNotificationEntry);
+        }
         continue;
       }
 
+      const showSystem = shouldShowSystemNotification(
+        candidate,
+        normalizedPreferences.deliveryMode
+      );
       const notification: DashboardNotificationEntry = {
         ...candidate,
-        createdAt: now.toISOString(),
-        lastTriggeredAt: now.toISOString(),
-        systemNotifiedAt: now.toISOString(),
+        createdAt: nowIso,
+        lastTriggeredAt: nowIso,
+        systemNotifiedAt: showSystem ? nowIso : null,
         readAt: null
       };
       existingByKey.set(candidate.key, notification);
-      unsent.push(notification);
+      if (showSystem) {
+        unsent.push(notification);
+      }
     }
 
     if (unsent.length > 0 || candidates.length > 0) {
       await this.writeState({
-        notifications: sortNotifications([...existingByKey.values()]).slice(
-          0,
-          NOTIFICATION_HISTORY_LIMIT
-        )
+        notifications: collapseDuplicateNotifications([...existingByKey.values()])
       });
     }
 
@@ -493,10 +680,7 @@ export class DashboardNotificationService {
 
   private async writeState(state: NotificationState): Promise<void> {
     await writeJsonFile(this.statePath, {
-      notifications: sortNotifications(state.notifications).slice(
-        0,
-        NOTIFICATION_HISTORY_LIMIT
-      )
+      notifications: collapseDuplicateNotifications(state.notifications)
     });
   }
 }
