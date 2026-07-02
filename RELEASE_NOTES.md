@@ -1,5 +1,67 @@
 # RELEASE NOTES
 
+## [2026-07-02] v0.3.6 release: 内部正式版
+
+### Release 范围
+
+本次 Release 作为 private 仓库内部正式版，用于内测验证，不等同于公开发布。
+
+包含开发版本：
+
+- `v0.3.6-dev.1`
+- `v0.3.6-dev.2`
+- `v0.3.6-dev.3`
+
+未排除开发版本：无。
+
+### 主要变更
+
+- Windows 应用安装包、主窗口和托盘统一使用项目自定义 BrandMark 图标资产。
+- 设置页恢复单列卡片流，减少分栏重排带来的割裂感。
+- 完整刷新历史转入独立页面分页查看；设置页只保留最近摘要入口。
+- 升级 `@lifeinhand/codex-usage-core@0.1.0-dev.8`，桌面端继续使用远程 Git tag 依赖，不使用本地 `file:` 依赖。
+- 赠送重置当前 3 次库存按确认口径展示：`2026-06-14` 假定初始 credit、`2026-06-30` 公开补偿 credit、`2026-07-01T19:58:24.705Z` 本地观测新增 credit。
+- 采集时把上一轮 `activeCredits[]` 作为核心包 `activeCreditBaseline` 传入，避免滚动历史裁剪后丢失已经识别出的观测新增。
+- 总览页赠送重置普通态明确显示“最早预计过期”和“建议 ... 前使用”；展开详情卡主标题直接标注“预计过期”。
+- README、Roadmap、数据契约、组件映射和 banked reset 展示方案已同步正式版口径。
+
+### 修复内容
+
+- 修复 Windows 托盘和安装包图标与应用品牌图标不一致的问题。
+- 修复设置页分栏结构不符合当前轻量配置流的问题。
+- 修复刷新历史在设置页展示过多的问题。
+- 修复 `2026-06-11` launch free reset 被误归因到当前库存的问题；该次已按用户确认视为已使用，不再默认匹配。
+- 修复赠送重置第三次观测新增在滚动历史裁剪后可能丢失的问题。
+- 修复总览核心位置只显示日期或“最早建议”导致用户无法判断该时间是否为预计过期时间的问题。
+
+### 验证结果
+
+- `npm run package:win`：通过，内部包含图标生成、lint、TypeScript 类型检查、renderer build、main build 和 Windows NSIS 打包。
+- `npm run verify:quota`：通过，当前快照中 5H 额度余量 `55%`、周额度余量 `43%`，两个窗口当前均未识别新的 reset。
+- `npm run verify:ledger`：通过，账本页设计图、数据合同、采集器和页面实现关键内容一致。
+- `npm run verify:design`：通过，设计 token 校验通过。
+- `git diff --check`：通过，仅出现 Windows 换行转换提示。
+
+### Release 资产校验
+
+- `Codex Companion Setup 0.3.6.exe`：`SHA256 836B5B37E7B91FFDF96388DC50D758613EADFA236869448C57BD0555317ACB88`；GitHub 资产名为 `Codex.Companion.Setup.0.3.6.exe`
+
+### 升级注意事项
+
+- 应用版本号从开发版 `0.3.6-dev.3` 切换为正式版 `0.3.6`。
+- 当前依赖远程 Git tag `gooderno1/codex-usage-core#v0.1.0-dev.8`。
+- 当前赠送重置口径默认排除已使用的 `2026-06-11` seed；首次未知 credit 按 `2026-06-14` 假定。
+- 当前版本只读取本机 Git 命令和全局身份配置，不请求 GitHub token，不读取 GitHub 云端元数据。
+- 本版本只提供 Windows NSIS 安装包，不提供便携版 exe。
+- API 等价成本和 Codex credits 仍为估算，不代表官方账单。
+
+### 已知边界
+
+- 当前 GitHub 仓库仍为 private，Release 资产只对有仓库读权限的成员可见。
+- Windows 包尚未配置代码签名，内测安装时可能出现系统安全提示。
+- 暂未提供自动更新。
+- `npm audit` 仍存在上游依赖漏洞提示，未在本次 release 中升级依赖树。
+
 ## [2026-07-02] v0.3.5 release: 内部正式版
 
 ### Release 范围

@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-02] v0.3.6 release: 内部正式版
+
+- 开发原因：用户要求将 `v0.3.6-dev.1` 至 `v0.3.6-dev.3` 的图标、设置页、刷新历史、赠送重置归因和过期时间文案改动收敛为内部正式版。
+- 实现方式：将应用版本从 `0.3.6-dev.3` 调整为 `0.3.6`；主进程 app-server clientVersion 改为 `0.3.6`；更新 README、Roadmap、数据契约、组件映射、banked reset 展示方案和 Release notes；本次 release 继续固定远程核心包 `@lifeinhand/codex-usage-core@0.1.0-dev.8`。
+- 当前结果：发布资料已更新；`release/Codex Companion Setup 0.3.6.exe` 已生成，SHA256 为 `836B5B37E7B91FFDF96388DC50D758613EADFA236869448C57BD0555317ACB88`；已创建 Git tag `v0.3.6` 和 GitHub Release `https://github.com/gooderno1/codex-companion/releases/tag/v0.3.6`，上传资产名为 `Codex.Companion.Setup.0.3.6.exe`。
+- 验证方式：执行 `npm run package:win`，通过图标生成、lint、TypeScript、renderer build、main build 和 Windows NSIS 打包；执行 `npm run verify:quota`，确认当前快照 5H 额度余量 `55%`、周额度余量 `43%`；执行 `npm run verify:ledger` 和 `npm run verify:design` 均通过；执行 `git diff --check`，仅有 Windows 换行提示。
+
 ## [2026-07-02] v0.3.6-dev.3 fix: 明确赠送重置预计过期文案
 
 - 开发原因：用户反馈总览核心位置显示的是预期过期时间，但用户可见文案没有明确写明这是“过期时间”，容易把过期时间、保守提醒时间和建议使用时间混在一起。
