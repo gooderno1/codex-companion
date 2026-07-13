@@ -358,11 +358,13 @@ function sortBankedResetCredits(
   return [...credits].sort((left, right) => {
     const leftMs =
       dateMs(left.safeEstimatedExpiresAt) ??
+      dateMs(left.expiresAt) ??
       dateMs(left.estimatedExpiresAt) ??
       dateMs(left.firstObservedAt) ??
       Number.POSITIVE_INFINITY;
     const rightMs =
       dateMs(right.safeEstimatedExpiresAt) ??
+      dateMs(right.expiresAt) ??
       dateMs(right.estimatedExpiresAt) ??
       dateMs(right.firstObservedAt) ??
       Number.POSITIVE_INFINITY;
@@ -375,7 +377,7 @@ function buildBankedResetGroupKey(
   credits: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"]
 ): string {
   const stableDates = credits
-    .map((credit) => credit.safeEstimatedExpiresAt ?? credit.estimatedExpiresAt ?? credit.firstObservedAt)
+    .map((credit) => credit.expiresAt ?? credit.safeEstimatedExpiresAt ?? credit.estimatedExpiresAt ?? credit.firstObservedAt)
     .sort()
     .join("|");
   return `banked-reset:${kind}:${credits.length}:${stableDates}`;
@@ -412,17 +414,17 @@ function buildBankedResetExpirationKey(
 function countCreditsByExpiration(
   credits: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"]
 ) {
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { expiresAt: string; basis: "official" | "estimated"; count: number }>();
 
   for (const credit of credits) {
-    if (!credit.estimatedExpiresAt) {
+    const expiresAt = credit.expiresAt ?? credit.estimatedExpiresAt;
+    if (!expiresAt || credit.expiryBasis === "unknown") {
       continue;
     }
-
-    counts.set(
-      credit.estimatedExpiresAt,
-      (counts.get(credit.estimatedExpiresAt) ?? 0) + 1
-    );
+    const basis = credit.expiryBasis === "official" ? "official" : "estimated";
+    const key = `${basis}:${expiresAt}`;
+    const previous = counts.get(key);
+    counts.set(key, { expiresAt, basis, count: (previous?.count ?? 0) + 1 });
   }
 
   return counts;
@@ -444,17 +446,17 @@ function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNo
     return [];
   }
 
-  const estimableCredits = credits.filter(
+  const expiringCredits = credits.filter(
     (credit) =>
-      credit.estimateBasis !== "existing-at-first-observation" &&
-      credit.estimatedExpiresAt
+      credit.expiryBasis !== "unknown" &&
+      (credit.expiresAt || credit.estimatedExpiresAt)
   );
   const unknown = credits.filter(
     (credit) => credit.estimateBasis === "existing-at-first-observation"
   );
-  const expirationCounts = countCreditsByExpiration(estimableCredits);
-  const expirationNotifications = [...expirationCounts.entries()].flatMap(
-    ([expiresAt, count]): DashboardNotification[] => {
+  const expirationCounts = countCreditsByExpiration(expiringCredits);
+  const expirationNotifications = [...expirationCounts.values()].flatMap(
+    ({ expiresAt, basis, count }): DashboardNotification[] => {
       const milestone = bankedResetExpirationMilestone(expiresAt, nowMs);
       if (!milestone) {
         return [];
@@ -464,8 +466,8 @@ function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNo
         return [
           {
             key: buildBankedResetExpirationKey(milestone, expiresAt),
-            title: "赠送重置可能已到期",
-            body: `有 ${count} 次赠送重置按估算已到过期时间 ${formatNotificationDate(
+            title: basis === "official" ? "赠送重置已到官方到期时间" : "赠送重置可能已到期",
+            body: `有 ${count} 次赠送重置${basis === "official" ? "已到官方" : "按估算已到"}过期时间 ${formatNotificationDate(
               expiresAt
             )}；当前共 ${availableCount} 次可用。`,
             page: "overview",
@@ -479,7 +481,7 @@ function buildBankedResetNotifications(snapshot: DashboardSnapshot): DashboardNo
         {
           key: buildBankedResetExpirationKey(milestone, expiresAt),
           title: `赠送重置将在 ${milestone.label} 内过期`,
-          body: `有 ${count} 次赠送重置预计 ${formatNotificationDate(
+          body: `有 ${count} 次赠送重置${basis === "official" ? "按 Codex 官方信息将于" : "预计"} ${formatNotificationDate(
             expiresAt
           )} 过期；这是 ${milestone.label} 前的一次性提醒，当前共 ${availableCount} 次可用。`,
           page: "overview",

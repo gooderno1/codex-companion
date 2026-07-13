@@ -123,6 +123,7 @@ export interface LimitWindow {
 
 export type BankedResetCreditEventKind = "grant" | "use" | "expiration" | "decrease-unknown";
 export type BankedResetCreditEstimateBasis =
+  | "official-detail"
   | "observed-grant"
   | "public-grant"
   | "assumed-grant"
@@ -132,9 +133,15 @@ export interface BankedResetCreditActiveCredit {
   id: string;
   acquiredAt: string | null;
   firstObservedAt: string;
+  expiresAt: string | null;
+  expiryBasis: "official" | "estimated" | "unknown";
   estimatedExpiresAt: string | null;
   safeEstimatedExpiresAt: string | null;
   estimateBasis: BankedResetCreditEstimateBasis;
+  resetType?: "codexRateLimits" | "unknown" | null;
+  status?: "available" | "redeeming" | "redeemed" | "unknown" | null;
+  title?: string | null;
+  description?: string | null;
   sourceId?: string | null;
 }
 
@@ -169,6 +176,17 @@ export interface BankedResetCreditRateLimitSnapshot {
 export interface BankedResetCreditObservation {
   observedAt: string;
   availableCount: number;
+  officialCredits?: Array<{
+    id: string;
+    resetType: "codexRateLimits" | "unknown";
+    status: "available" | "redeeming" | "redeemed" | "unknown";
+    grantedAt: string;
+    grantedAtUnixSeconds: number;
+    expiresAt: string | null;
+    expiresAtUnixSeconds: number | null;
+    title: string | null;
+    description: string | null;
+  }> | null;
   rateLimits?: BankedResetCreditRateLimitSnapshot | null;
   rateLimitsByLimitId?: Record<string, BankedResetCreditRateLimitSnapshot> | null;
   sourceId?: string | null;
@@ -184,6 +202,10 @@ export interface BankedResetCreditsSummary {
   inferredUnknownDecreaseCount: number;
   nextEstimatedExpiresAt: string | null;
   nextSafeEstimatedExpiresAt: string | null;
+  nextExpiresAt: string | null;
+  nextExpiryBasis: "official" | "estimated" | null;
+  officialDetailCount: number;
+  officialDetailsComplete: boolean;
   activeCredits: BankedResetCreditActiveCredit[];
   events: BankedResetCreditEvent[];
   observations: BankedResetCreditObservation[];

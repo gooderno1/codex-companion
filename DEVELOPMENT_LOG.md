@@ -1,5 +1,14 @@
 # DEVELOPMENT LOG
 
+## [2026-07-13] v0.3.8-dev.1 feat: 展示官方赠送重置到期时间
+
+- 开发原因：Codex 官方 app-server 已支持返回 `rateLimitResetCredits.credits[]` 逐笔获取和到期信息，应用不应继续把所有到期时间都展示为本地估算。
+- 实现方式：依赖升级到 `@lifeinhand/codex-usage-core@0.1.0-dev.10`；共享快照保存官方明细和覆盖完整性；总览优先显示“官方到期”，详情区区分官方、估算和未知；通知里程碑按 `expiresAt / expiryBasis` 使用官方或估算时间，并在正文中明确来源；app-server clientVersion 更新为 `0.3.8-dev.1`；旧版 baseline 由核心包自动迁移。
+- 适用范围：`credits=null` 时完整沿用旧估算；官方明细数小于 `availableCount` 时只覆盖已返回条目，剩余库存仍保留估算/未知状态；总数始终以 `availableCount` 为准。
+- 验证样例：核心包脱敏响应 `availableCount=2`、官方明细 1 条时，应用摘要显示 1 条官方到期明细并保留另 1 条回退库存，不把明细数组长度误当可用总数。
+- 当前结果：支持新旧 Codex 版本平滑升级；官方到期通知不再使用“预计”口径，估算库存仍保持原提示。
+- 验证方式：执行 `npm run build`，lint、TypeScript、renderer 和 main build 均通过；`npm run verify:ledger`、`npm run verify:design`、`git diff --check` 通过。`npm run verify:quota` 读取本机旧 `snapshot.json` 时失败，该运行态快照当前把 10080 分钟窗口放在 primary 且缺少 secondary/quotaEvidence，不是本次 banked reset 字段改动造成；需应用下次 live 刷新后再复验。
+
 ## [2026-07-03] v0.3.7 release: 内部正式版
 
 - 开发原因：用户要求将刷新历史返回、设置页通知策略移除、GitHub 授权边界、新用户使用路径和 Git 安装指引收敛为内部正式版。

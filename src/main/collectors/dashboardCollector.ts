@@ -111,6 +111,10 @@ function emptyBankedResetCreditsSummary(sourceStatus: SourceStatus, note: string
     inferredUnknownDecreaseCount: 0,
     nextEstimatedExpiresAt: null,
     nextSafeEstimatedExpiresAt: null,
+    nextExpiresAt: null,
+    nextExpiryBasis: null,
+    officialDetailCount: 0,
+    officialDetailsComplete: false,
     activeCredits: [],
     events: [],
     observations: [],
@@ -157,6 +161,7 @@ function sanitizeBankedResetObservation(
   return {
     observedAt: observation.observedAt,
     availableCount: observation.availableCount,
+    officialCredits: observation.officialCredits ?? null,
     rateLimits: sanitizeBankedResetRateLimitSnapshot(observation.rateLimits),
     rateLimitsByLimitId: observation.rateLimitsByLimitId
       ? Object.fromEntries(
@@ -204,7 +209,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.3.7"
+      clientVersion: "0.3.8-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -228,6 +233,10 @@ async function collectBankedResetCreditsSummary(
       inferredUnknownDecreaseCount: analysis.inferredUnknownDecreaseCount,
       nextEstimatedExpiresAt: analysis.nextEstimatedExpiresAt,
       nextSafeEstimatedExpiresAt: analysis.nextSafeEstimatedExpiresAt,
+      nextExpiresAt: analysis.nextExpiresAt,
+      nextExpiryBasis: analysis.nextExpiryBasis,
+      officialDetailCount: analysis.officialDetailCount,
+      officialDetailsComplete: analysis.officialDetailsComplete,
       activeCredits: analysis.activeCredits,
       events: analysis.events.map((event) => ({
         kind: event.kind,
@@ -240,8 +249,11 @@ async function collectBankedResetCreditsSummary(
         affectedLimitIds: event.evidence.affectedLimitIds
       })),
       observations,
-      note:
-        analysis.activeCredits.some((credit) => credit.estimateBasis === "existing-at-first-observation")
+      note: analysis.officialDetailCount > 0
+        ? analysis.officialDetailsComplete
+          ? "到期时间来自 Codex 官方逐笔明细。"
+          : `Codex 官方返回 ${analysis.officialDetailCount} 条逐笔明细；可用总数仍以 availableCount 为准，其余库存继续使用估算回退。`
+        : analysis.activeCredits.some((credit) => credit.estimateBasis === "existing-at-first-observation")
           ? "首次观测前仍有未匹配的赠送重置无法反推获取时间；已确认初始、公开发放或后续观测获得的次数按 30 天有效期估算。"
           : "过期时间按 6 月 14 日假定时间、公开发放时间或获得观测时间加 30 天估算，并提前 1 天提醒。"
     };
@@ -266,6 +278,10 @@ async function collectBankedResetCreditsSummary(
         inferredUnknownDecreaseCount: analysis.inferredUnknownDecreaseCount,
         nextEstimatedExpiresAt: analysis.nextEstimatedExpiresAt,
         nextSafeEstimatedExpiresAt: analysis.nextSafeEstimatedExpiresAt,
+        nextExpiresAt: analysis.nextExpiresAt,
+        nextExpiryBasis: analysis.nextExpiryBasis,
+        officialDetailCount: analysis.officialDetailCount,
+        officialDetailsComplete: analysis.officialDetailsComplete,
         activeCredits: analysis.activeCredits,
         events: analysis.events.map((event) => ({
           kind: event.kind,

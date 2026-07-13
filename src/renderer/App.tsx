@@ -349,7 +349,7 @@ function sourceStatusClass(status: SourceStatus) {
 }
 
 function bankedResetCreditSortTime(credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]) {
-  const value = credit.safeEstimatedExpiresAt ?? credit.estimatedExpiresAt ?? credit.firstObservedAt;
+  const value = credit.expiresAt ?? credit.safeEstimatedExpiresAt ?? credit.estimatedExpiresAt ?? credit.firstObservedAt;
   const ms = new Date(value).getTime();
   return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
 }
@@ -357,7 +357,7 @@ function bankedResetCreditSortTime(credit: DashboardSnapshot["overview"]["banked
 function isUnknownBankedResetCredit(
   credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
 ) {
-  return credit.estimateBasis === "existing-at-first-observation";
+  return credit.expiryBasis === "unknown";
 }
 
 function formatBankedResetExpiryLine(summary: DashboardSnapshot["overview"]["bankedResetCredits"]) {
@@ -397,13 +397,16 @@ function formatBankedResetExpiryLine(summary: DashboardSnapshot["overview"]["ban
     return "过期时间无法反推，建议尽快使用";
   }
 
-  return formatBankedResetKnownExpirySummary(earliest, "最早预计过期");
+  return formatBankedResetKnownExpirySummary(
+    earliest,
+    earliest.expiryBasis === "official" ? "最早官方到期" : "最早预计过期"
+  );
 }
 
 function bankedResetCreditExpirySortTime(
   credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
 ) {
-  const value = credit.estimatedExpiresAt ?? credit.safeEstimatedExpiresAt ?? credit.firstObservedAt;
+  const value = credit.expiresAt ?? credit.estimatedExpiresAt ?? credit.safeEstimatedExpiresAt ?? credit.firstObservedAt;
   const ms = new Date(value).getTime();
   return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
 }
@@ -412,8 +415,8 @@ function formatBankedResetKnownExpirySummary(
   credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number],
   label: string
 ) {
-  const expiryText = credit.estimatedExpiresAt
-    ? formatDateTime(credit.estimatedExpiresAt)
+  const expiryText = credit.expiresAt
+    ? formatDateTime(credit.expiresAt)
     : "待后续采样确认";
   if (credit.safeEstimatedExpiresAt) {
     return `${label} ${expiryText}；建议 ${formatDateTime(credit.safeEstimatedExpiresAt)} 前使用`;
@@ -427,6 +430,9 @@ function formatBankedResetCreditAcquire(
 ) {
   if (credit.acquiredAt) {
     let suffix = "";
+    if (credit.estimateBasis === "official-detail") {
+      suffix = "（Codex 官方）";
+    }
     if (credit.estimateBasis === "public-grant") {
       suffix = "（公开发放估算）";
     }
@@ -442,8 +448,14 @@ function formatBankedResetCreditAcquire(
 function formatBankedResetCreditExpiry(
   credit: DashboardSnapshot["overview"]["bankedResetCredits"]["activeCredits"][number]
 ) {
-  if (credit.estimateBasis === "existing-at-first-observation") {
+  if (credit.expiryBasis === "unknown") {
     return "预计过期 无法反推";
+  }
+
+  if (credit.expiryBasis === "official") {
+    return credit.expiresAt
+      ? `官方到期 ${formatDateTime(credit.expiresAt)}`
+      : "官方信息：不设到期时间";
   }
 
   let suffix = "";
@@ -453,7 +465,7 @@ function formatBankedResetCreditExpiry(
   if (credit.estimateBasis === "assumed-grant") {
     suffix = "（按假定获取时间 + 30 天估算）";
   }
-  return `预计过期 ${formatDateTime(credit.estimatedExpiresAt)}${suffix}`;
+  return `预计过期 ${formatDateTime(credit.expiresAt ?? credit.estimatedExpiresAt)}${suffix}`;
 }
 
 function formatBankedResetCreditSafeUse(
@@ -461,6 +473,10 @@ function formatBankedResetCreditSafeUse(
 ) {
   if (isUnknownBankedResetCredit(credit)) {
     return "建议尽快使用";
+  }
+
+  if (credit.expiryBasis === "official") {
+    return credit.expiresAt ? "官方到期时间，无需估算安全边界" : "官方标记为不设到期时间";
   }
 
   return `建议 ${formatDateTime(credit.safeEstimatedExpiresAt)} 前使用`;
