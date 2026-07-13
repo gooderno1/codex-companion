@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.3.7`
+- 当前适用版本：`v0.3.8`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
 
 ## 总览页
@@ -12,9 +12,9 @@
 | 顶部工具栏 | `src/renderer/App.tsx` `topbar` | 全局复用 | `currentPage`、`overviewMode`、`sourceStatus`、`generatedAt` | `snapshot.sourceHealth`、`snapshot.generatedAt` |
 | 时间视角切换 | `TextTabs` | 可复用 | `natural / billing` | 本地页面状态 |
 | 顶部四卡 | `MetricCard` | 可复用 | `label`、`value`、`detail`、`icon`、`tone`、逐卡 `sourceStatus` | `snapshot.overview`、`snapshot.overview.previous`、`snapshot.sourceHealth` |
-| 赠送重置状态行 | `BankedResetCreditStrip` | 总览页模块 | `availableCount`、`activeCredits[]`、`sourceStatus`、展开态原生 `details` | `snapshot.overview.bankedResetCredits`；普通态显示可用次数、最早预计过期时间和建议使用时间，展开后显示每个 credit 的获取时间、预计过期时间和建议使用时间 |
+| 赠送重置状态行 | `BankedResetCreditStrip` | 总览页模块 | `availableCount`、`activeCredits[]`、`sourceStatus`、`expiryBasis`、展开态原生 `details` | `snapshot.overview.bankedResetCredits`；官方明细可用时显示官方获取/到期时间，缺失部分回退到预计过期和建议使用时间；总数以 `availableCount` 为准 |
 | 5H 额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`windowPeriods.fiveHour.quotaEvidence.remainingPercent` 优先，降级到 `limitWindows[0]`；右侧：`windowPeriods.fiveHour`、`modelWindows.fiveHour` |
-| 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`windowPeriods.weekLimit.quotaEvidence.remainingPercent` 优先，降级到 `limitWindows[1]`；周期边界：`windowPeriods.weekLimit.startAt / endAt`，`limitWindows[1].resetsAt` 必须等于当前周期 `endAt`；reset 检测来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.8`，`resetEvents[].evidence.evidenceTypes` 支持 `stabilized-boundary-drop`，`usageSegments[]` 记录窗口起点、过期时间和 reset 前后使用区间；右侧：`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
+| 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 圆环：`windowPeriods.weekLimit.quotaEvidence.remainingPercent` 优先，降级到 `limitWindows[1]`；周期边界：`windowPeriods.weekLimit.startAt / endAt`，`limitWindows[1].resetsAt` 必须等于当前周期 `endAt`；reset 检测来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.10`；右侧：`windowPeriods.weekLimit`、`modelWindows.weekLimit` |
 | 项目概览 | `OverviewPage` `project-card` | 页面级 | `mode`、二级周期、表头排序 | `snapshot.overview.projectOverview` |
 | 项目表头排序 | `ProjectSortHeader` | 页面级 | `name / token / cost / code / commits / sessions / recent`、`asc / desc` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |

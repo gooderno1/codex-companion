@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-13] v0.3.8 release: 内部正式版
+
+- 开发原因：用户要求把已完成的官方赠送重置到期信息能力发布为最新正式版；当前最新 Release 为 `v0.3.7`，需要将 `v0.3.8-dev.1` 收敛发布。
+- 实现方式：应用版本与 app-server clientVersion 调整为 `0.3.8`；README、数据契约、组件映射、banked reset 展示方案和 Release notes 同步正式版口径；继续固定远程核心包 `@lifeinhand/codex-usage-core@0.1.0-dev.10`。
+- 当前结果：已生成 `release/Codex Companion Setup 0.3.8.exe`，SHA256 为 `AECA0B0B4C216C983EFE93005C18671D94E3DAB465CDFCDC2A4B1A2E8D91F14B`；GitHub Release 使用 tag `v0.3.8`，资产名为 `Codex.Companion.Setup.0.3.8.exe`。
+- 验证方式：`npm run package:win`、`npm run verify:ledger`、`npm run verify:design` 和 `git diff --check` 通过；`npm run verify:quota` 因本机旧运行态快照只有 10080 分钟 primary 且缺少 secondary/quotaEvidence 而失败，已作为独立已知边界记录。
+
 ## [2026-07-13] v0.3.8-dev.1 feat: 展示官方赠送重置到期时间
 
 - 开发原因：Codex 官方 app-server 已支持返回 `rateLimitResetCredits.credits[]` 逐笔获取和到期信息，应用不应继续把所有到期时间都展示为本地估算。

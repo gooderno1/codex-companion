@@ -1,5 +1,59 @@
 # RELEASE NOTES
 
+## [2026-07-13] v0.3.8 release: 内部正式版
+
+### Release 范围
+
+本次 Release 作为 private 仓库内部正式版，用于内测验证，不等同于公开发布。
+
+包含开发版本：
+
+- `v0.3.8-dev.1`
+
+未排除开发版本：无。
+
+### 主要变更
+
+- 升级 `@lifeinhand/codex-usage-core` 到 `v0.1.0-dev.10`。
+- 接入 Codex app-server `rateLimitResetCredits.credits[]` 官方逐笔获取时间、到期时间、状态和展示信息。
+- 总览优先显示“官方到期”；官方明细缺失或被截断时继续使用原有估算，并明确区分来源。
+- `availableCount` 保持为权威可用总数，不用可能被截断的明细数组长度覆盖。
+- 赠送重置通知优先使用官方到期时间；估算库存继续使用原有一次性里程碑提醒。
+- 旧版 `activeCredits[]` baseline 可自动迁移，无需清空本地快照或历史。
+
+### 修复内容
+
+- 修复 Codex 已提供官方到期信息后，应用仍把所有赠送重置统一标记为“预计过期”的问题。
+- 修复部分官方明细可能被误解为完整库存的问题。
+- 修复升级后旧 baseline 缺少 `expiryBasis` 时无法稳定区分估算和未知状态的问题。
+
+### 验证结果
+
+- `npm run package:win`：通过，完成图标生成、lint、TypeScript、renderer build、main build 和 Windows NSIS 打包。
+- `npm run verify:ledger`：通过。
+- `npm run verify:design`：通过。
+- `git diff --check`：通过，仅有 Windows 换行转换提示。
+- `npm run verify:quota`：本机旧运行态快照未通过；当前快照只包含 `10080` 分钟 primary 窗口并缺少 secondary/quotaEvidence，属于既有额度窗口契约兼容问题，不影响本次 banked reset 官方到期明细解析。
+
+### Release 资产校验
+
+- `Codex Companion Setup 0.3.8.exe`：`SHA256 AECA0B0B4C216C983EFE93005C18671D94E3DAB465CDFCDC2A4B1A2E8D91F14B`；GitHub 资产名为 `Codex.Companion.Setup.0.3.8.exe`。
+
+### 升级注意事项
+
+- 应用版本号从开发版 `0.3.8-dev.1` 切换为正式版 `0.3.8`。
+- 继续使用远程 Git tag `gooderno1/codex-usage-core#v0.1.0-dev.10`。
+- 本机 Codex 版本只返回 `availableCount` 时，应用会继续使用估算；Codex 返回 `credits[]` 后自动切换到官方时间。
+- 本版本只提供 Windows NSIS 安装包，不提供便携版 exe。
+
+### 已知边界
+
+- 当前 GitHub 仓库仍为 private，Release 资产只对有仓库读权限的成员可见。
+- Windows 包尚未配置可信代码签名，内测安装时可能出现系统安全提示。
+- 暂未提供自动更新。
+- 当前 live 额度窗口可能只有周级 primary、没有 secondary；旧额度快照校验仍需后续单独兼容。
+- `npm audit` 当前报告 `3` 个上游依赖漏洞（`2 high / 1 critical`），本次未扩大范围升级依赖树。
+
 ## [2026-07-03] v0.3.7 release: 内部正式版
 
 ### Release 范围
