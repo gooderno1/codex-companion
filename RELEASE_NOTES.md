@@ -36,8 +36,8 @@
 
 ### Release 资产校验
 
-- 本地预发布构建：`Codex.Companion.Setup.0.4.0.exe`，大小 `105454921` bytes，SHA256 为 `1134342D1C60AD57D506258C8F272092B73C75308B063B7EDC5C4E224B9664A7`。
-- GitHub Actions 会重新构建正式 Release 资产；公开下载应以 Release 同时上传的 `SHA256SUMS.txt` 为准。
+- GitHub Actions 正式构建：`Codex.Companion.Setup.0.4.0.exe`，大小 `105455204` bytes，SHA256 为 `E6881551C43BBC9EBAC86BED22474C5E93BE5A24D6962DC1BD1D85825CCF4C86`。
+- `SHA256SUMS.txt` 与重新下载后的安装包哈希一致；公开下载应继续以该文件为准。
 
 ### 升级注意事项
 
