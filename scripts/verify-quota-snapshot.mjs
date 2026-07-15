@@ -4,8 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 
-const PRIMARY_WINDOW_MINUTES = 300;
-const SECONDARY_WINDOW_MINUTES = 10080;
+const FIVE_HOUR_WINDOW_MINUTES = 300;
+const WEEKLY_WINDOW_MINUTES = 10080;
 const ONE_MINUTE_MS = 60 * 1000;
 
 function readArg(name) {
@@ -107,6 +107,10 @@ function verifyWindow({
   }
 
   report.assert(window.key === expectedKey, `${label}: key 应为 ${expectedKey}，当前为 ${window.key ?? "空"}。`);
+  report.assert(
+    window.sourceSlot === "primary" || window.sourceSlot === "secondary",
+    `${label}: sourceSlot 必须是 primary 或 secondary。`
+  );
   report.assert(window.sourceStatus === "observed", `${label}: sourceStatus 应为 observed，当前为 ${window.sourceStatus ?? "空"}。`);
   report.assert(window.windowMinutes === expectedWindowMinutes, `${label}: windowMinutes 应为 ${expectedWindowMinutes}。`);
 
@@ -253,6 +257,27 @@ function verifyWindow({
   };
 }
 
+function verifyUnavailableFiveHourWindow({ report, window, period }) {
+  report.assert(window && typeof window === "object", "5H 额度: limitWindow 缺失。");
+  report.assert(period && typeof period === "object", "5H 额度: windowPeriod 缺失。");
+  if (!window || !period) {
+    return null;
+  }
+
+  report.assert(window.key === "fiveHour", "5H 额度: key 应为 fiveHour。");
+  report.assert(window.sourceStatus === "unobserved", "5H 额度缺失时 sourceStatus 应为 unobserved。");
+  report.assert(window.sourceSlot === null, "5H 额度缺失时 sourceSlot 应为 null。");
+  report.assert(window.windowMinutes === null, "5H 额度缺失时 windowMinutes 应为 null。");
+  report.assert(window.usedPercent === null, "5H 额度缺失时 usedPercent 应为 null。");
+  report.assert(window.remainingPercent === null, "5H 额度缺失时 remainingPercent 应为 null。");
+  report.assert(
+    typeof window.note === "string" && window.note.includes("未提供 5 小时窗口"),
+    "5H 额度缺失时应明确说明当前契约未提供该窗口。"
+  );
+  report.assert(!period.quotaEvidence, "5H 额度缺失时不应生成 quotaEvidence。");
+  return null;
+}
+
 async function main() {
   const snapshotPath = path.resolve(readArg("--snapshot") ?? defaultSnapshotPath());
   const raw = await readFile(snapshotPath, "utf8");
@@ -262,20 +287,27 @@ async function main() {
   report.assert(snapshot?.overview?.limitWindows?.length >= 2, "overview.limitWindows 至少需要包含 5H 与周额度。");
   report.assert(snapshot?.overview?.windowPeriods, "overview.windowPeriods 缺失。");
 
-  const primarySummary = verifyWindow({
-    report,
-    label: "5H 额度",
-    expectedKey: "primary",
-    expectedWindowMinutes: PRIMARY_WINDOW_MINUTES,
-    window: snapshot.overview?.limitWindows?.[0],
-    period: snapshot.overview?.windowPeriods?.fiveHour
-  });
+  const fiveHourWindow = snapshot.overview?.limitWindows?.[0];
+  const primarySummary = fiveHourWindow?.windowMinutes === null
+    ? verifyUnavailableFiveHourWindow({
+        report,
+        window: fiveHourWindow,
+        period: snapshot.overview?.windowPeriods?.fiveHour
+      })
+    : verifyWindow({
+        report,
+        label: "5H 额度",
+        expectedKey: "fiveHour",
+        expectedWindowMinutes: FIVE_HOUR_WINDOW_MINUTES,
+        window: fiveHourWindow,
+        period: snapshot.overview?.windowPeriods?.fiveHour
+      });
 
   const weeklySummary = verifyWindow({
     report,
     label: "周额度",
-    expectedKey: "secondary",
-    expectedWindowMinutes: SECONDARY_WINDOW_MINUTES,
+    expectedKey: "weekLimit",
+    expectedWindowMinutes: WEEKLY_WINDOW_MINUTES,
     window: snapshot.overview?.limitWindows?.[1],
     period: snapshot.overview?.windowPeriods?.weekLimit
   });

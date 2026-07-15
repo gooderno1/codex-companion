@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.3.8`
+- 对应版本：`v0.3.9-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -51,9 +51,9 @@
 
 ### 2.2 额度
 
-- Codex 用量、额度周期、reset 检测和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.10`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.10`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。赠送重置优先使用 `rateLimitResetCredits.credits[]` 的官方 `grantedAt / expiresAt`；明细缺失或被截断时继续使用估算，权威总数始终取 `availableCount`。
-- `5 小时额度` 使用 `rate_limits.primary`
-- `周额度` 使用 `rate_limits.secondary`
+- Codex 用量、额度周期、reset 检测和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.11`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.11`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。赠送重置优先使用 `rateLimitResetCredits.credits[]` 的官方 `grantedAt / expiresAt`；明细缺失或被截断时继续使用估算，权威总数始终取 `availableCount`。
+- `5 小时额度` 使用时长分类为 `five-hour` 的 `300` 分钟窗口；该窗口可位于 `primary` 或 `secondary`，不存在时 `limitWindows[0]` 输出 `key=fiveHour / sourceStatus=unobserved / sourceSlot=null`。
+- `周额度` 使用时长分类为 `weekly` 的 `10080` 分钟窗口；该窗口可位于 `primary` 或 `secondary`，当前新版契约为 `primary=10080 / secondary=null`。
 - 如果同一台机器同时观测到多个 Codex `rate_limits` 池，页面可见的 `5 小时额度 / 周额度` 必须优先选择主额度池 `rate_limits.limit_id = codex`；模型或实验池，例如 `codex_bengalfox`，不能因为观测时间更新而覆盖主额度显示。
 - 当前额度周期内的 `quotaObservations` 必须和被选中的额度池一致；不同 `limit_id / limit_name` 的观测样本不能混入同一个 `quotaEvidence`，否则会把模型池的低水位误当成主额度余量。
 - `可观测月额度` 仅在本地快照存在月级字段时展示；当前版本若无字段则明确标记 `未观测`
@@ -68,7 +68,7 @@
 - 无 token 增量但包含 `rate_limits` 的记录也保留为额度观测点，用于判断重置与周期边界
 - 重置识别的适用范围：
   - `5 小时额度` 仍按同一 session 内相邻观测比较，用于普通短周期累计。
-  - `周额度` 按选中额度池的全局时间线比较所有 `rate_limits.secondary` 观测，不再区分历史周期和当前周期。
+  - `周额度` 按选中额度池的全局时间线比较所有 `10080` 分钟观测；历史观测可来自 `secondary`，新版观测可来自 `primary`，槽位迁移不改变业务窗口类型。
   - 两者都只比较同一主额度池样本；不同 `limit_id / limit_name` 的观测必须排除。
 - 重置候选触发条件：
   - `resets_at` 必须向后移动超过 `60s`。
@@ -210,8 +210,8 @@ npm run verify:quota
 
 该命令只校验聚合后的快照字段，不读取或输出原始会话正文。校验范围包括：
 
-- `5H` 与 `周额度` 窗口必须来自主额度池 `limit_id=codex` 的 `primary / secondary`；没有 `limit_id=codex` 时才允许降级到可解析的最新额度池。
-- 窗口长度必须分别为 `300` 与 `10080` 分钟。
+- `5H` 与 `周额度` 窗口必须来自主额度池 `limit_id=codex`；没有 `limit_id=codex` 时才允许降级到可解析的最新额度池。业务语义按时长识别，不按槽位名识别。
+- 已观测窗口长度必须分别为 `300` 与 `10080` 分钟；当前契约没有 `300` 分钟窗口时，5H 卡必须明确输出未观测状态，周额度仍需从 `10080` 分钟 primary 正常生成。
 - 圆环余量必须等于当前周期 `quotaEvidence.remainingPercent`；缺少周期证据时才允许降级为 `100 - 最近 usedPercent`。
 - 当前 `5H` 与当前周额度 `LimitWindow.resetsAt` 必须等于对应 `PeriodMetric.endAt`；周额度周期允许由已确认 reset 边界校准，不能强制回退到最新原始 `rate_limits.resets_at`。
 - 当前周期必须包含 `quotaEvidence` 观测证据。

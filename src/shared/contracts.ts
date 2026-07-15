@@ -108,6 +108,7 @@ export interface PeriodMetric {
 export interface LimitWindow {
   key: string;
   label: string;
+  sourceSlot?: "primary" | "secondary" | null;
   sourceStatus: SourceStatus;
   usedPercent: number | null;
   remainingPercent: number | null;

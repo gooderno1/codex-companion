@@ -1,5 +1,17 @@
 # DEVELOPMENT LOG
 
+## [2026-07-15] v0.3.9-dev.1 fix: 按时长识别 Codex 额度窗口
+
+- 开发原因：当前本机 Codex 已从 `primary=300 / secondary=10080` 切换为 `primary=10080 / secondary=null`；旧映射把 7 天 primary 显示成 5H，并让周额度卡、额度通知和快照校验失去真实数据。
+- 实现方式：升级远程核心依赖到 `@lifeinhand/codex-usage-core@0.1.0-dev.11`；采集器使用共享 `classifyCodexQuotaWindowDuration` 在每条历史/当前观测的 primary 与 secondary 中按时长选择业务窗口；`LimitWindow` 新增 `sourceSlot`，语义 key 改为 `fiveHour / weekLimit`；app-server clientVersion 更新为 `0.3.9-dev.1`。
+- 适用范围：主额度池 `limit_id=codex` 的 `300` 分钟和 `10080` 分钟窗口；历史周额度可来自 secondary，新版周额度可来自 primary。
+- 触发条件：`300±60` 分钟识别为 5H，`10080±60` 分钟识别为周额度；当前存在对应时长窗口时生成周期、余量、模型占比、项目活动和低额度提醒。
+- 排除条件：没有 `300` 分钟窗口时不使用 primary 兜底，5H 卡输出 `sourceStatus=unobserved / sourceSlot=null / windowMinutes=null`，且不生成 5H 额度通知；不同 `limitId / limitName` 仍不能混入主额度池。
+- 关键字段：`overview.limitWindows[0].key=fiveHour`；`overview.limitWindows[1].key=weekLimit`；`sourceSlot` 记录真实接口槽位；周额度周期继续输出到 `windowPeriods.weekLimit`。
+- 验证样例：本机 live app-server 返回 `codex.primary.windowDurationMins=10080 / secondary=null`；刷新后应得到 5H 未观测、周额度 `sourceSlot=primary / windowMinutes=10080`，且 `npm run verify:quota` 通过。
+- 当前结果：7 天 primary 不再误显示为 5H，周额度卡与通知恢复真实数据；额度卡会直接展示所用槽位或当前契约未提供 5H 的说明。
+- 验证方式：执行 `npm run build`、live 快照刷新、`npm run verify:quota`、`npm run verify:ledger`、`npm run verify:design` 和 `git diff --check`。
+
 ## [2026-07-13] v0.3.8 release: 内部正式版
 
 - 开发原因：用户要求把已完成的官方赠送重置到期信息能力发布为最新正式版；当前最新 Release 为 `v0.3.7`，需要将 `v0.3.8-dev.1` 收敛发布。

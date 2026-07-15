@@ -21,12 +21,16 @@ import type {
 import {
   analyzeQuotaObservations,
   analyzeBankedResetCreditObservations,
+  classifyCodexQuotaWindowDuration,
+  CODEX_FIVE_HOUR_WINDOW_MINUTES,
+  CODEX_WEEKLY_WINDOW_MINUTES,
   createBankedResetCreditObservationFromSnapshot,
   DEFAULT_BANKED_RESET_CREDIT_PUBLIC_GRANT_SEEDS,
   readCodexAccountRateLimits,
   type BankedResetCreditInitialGrantSeed,
   type BankedResetCreditObservation as CoreBankedResetCreditObservation,
   type CodexRateLimitSnapshot,
+  type CodexQuotaWindowKind,
   type QuotaCycleObservation
 } from "@lifeinhand/codex-usage-core";
 import { SnapshotStore } from "../state/snapshotStore";
@@ -68,7 +72,6 @@ function clampPercentage(value: number | null): number | null {
   return Math.max(0, Math.min(100, roundTo(value, 2)));
 }
 
-const WEEKLY_RATE_LIMIT_WINDOW_MINUTES = 7 * 24 * 60;
 const QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS = 5 * 60 * 1000;
 const DAY_MINUTES = 24 * 60;
 const BANKED_RESET_OBSERVATION_HISTORY_LIMIT = 160;
@@ -209,7 +212,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.3.8"
+      clientVersion: "0.3.9-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -461,6 +464,27 @@ function getObservedWindow(
   return windowKey === "primary" ? snapshot?.primary ?? null : snapshot?.secondary ?? null;
 }
 
+type ObservableQuotaWindowKind = Exclude<CodexQuotaWindowKind, "unknown">;
+
+interface ObservedWindowSelection {
+  windowKey: "primary" | "secondary";
+  window: ObservedLimitWindow;
+}
+
+function getObservedWindowByKind(
+  snapshot: LatestRateSnapshot | null,
+  windowKind: ObservableQuotaWindowKind
+): ObservedWindowSelection | null {
+  for (const windowKey of ["primary", "secondary"] as const) {
+    const window = getObservedWindow(snapshot, windowKey);
+    if (window && classifyCodexQuotaWindowDuration(window.windowMinutes) === windowKind) {
+      return { windowKey, window };
+    }
+  }
+
+  return null;
+}
+
 function isSameQuotaPool(
   left: LatestRateSnapshot,
   right: LatestRateSnapshot | null
@@ -481,19 +505,10 @@ function isSameQuotaPool(
 }
 
 function isUsableQuotaWindow(
-  windowInfo: ObservedLimitWindow | null,
-  expectedWindowMinutes: number | null = null
+  windowInfo: ObservedLimitWindow | null
 ) {
   const windowMinutes = Number(windowInfo?.windowMinutes ?? 0);
-  if (!Number.isFinite(windowMinutes) || windowMinutes <= 0 || !windowInfo?.resetsAt) {
-    return false;
-  }
-
-  if (expectedWindowMinutes === null) {
-    return true;
-  }
-
-  return Math.abs(windowMinutes - expectedWindowMinutes) <= 60;
+  return Number.isFinite(windowMinutes) && windowMinutes > 0 && Boolean(windowInfo?.resetsAt);
 }
 
 function resolveQuotaCycleBounds(
@@ -702,12 +717,12 @@ function buildQuotaWindowUsage(args: {
   latestRateSnapshot: LatestRateSnapshot | null;
   events: CodexTokenEvent[];
   quotaObservations: QuotaObservation[];
-  windowKey: "primary" | "secondary";
-  expectedWindowMinutes?: number | null;
+  windowKind: ObservableQuotaWindowKind;
   resetAwareTimeline?: boolean;
 }): QuotaWindowUsage {
-  const currentWindow = getObservedWindow(args.latestRateSnapshot, args.windowKey);
-  if (!isUsableQuotaWindow(currentWindow, args.expectedWindowMinutes ?? null)) {
+  const currentSelection = getObservedWindowByKind(args.latestRateSnapshot, args.windowKind);
+  const currentWindow = currentSelection?.window ?? null;
+  if (!isUsableQuotaWindow(currentWindow)) {
     return { currentCycle: null, cycles: [] };
   }
 
@@ -724,8 +739,8 @@ function buildQuotaWindowUsage(args: {
       continue;
     }
 
-    const windowInfo = getObservedWindow(observation.rateLimits, args.windowKey);
-    if (!isUsableQuotaWindow(windowInfo, args.expectedWindowMinutes ?? null)) {
+    const windowInfo = getObservedWindowByKind(observation.rateLimits, args.windowKind)?.window ?? null;
+    if (!isUsableQuotaWindow(windowInfo)) {
       continue;
     }
 
@@ -995,7 +1010,8 @@ function buildLimitWindow(
     | undefined,
   estimatedSpentUsd: number | null,
   note: string | null = null,
-  estimatedValueBasisUsedPercent: number | null = null
+  estimatedValueBasisUsedPercent: number | null = null,
+  sourceSlot: "primary" | "secondary" | null = null
 ): LimitWindow {
   const usedPercent = clampPercentage(window?.usedPercent ?? null);
   const remainingPercent = clampPercentage(window?.remainingPercent ?? null);
@@ -1012,6 +1028,7 @@ function buildLimitWindow(
   return {
     key,
     label,
+    sourceSlot,
     sourceStatus,
     usedPercent,
     remainingPercent,
@@ -1493,8 +1510,8 @@ function buildPendingDashboardSnapshot(
     note: "正在后台读取 Codex rate_limits 与本地会话数据。"
   });
   const limitWindows = [
-    pendingWindow("primary", "5 小时额度"),
-    pendingWindow("secondary", "周额度"),
+    pendingWindow("fiveHour", "5 小时额度"),
+    pendingWindow("weekLimit", "周额度"),
     pendingWindow("observableMonth", "可观测月额度")
   ];
 
@@ -1632,33 +1649,33 @@ async function collectDashboardSnapshot(
   const bankedResetCredits = await collectBankedResetCreditsSummary(
     options.previousBankedResetCredits ?? null
   );
-  const primaryQuotaUsage = buildQuotaWindowUsage({
+  const fiveHourSelection = getObservedWindowByKind(codex.latestRateSnapshot, "five-hour");
+  const weeklySelection = getObservedWindowByKind(codex.latestRateSnapshot, "weekly");
+  const fiveHourQuotaUsage = buildQuotaWindowUsage({
     latestRateSnapshot: codex.latestRateSnapshot,
     events: codex.events,
     quotaObservations: codex.quotaObservations,
-    windowKey: "primary"
+    windowKind: "five-hour"
   });
   const weeklyQuotaUsage = buildQuotaWindowUsage({
     latestRateSnapshot: codex.latestRateSnapshot,
     events: codex.events,
     quotaObservations: codex.quotaObservations,
-    windowKey: "secondary",
-    expectedWindowMinutes: WEEKLY_RATE_LIMIT_WINDOW_MINUTES,
+    windowKind: "weekly",
     resetAwareTimeline: true
   });
-  const primaryWindowRange = primaryQuotaUsage.currentCycle
+  const fiveHourWindowRange = fiveHourQuotaUsage.currentCycle
     ? {
-        start: new Date(primaryQuotaUsage.currentCycle.startAt),
-        end: new Date(primaryQuotaUsage.currentCycle.endAt)
+        start: new Date(fiveHourQuotaUsage.currentCycle.startAt),
+        end: new Date(fiveHourQuotaUsage.currentCycle.endAt)
       }
-    : codex.latestRateSnapshot?.primary?.resetsAt &&
-        codex.latestRateSnapshot.primary.windowMinutes
+    : fiveHourSelection?.window.resetsAt && fiveHourSelection.window.windowMinutes
       ? {
           start: addMinutes(
-            new Date(codex.latestRateSnapshot.primary.resetsAt),
-            -codex.latestRateSnapshot.primary.windowMinutes
+            new Date(fiveHourSelection.window.resetsAt),
+            -fiveHourSelection.window.windowMinutes
           ),
-          end: new Date(codex.latestRateSnapshot.primary.resetsAt)
+          end: new Date(fiveHourSelection.window.resetsAt)
         }
       : null;
   const secondaryWindowRange = weeklyQuotaUsage.currentCycle
@@ -1666,14 +1683,13 @@ async function collectDashboardSnapshot(
         start: new Date(weeklyQuotaUsage.currentCycle.startAt),
         end: new Date(weeklyQuotaUsage.currentCycle.endAt)
       }
-    : codex.latestRateSnapshot?.secondary?.resetsAt &&
-        codex.latestRateSnapshot.secondary.windowMinutes
+    : weeklySelection?.window.resetsAt && weeklySelection.window.windowMinutes
       ? {
           start: addMinutes(
-            new Date(codex.latestRateSnapshot.secondary.resetsAt),
-            -codex.latestRateSnapshot.secondary.windowMinutes
+            new Date(weeklySelection.window.resetsAt),
+            -weeklySelection.window.windowMinutes
           ),
-          end: new Date(codex.latestRateSnapshot.secondary.resetsAt)
+          end: new Date(weeklySelection.window.resetsAt)
         }
       : null;
   const billingMonthStart = startOfBillingMonth(
@@ -1689,8 +1705,8 @@ async function collectDashboardSnapshot(
     repoRoots: preferences.repoRoots,
     sessions: codex.sessions,
     activityWindows: [
-      ...(primaryWindowRange
-        ? [{ key: "fiveHour" as const, start: primaryWindowRange.start, end: primaryWindowRange.end }]
+      ...(fiveHourWindowRange
+        ? [{ key: "fiveHour" as const, start: fiveHourWindowRange.start, end: fiveHourWindowRange.end }]
         : []),
       ...(secondaryWindowRange
         ? [{ key: "weekLimit" as const, start: secondaryWindowRange.start, end: secondaryWindowRange.end }]
@@ -1783,13 +1799,13 @@ async function collectDashboardSnapshot(
     codex.events
   );
 
-  const primaryPeriod = primaryWindowRange
+  const primaryPeriod = fiveHourWindowRange
     ? buildQuotaCyclePeriodMetric(
         "currentFiveHour",
         "当前 5 小时窗口",
-        primaryQuotaUsage.currentCycle,
-        primaryWindowRange.start,
-        primaryWindowRange.end,
+        fiveHourQuotaUsage.currentCycle,
+        fiveHourWindowRange.start,
+        fiveHourWindowRange.end,
         aggregateCodeFromRepos(git.items, "fiveHour")
       )
     : buildPeriodMetric(
@@ -1818,13 +1834,13 @@ async function collectDashboardSnapshot(
         emptyCodeActivity()
       );
   const previousFiveHourPeriod =
-    primaryQuotaUsage.cycles.length > 1
+    fiveHourQuotaUsage.cycles.length > 1
       ? buildQuotaCyclePeriodMetric(
           "previousFiveHour",
           "上一 5 小时窗口",
-          primaryQuotaUsage.cycles.at(-2) ?? null,
-          primaryWindowRange?.start ?? todayStart,
-          primaryWindowRange?.end ?? now
+          fiveHourQuotaUsage.cycles.at(-2) ?? null,
+          fiveHourWindowRange?.start ?? todayStart,
+          fiveHourWindowRange?.end ?? now
         )
       : null;
   const previousWeekLimitPeriod =
@@ -1854,46 +1870,60 @@ async function collectDashboardSnapshot(
   );
 
   const primaryWindow = buildLimitWindow(
-    "primary",
+    "fiveHour",
     "5 小时额度",
-    resolveWindowSourceStatus(codex.latestRateSnapshot, codex.sourceStatus),
+    fiveHourSelection
+      ? resolveWindowSourceStatus(codex.latestRateSnapshot, codex.sourceStatus)
+      : codex.latestRateSnapshot
+        ? "unobserved"
+        : resolveWindowSourceStatus(codex.latestRateSnapshot, codex.sourceStatus),
     buildDisplayedQuotaWindow(
-      codex.latestRateSnapshot?.primary
+      fiveHourSelection
         ? {
-            ...codex.latestRateSnapshot.primary,
+            ...fiveHourSelection.window,
             remainingPercent:
-              codex.latestRateSnapshot.primary.usedPercent === null
+              fiveHourSelection.window.usedPercent === null
                 ? null
-                : 100 - codex.latestRateSnapshot.primary.usedPercent,
-            observedAt: codex.latestRateSnapshot.observedAt
+                : 100 - fiveHourSelection.window.usedPercent,
+            observedAt: codex.latestRateSnapshot?.observedAt ?? null
           }
         : undefined,
       primaryPeriod
     ),
     primaryPeriod.apiCostUsd,
-    "圆环=周期累计余量；右侧=当前周期累计。",
-    primaryPeriod.quotaEvidence?.usedPercent ?? null
+    fiveHourSelection
+      ? `数据来自 rate_limits.${fiveHourSelection.windowKey} 的 ${CODEX_FIVE_HOUR_WINDOW_MINUTES} 分钟窗口。`
+      : "当前 Codex 额度契约未提供 5 小时窗口。",
+    primaryPeriod.quotaEvidence?.usedPercent ?? null,
+    fiveHourSelection?.windowKey ?? null
   );
   const weeklyWindow = buildLimitWindow(
-    "secondary",
+    "weekLimit",
     "周额度",
-    resolveWindowSourceStatus(codex.latestRateSnapshot, codex.sourceStatus),
+    weeklySelection
+      ? resolveWindowSourceStatus(codex.latestRateSnapshot, codex.sourceStatus)
+      : codex.latestRateSnapshot
+        ? "unobserved"
+        : resolveWindowSourceStatus(codex.latestRateSnapshot, codex.sourceStatus),
     buildDisplayedQuotaWindow(
-      codex.latestRateSnapshot?.secondary
+      weeklySelection
         ? {
-            ...codex.latestRateSnapshot.secondary,
+            ...weeklySelection.window,
             remainingPercent:
-              codex.latestRateSnapshot.secondary.usedPercent === null
+              weeklySelection.window.usedPercent === null
                 ? null
-                : 100 - codex.latestRateSnapshot.secondary.usedPercent,
-            observedAt: codex.latestRateSnapshot.observedAt
+                : 100 - weeklySelection.window.usedPercent,
+            observedAt: codex.latestRateSnapshot?.observedAt ?? null
           }
         : undefined,
       weeklyLimitPeriod
     ),
     weeklyLimitPeriod.apiCostUsd,
-    "圆环=周期累计余量；右侧=当前周期累计。",
-    weeklyLimitPeriod.quotaEvidence?.usedPercent ?? null
+    weeklySelection
+      ? `数据来自 rate_limits.${weeklySelection.windowKey} 的 ${CODEX_WEEKLY_WINDOW_MINUTES} 分钟窗口。`
+      : "当前 Codex 额度契约未提供周额度窗口。",
+    weeklyLimitPeriod.quotaEvidence?.usedPercent ?? null,
+    weeklySelection?.windowKey ?? null
   );
   const observableMonthWindow = buildLimitWindow(
     "observableMonth",
@@ -2031,13 +2061,13 @@ async function collectDashboardSnapshot(
     endAt: now,
     activityField: "month"
   });
-  const billingProjectFiveHour = primaryWindowRange
+  const billingProjectFiveHour = fiveHourWindowRange
     ? buildProjectOverviewPeriod({
         repoItems: git.items,
         events: codex.events,
         sessionRepoMap: git.sessionRepoMap,
-        startAt: primaryWindowRange.start,
-        endAt: primaryWindowRange.end,
+        startAt: fiveHourWindowRange.start,
+        endAt: fiveHourWindowRange.end,
         activityField: "fiveHour"
       })
     : [];

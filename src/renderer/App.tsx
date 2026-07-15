@@ -862,6 +862,8 @@ function QuotaWindowCard({
         </div>
       </div>
 
+      {windowData.note ? <div className="empty-inline">{windowData.note}</div> : null}
+
       <div className="quota-models">
         <div className="quota-models-head">
           <div className="quota-models-title">Top 3 模型占比</div>
