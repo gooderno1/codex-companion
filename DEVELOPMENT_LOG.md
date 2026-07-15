@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-15] v0.3.9 release: 内部正式版
+
+- 开发原因：用户要求把已完成的 Codex 额度窗口契约兼容修复发布为正式版；当前最新 Release 为 `v0.3.8`，需要将 `v0.3.9-dev.1` 收敛发布。
+- 实现方式：应用版本与 app-server clientVersion 调整为 `0.3.9`；README、数据契约、组件映射和 Release notes 同步正式版口径；继续固定远程核心包 `@lifeinhand/codex-usage-core@0.1.0-dev.11`；发布前在兼容范围内把打包运行时 Electron 解析到 `42.7.0`，并将 `form-data / undici` 更新到无已知审计漏洞版本。
+- 当前结果：已生成 `release/Codex Companion Setup 0.3.9.exe`，SHA256 为 `82EFC0E59E841DD5AC23735EA525DBBBDCEFDD53BB7A2AB0F84DD704DD8A3D98`；GitHub Release 使用 tag `v0.3.9`，资产名为 `Codex.Companion.Setup.0.3.9.exe`。
+- 验证方式：`npm run package:win`、live 快照刷新、`npm run verify:quota`、`npm run verify:ledger`、`npm run verify:design`、`npm audit --audit-level=low` 和 `git diff --check` 通过；live 快照为 5H 未观测、周额度来源 primary、余量 `93%`、`450` 条观测、`resetCount=0`。`verify:overview` 依赖开发版本后缀推导截图名，不作为正式版门禁。
+
 ## [2026-07-15] v0.3.9-dev.1 fix: 按时长识别 Codex 额度窗口
 
 - 开发原因：当前本机 Codex 已从 `primary=300 / secondary=10080` 切换为 `primary=10080 / secondary=null`；旧映射把 7 天 primary 显示成 5H，并让周额度卡、额度通知和快照校验失去真实数据。

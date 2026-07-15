@@ -1,5 +1,61 @@
 # RELEASE NOTES
 
+## [2026-07-15] v0.3.9 release: 内部正式版
+
+### Release 范围
+
+本次 Release 作为 private 仓库内部正式版，用于内测验证，不等同于公开发布。
+
+包含开发版本：
+
+- `v0.3.9-dev.1`
+
+未排除开发版本：无。发布收敛阶段额外应用兼容范围内的依赖安全补丁。
+
+### 主要变更
+
+- 升级 `@lifeinhand/codex-usage-core` 到 `v0.1.0-dev.11`。
+- 不再把 `primary / secondary` 槽位名固定解释为 5H / 周额度，而是按 `windowDurationMins` 识别业务窗口。
+- 当前 Codex 只返回 `primary=10080 / secondary=null` 时，周额度继续正常展示并记录真实来源槽位 `primary`。
+- 当前契约没有 300 分钟窗口时，5H 卡明确显示未观测，不用 10080 分钟周额度兜底，也不生成错误的 5H 通知。
+- 历史周额度可从旧版 secondary 连续迁移到新版 primary 的同一业务时间线。
+- 发布打包解析到 Electron `42.7.0`、`form-data 4.0.6`、`undici 7.28.0 / 6.27.0`，消除发布前审计发现的可修复依赖漏洞。
+
+### 修复内容
+
+- 修复 10080 分钟 primary 被误显示成 5H 额度的问题。
+- 修复 secondary 缺失后周额度卡、额度通知和快照校验失去真实数据的问题。
+- 修复槽位契约迁移可能造成跨窗口 reset / banked reset 使用误判的问题；核心包要求前后窗口时长一致。
+
+### 验证结果
+
+- `npm run package:win`：通过，完成图标生成、lint、TypeScript、renderer build、main build 和 Windows NSIS 打包。
+- `npm run verify:quota`：通过；live 快照为 5H 未观测、周额度来源 `primary`、窗口 `10080` 分钟、余量 `93%`、`450` 条观测、`resetCount=0`。
+- `npm run verify:ledger`：通过。
+- `npm run verify:design`：通过。
+- `npm audit --audit-level=low`：通过，`0` 个已知漏洞。
+- `git diff --check`：通过，仅有 Windows 换行转换提示。
+- `npm run verify:overview`：该脚本依赖 `-dev.N` 推导截图后缀，不适用于正式版本号；本次不作为 Release 门禁，额度、账本和设计专项校验已覆盖本轮改动。
+
+### Release 资产校验
+
+- `Codex Companion Setup 0.3.9.exe`：`SHA256 82EFC0E59E841DD5AC23735EA525DBBBDCEFDD53BB7A2AB0F84DD704DD8A3D98`；大小 `106362044` bytes（约 `101.43 MiB`）；GitHub 资产名为 `Codex.Companion.Setup.0.3.9.exe`。
+
+### 升级注意事项
+
+- 应用版本号从开发版 `0.3.9-dev.1` 切换为正式版 `0.3.9`。
+- 继续固定远程 Git tag `gooderno1/codex-usage-core#v0.1.0-dev.11`。
+- 现有本机设置、历史快照和赠送重置 baseline 无需清空；刷新后会按窗口时长生成新的语义字段。
+- 当前看不到 5H 卡数据代表 Codex 当前契约未提供 300 分钟窗口，不代表采集失败。
+- 本版本只提供 Windows NSIS 安装包，不提供便携版 exe。
+
+### 已知边界
+
+- 当前 GitHub 仓库仍为 private，Release 资产只对有仓库读权限的成员可见。
+- Windows 包尚未配置可信代码签名，内测安装时可能出现系统安全提示。
+- 暂未提供自动更新。
+- 总览截图验收脚本目前只支持开发版本后缀，正式版本需沿用开发版截图证据或后续扩展脚本。
+
 ## [2026-07-13] v0.3.8 release: 内部正式版
 
 ### Release 范围
