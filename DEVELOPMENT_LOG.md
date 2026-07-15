@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-07-15] v0.4.1-dev.1 chore(security): 补齐 SignPath Foundation 签名准入材料
+
+- 开发原因：SignPath Foundation 免费开源签名申请已提交，需要在审核期间补齐其公开条件要求的 `Code signing policy`、签名角色、MFA、人工审批、产物范围、文件元数据和 Release 页面入口；现有应用主程序仍保留 Electron 的产品名与 `42.7.0` 版本资源，不符合签名产物元数据约束。
+- 实现方式：新增 `CODE_SIGNING_POLICY.md`、`CODEOWNERS`、Release 模板和 `verify:signing-policy`；README、隐私/安全关联文档、贡献说明、PR 模板、自动升级规划和 Release notes 同步政策入口；Windows workflow 在每次构建前校验政策合同，在产物生成后校验安装包与主程序产品名，正式 tag 额外校验产品版本，并自动为 Release 正文补 `Code signing policy` 链接。应用版本与 app-server `clientVersion` 更新为 `0.4.1-dev.1`。
+- 元数据规则：签名范围只包括正式 `vX.Y.Z` tag 经 GitHub Actions 自动构建的 `Codex Companion.exe` 与 `Codex.Companion.Setup.<version>.exe`；`ProductName=Codex Companion`；稳定构建的 `ProductVersion / FileVersion=X.Y.Z` 并与 `package.json`、tag 一致；第三方二进制不得使用本项目订阅重新签名；每个签名请求必须人工批准。
+- 工具链处理：保留 `signAndEditExecutable=false`，避免旧 `winCodeSign` 压缩包中的 macOS 符号链接在普通 Windows 权限下解压失败；改用 `afterPack` 和项目直接依赖的 `resedit@1.7.2` 在签名前以纯 JavaScript 写入主程序版本资源与应用图标，再由 workflow 对最终产物复核。
+- 当前结果：本地生成 `Codex.Companion.Setup.0.4.1-dev.1.exe`；应用主程序与安装包的 `ProductName` 均为 `Codex Companion`，`ProductVersion / FileVersion` 均为 `0.4.1-dev.1`。主程序 SHA256 为 `E0AF8EA3FAA4E812E79C17C218F4FCF0550239D438AED7A23C61F4AA57C3D840`，安装包 SHA256 为 `EE93A4ADF5D1593995AE4AE1DE4359CCBFC4CECE14A1AE8A0BF0EC95812029EA`；两者 Authenticode 仍为 `NotSigned`，不会提前打开自动安装。
+- 验证方式：Node `22.23.1` / npm `10.9.8` 下执行 `npm run package:win`、`npm run verify:signing-policy`、`npm run verify:updater`、`npm audit --audit-level=low` 和 `git diff --check`；打包、政策合同、更新器合同与空白检查通过，依赖审计为 `0` 个漏洞；使用 PowerShell `VersionInfo` 和 `Get-AuthenticodeSignature` 逐项核对应用主程序与安装包。
+- 遗留问题：SignPath Foundation 仍在审核申请，尚未提供 organization、project、artifact configuration 等接入标识；因此签名请求、SignPath 人工批准步骤、`publisherName` 和 `TRUSTED_WINDOWS_PUBLISHER` 暂未配置，当前自动下载/安装继续关闭。收到批准后还需接通签名 workflow，并完成 `v0.4.0 ->` 首个签名正式版的端到端升级验收。
+
 ## [2026-07-15] v0.4.0 release: 发布首个 updater-enabled 公开正式版
 
 - 开发原因：自动升级第一阶段、公开仓库和 Release 资产链路已经完成，需要发布一个内置 updater 的正式安装版，作为后续更高版本升级验收的可靠起点。

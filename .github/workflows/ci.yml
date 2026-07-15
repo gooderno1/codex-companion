@@ -32,5 +32,8 @@ jobs:
       - name: Verify updater contract
         run: npm run verify:updater
 
+      - name: Verify code signing policy
+        run: npm run verify:signing-policy
+
       - name: Check whitespace
         run: git diff --check

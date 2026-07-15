@@ -7,11 +7,12 @@
 
 ## 当前状态
 
-- 当前版本：`v0.4.0`；这是首个 updater-enabled 公开正式版。
+- 当前开发版本：`v0.4.1-dev.1`；最新公开正式版为 `v0.4.0`，也是首个 updater-enabled 版本。
 - 当前定位：公开预览正式版；已接入 Windows 稳定版更新检查、设置页更新状态和 GitHub Release 元数据链路。
 - 当前平台：优先支持 Windows 桌面应用；源码开发可在具备 Electron 环境的系统上尝试运行。
 - 桌面挂件：相关代码已保留，但公开预览版暂时禁用，后续单独验证后再开放。
 - 自动升级：`v0.4.0` 已接入稳定版检查、更新状态与发布元数据；可信 Windows 代码签名启用前只自动检查并引导手动下载，不后台执行未签名安装包。
+- 代码签名：已提交 SignPath Foundation 免费开源签名申请并补齐公开政策、角色、人工审批和产物元数据门禁；审核通过并完成签名验收前，Release 仍保持未签名状态。
 
 ## 当前能力
 
@@ -40,6 +41,12 @@
 
 如需从源码调试，可按“开发者本地运行”从本地开发环境启动。
 
+### 卸载
+
+- 打开 Windows `设置 -> 应用 -> 已安装的应用`，找到 `Codex Companion` 后选择“卸载”。
+- 也可以从应用安装目录运行 NSIS 生成的卸载程序。
+- 卸载应用不会主动删除 Electron `userData` 中的本机设置、聚合快照和通知历史；如需彻底清理，可在确认不再需要后手动删除 `%APPDATA%\codex-companion`。
+
 ## 应用更新
 
 - 当前 `v0.3.9` 没有内置 updater，不能直接自动升级到 `v0.4.0`；请从 Releases 手动安装首个 updater-enabled 正式版。
@@ -48,6 +55,17 @@
 - 当前安装包尚未配置可信 Windows 代码签名，因此生产构建不会后台下载或执行安装包。
 - 后续签名门禁通过后，可启用自动下载；下载进度、更新说明和“重启并安装”仍保持用户可见和可确认。
 - 更新请求只访问本仓库公开 Release，不携带 GitHub token，也不上传 Codex session、仓库路径、模型或额度数据。
+
+## Code signing policy
+
+完整政策见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。
+
+> Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+- Authors / Committers、Reviewers、Approvers 当前均由 Jackie Lee（[@gooderno1](https://github.com/gooderno1)）承担；外部贡献必须经过 Pull Request 审查，每次签名请求必须人工批准。
+- 只允许签署从本仓库正式 `vX.Y.Z` tag 经受信 GitHub Actions 自动构建的 `Codex Companion.exe` 和 Windows NSIS 安装包，不使用本项目订阅重新签署上游二进制。
+- 所有本项目签名产物必须把产品名固定为 `Codex Companion`，文件版本与产品版本必须和 `package.json`、Git tag 保持一致。
+- 当前申请仍在审核中；已有 `v0.4.0` 安装包不会因建立本政策而自动获得签名。
 
 ## 首次配置
 
@@ -188,6 +206,8 @@ git diff --check
 - 当前规划：[docs/project-development-plan-2026-06-02.md](./docs/project-development-plan-2026-06-02.md)
 - 数据契约：[docs/data-contract-v0.2.md](./docs/data-contract-v0.2.md)
 - 隐私说明：[PRIVACY.md](./PRIVACY.md)
+- Code signing policy：[CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)
+- 安全策略：[SECURITY.md](./SECURITY.md)
 - 版本进展：[DEVELOPMENT_LOG.md](./DEVELOPMENT_LOG.md)
 - 贡献说明：[CONTRIBUTING.md](./CONTRIBUTING.md)
 

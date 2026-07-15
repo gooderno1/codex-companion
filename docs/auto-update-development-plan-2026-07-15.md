@@ -2,6 +2,9 @@
 
 ## 实施状态（2026-07-15）
 
+- `v0.4.1-dev.1` 已提交 SignPath Foundation 免费开源签名申请并建立 `CODE_SIGNING_POLICY.md`；首页、Release 模板、角色、MFA、人工审批、签名范围和事件响应已有公开口径。
+- Windows 构建已恢复 exe 资源元数据写入，并在 workflow 校验应用主程序与安装包的 `ProductName=Codex Companion`；正式 tag 还必须保证 `ProductVersion` 与 `package.json` 一致。
+- 签名申请仍在审核中；尚未取得 SignPath organization / project / artifact configuration 标识，签名提交和人工批准步骤暂不能接入，`TRUSTED_WINDOWS_PUBLISHER` 继续为空，生产自动安装仍关闭。
 - `v0.4.0` 已收敛主进程 `UpdateService`、更新状态合同、设置迁移、IPC/preload、设置页更新卡片、全局提示、详情/进度弹层和错误脱敏，作为首个 updater-enabled 正式版。
 - Windows 构建已生成安装包、`latest.yml`、blockmap 和包内 `app-update.yml`；Release workflow 已增加 tag/版本校验、draft 发布、资产完整性和 SHA256 生成。
 - `codex-usage-core` 已在隐私审计后公开，依赖改为固定 HTTPS Git tag；lockfile 使用 CI 对齐工具链生成，CI 增加 `npm run verify:updater`。

@@ -18,6 +18,8 @@
 - Release notes 由主进程清洗为纯文本，底层错误只输出稳定错误码和脱敏中文摘要。
 - GitHub Release workflow 使用最小 `contents: write` 权限；签名凭证不得写入源码、日志、Release notes 或安装包资源。
 - 当前安装包 Authenticode 状态为 `NotSigned`，因此生产自动下载与安装保持关闭；可信 publisher 配置和签名验收通过后才允许开启。
+- Windows 签名范围、角色、人工审批、元数据限制和事件响应以 [Code signing policy](./CODE_SIGNING_POLICY.md) 为准。
+- 如果签名产物来源、证书主体或版本元数据不符合政策，应立即停止发布和自动升级，撤下可疑资产并联系 SignPath 配合调查。
 
 ## 反馈方式
 

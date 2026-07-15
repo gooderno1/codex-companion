@@ -1,0 +1,10 @@
+# 默认维护者
+* @gooderno1
+
+# 代码签名与发布敏感文件
+/.github/workflows/ @gooderno1
+/package.json @gooderno1
+/package-lock.json @gooderno1
+/CODE_SIGNING_POLICY.md @gooderno1
+/scripts/verify-code-signing-policy.mjs @gooderno1
+/src/main/updateService.ts @gooderno1

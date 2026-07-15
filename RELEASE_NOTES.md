@@ -1,5 +1,9 @@
 # RELEASE NOTES
 
+## Code signing policy
+
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.0` 仍为未签名版本；SignPath Foundation 审核和签名工作流验收完成前，不会启用自动安装。
+
 ## [2026-07-15] v0.4.0 release: 首个 updater-enabled 公开正式版
 
 ### Release 范围

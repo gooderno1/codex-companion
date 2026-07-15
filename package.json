@@ -1,6 +1,6 @@
 {
   "name": "codex-companion",
-  "version": "0.4.0",
+  "version": "0.4.1-dev.1",
   "private": true,
   "description": "非官方 Codex 额度、Token 与代码活动桌面伴侣",
   "license": "MIT",
@@ -39,6 +39,7 @@
     "verify:ledger": "node scripts/verify-ledger-page.mjs",
     "verify:overview": "node scripts/verify-overview-readiness.mjs",
     "verify:quota": "node scripts/verify-quota-snapshot.mjs",
+    "verify:signing-policy": "node scripts/verify-code-signing-policy.mjs",
     "verify:updater": "node scripts/verify-updater.mjs",
     "package:win": "npm run generate:icon && npm run build && electron-builder --win nsis --publish never",
     "release:win": "npm run generate:icon && npm run build && electron-builder --win nsis --publish always"
@@ -46,6 +47,7 @@
   "build": {
     "appId": "com.gooderno1.codex-companion",
     "productName": "Codex Companion",
+    "afterPack": "scripts/after-pack-windows.cjs",
     "directories": {
       "output": "release"
     },
@@ -110,6 +112,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "resedit": "^1.7.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.60.1",
     "vite": "^8.0.16",

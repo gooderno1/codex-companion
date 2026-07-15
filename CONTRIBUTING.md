@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢关注 `Codex Companion`。本项目是非官方 Codex 本机桌面伴侣，贡献时请优先保证数据口径、隐私边界和用户可见体验清晰可靠。
+感谢关注 `Codex Companion`。本项目是非官方 Codex 本机桌面伴侣，贡献时请优先保证数据口径、隐私边界和用户可见体验清晰可靠。涉及发布或 Windows 签名时还必须遵守 [Code signing policy](./CODE_SIGNING_POLICY.md)。
 
 ## 基本要求
 
@@ -34,6 +34,7 @@ npm run package:win
 ```bash
 npm run build
 npm run verify:updater
+npm run verify:signing-policy
 git diff --check
 ```
 
@@ -87,3 +88,10 @@ PR 至少应说明：
 CI 会执行 `npm ci`、`npm run build` 和 `git diff --check`。如果 CI 失败，请先修复后再请求 review。
 
 涉及应用更新时，还必须执行 `npm run verify:updater`；修改正式发布 workflow 时需确认安装包、`latest.yml`、blockmap 和 SHA256 文件同时生成，且 tag 与 `package.json` 稳定版本完全一致。
+
+## 代码签名敏感文件
+
+- `.github/workflows/`、`package.json`、`package-lock.json`、`CODE_SIGNING_POLICY.md`、签名校验脚本和 `src/main/updateService.ts` 属于代码签名敏感文件，并由 `.github/CODEOWNERS` 指定责任人。
+- 外部贡献者修改上述文件时，必须通过 Pull Request 由 Reviewer 审查；源码、构建脚本、依赖锁文件和 CI 配置都属于来源验证范围。
+- 任何签名请求都必须基于正式 tag 的 GitHub Actions 自动构建产物，并由 Approver 在 SignPath 人工批准；不得上传本地构建文件替代受信产物，也不得自动批准签名。
+- 拥有仓库写权限或 SignPath 项目权限的成员必须启用多因素认证（MFA）。

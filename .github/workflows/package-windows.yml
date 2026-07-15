@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify code signing policy
+        run: npm run verify:signing-policy
+
       - name: Validate release version
         if: github.ref_type == 'tag'
         shell: pwsh
@@ -52,14 +55,43 @@ jobs:
       - name: Verify update assets
         shell: pwsh
         run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $installer = Get-ChildItem release -Filter "*.exe" | Where-Object { $_.Name -like "*Setup*" } | Select-Object -First 1
+          $application = Get-Item "release/win-unpacked/Codex Companion.exe" -ErrorAction SilentlyContinue
           $metadata = Get-ChildItem release -Filter "latest.yml" | Select-Object -First 1
           $blockmap = Get-ChildItem release -Filter "*.blockmap" | Select-Object -First 1
-          if (-not $installer -or -not $metadata -or -not $blockmap) {
-            throw "缺少安装包、latest.yml 或 blockmap"
+          if (-not $installer -or -not $application -or -not $metadata -or -not $blockmap) {
+            throw "缺少安装包、应用主程序、latest.yml 或 blockmap"
+          }
+          foreach ($binary in @($installer, $application)) {
+            if ($binary.VersionInfo.ProductName -ne "Codex Companion") {
+              throw "$($binary.Name) ProductName 不符合 Code signing policy：$($binary.VersionInfo.ProductName)"
+            }
+            if ($env:GITHUB_REF_TYPE -eq "tag" -and $binary.VersionInfo.ProductVersion -ne $version) {
+              throw "$($binary.Name) ProductVersion $($binary.VersionInfo.ProductVersion) 与 $version 不一致"
+            }
           }
           $hash = Get-FileHash -Algorithm SHA256 $installer.FullName
           "$($hash.Hash)  $($installer.Name)" | Set-Content release/SHA256SUMS.txt
+
+      - name: Ensure Code signing policy on release page
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          $body = gh release view "${{ github.ref_name }}" --json body --jq .body
+          if ($body -notmatch '(?im)^## Code signing policy\s*$') {
+            $policy = @"
+
+          ## Code signing policy
+
+          See the project [Code signing policy](https://github.com/gooderno1/codex-companion/blob/main/CODE_SIGNING_POLICY.md).
+
+          > Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+          "@
+            ($body.TrimEnd() + "`n`n" + $policy.Trim() + "`n") | gh release edit "${{ github.ref_name }}" --notes-file -
+          }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload checksum to draft release
         if: github.ref_type == 'tag'
