@@ -1,5 +1,55 @@
 # RELEASE NOTES
 
+## [2026-07-15] v0.4.0 release: 首个 updater-enabled 公开正式版
+
+### Release 范围
+
+包含开发版本：
+
+- `v0.4.0-dev.1`
+
+本次同时包含仓库公开审计、共享核心仓库公开、公开 HTTPS tag 依赖和 GitHub Actions 运行时升级等发布收敛改动；没有排除已完成的开发版本。
+
+### 主要变更
+
+- 新增主进程 `UpdateService`，统一维护检查中、已是最新、发现版本、下载中、已下载、安装中、错误和不支持等状态。
+- 启动约 `15s` 后检查稳定版，自动检查开启时每 `6h` 检查；手动检查始终可用。
+- 设置页新增“应用更新”卡片，展示当前/可用版本、最近检查时间、更新说明、自动检查设置和 Releases 入口。
+- 新版本出现时提供全局提示、更新详情、下载进度和安装确认交互；Release notes 先在主进程清洗为受限长度纯文本。
+- GitHub Release workflow 校验正式 tag 与应用版本，构建 Windows NSIS 安装包，并生成 `latest.yml`、blockmap 和 SHA256。
+- `codex-companion` 与 `codex-usage-core` 均已公开；核心依赖固定到匿名可读取的 HTTPS Git tag `v0.1.0-dev.11`。
+
+### 安全与降级
+
+- 更新源固定为 `gooderno1/codex-companion` 的公开 stable Release，renderer 不能指定任意 feed、下载地址或本机路径。
+- 更新错误转换为稳定错误码和脱敏中文摘要，不暴露请求头、token、本机下载路径或堆栈。
+- 当前没有可信 Windows 代码签名，`canAutoInstall=false`；应用只检查更新并引导手动安装，不后台下载或执行未签名安装包。
+- `v0.3.9` 没有内置 updater，首次升级到 `v0.4.0` 需要手动下载安装。
+
+### 验证结果
+
+- `npm run package:win`：通过，生成安装包、`latest.yml`、blockmap 和包内 `app-update.yml`。
+- `npm run verify:updater`、`npm run verify:quota`、`npm run verify:ledger`、`npm run verify:design`：通过。
+- `npm audit --audit-level=low`：通过，`0` 个已知漏洞。
+- GitHub CI：匿名安装公开核心依赖、构建、更新器合同和空白检查通过。
+- 1360×900 开发态与 packaged 设置页已完成视觉检查。
+
+### Release 资产校验
+
+- 本地预发布构建：`Codex.Companion.Setup.0.4.0.exe`，大小 `105454921` bytes，SHA256 为 `1134342D1C60AD57D506258C8F272092B73C75308B063B7EDC5C4E224B9664A7`。
+- GitHub Actions 会重新构建正式 Release 资产；公开下载应以 Release 同时上传的 `SHA256SUMS.txt` 为准。
+
+### 升级注意事项
+
+- 现有 `settings.json`、额度快照、增量缓存、通知历史和赠送重置 baseline 无需清空。
+- 本版本只提供 Windows x64 NSIS 安装版，不提供便携版、macOS 或 Linux 自动升级。
+- 后续接入可信 publisher 后，将以 `v0.4.0` 为旧版完成检查、下载、签名校验、重启安装和用户数据保留验收。
+
+### 已知边界
+
+- 安装包和应用主程序 Authenticode 状态为 `NotSigned`，Windows 可能显示安全提示。
+- 自动下载、退出时安装和“重启并安装”保持关闭，直到可信签名门禁和连续版本端到端验收通过。
+
 ## [2026-07-15] v0.3.9 release: 内部正式版
 
 ### Release 范围

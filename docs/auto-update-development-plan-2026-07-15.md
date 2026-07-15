@@ -2,7 +2,7 @@
 
 ## 实施状态（2026-07-15）
 
-- `v0.4.0-dev.1` 已完成主进程 `UpdateService`、更新状态合同、设置迁移、IPC/preload、设置页更新卡片、全局提示、详情/进度弹层和错误脱敏。
+- `v0.4.0` 已收敛主进程 `UpdateService`、更新状态合同、设置迁移、IPC/preload、设置页更新卡片、全局提示、详情/进度弹层和错误脱敏，作为首个 updater-enabled 正式版。
 - Windows 构建已生成安装包、`latest.yml`、blockmap 和包内 `app-update.yml`；Release workflow 已增加 tag/版本校验、draft 发布、资产完整性和 SHA256 生成。
 - `codex-usage-core` 已在隐私审计后公开，依赖改为固定 HTTPS Git tag；lockfile 使用 CI 对齐工具链生成，CI 增加 `npm run verify:updater`。
 - 1360×900 开发态与 packaged 设置页已人工检查；packaged 构建可真实访问 GitHub update feed。

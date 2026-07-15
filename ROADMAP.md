@@ -31,14 +31,13 @@
 - `v0.3.7`：private 仓库内部正式版，用于内测验证刷新历史返回、新用户使用路径、Git 缺失降级和 Git for Windows 安装指引。
 - `2026-07-15`：完成源码与历史密钥模式检查、本机绝对路径脱敏和 GitHub 仓库公开；`v0.3.9` 成为公开可下载基线。
 - `v0.4.0-dev.1`：完成 Windows NSIS 更新状态机、设置页更新卡片、全局提示、Release 元数据、draft 发布 workflow、错误脱敏和 updater 专项校验；未签名构建只检查更新并引导手动安装。
+- `v0.4.0`：发布首个 updater-enabled 公开正式版；Release 同时提供安装包、`latest.yml`、blockmap 和 SHA256，作为后续签名版升级验收的安装起点。
 
 ## 公开发布后优先级
 
-1. 按 `docs/auto-update-development-plan-2026-07-15.md` 实施 `v0.4.0-dev.*`，先完成更新状态机、设置页更新卡片和 Release 元数据闭环。
-2. 确认 Windows 可信代码签名方案；签名前生产版本只检查更新并引导手动下载，不后台执行未签名安装包。
-3. 用两个连续的 updater-enabled 安装版完成检查、下载、重启安装和用户数据保留验收。
-4. 使用 GitHub Actions 验证安装包、`latest.yml`、blockmap 和 SHA256 资产完整性。
-5. 增加 collector 层测试，优先覆盖 JSONL 解析、`rate_limits` 缺失、仓库归因和计费窗口。
+1. 确认 Windows 可信代码签名方案；签名前生产版本只检查更新并引导手动下载，不后台执行未签名安装包。
+2. 以 `v0.4.0` 为旧版、后续更高签名版本为新版，完成检查、下载、重启安装和用户数据保留验收。
+3. 增加 collector 层测试，优先覆盖 JSONL 解析、`rate_limits` 缺失、仓库归因和计费窗口。
 
 ## 下一步
 

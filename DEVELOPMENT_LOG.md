@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-15] v0.4.0 release: 发布首个 updater-enabled 公开正式版
+
+- 开发原因：自动升级第一阶段、公开仓库和 Release 资产链路已经完成，需要发布一个内置 updater 的正式安装版，作为后续更高版本升级验收的可靠起点。
+- 实现方式：应用版本与 app-server `clientVersion` 从 `0.4.0-dev.1` 收敛为 `0.4.0`；README、Roadmap、数据合同、组件映射、自动升级规划和 Release notes 同步正式版口径；Windows workflow 使用官方 `actions/*@v7`，tag 构建自动创建 draft Release，并上传安装包、`latest.yml`、blockmap 和 SHA256。
+- 当前结果：本地生成 `Codex.Companion.Setup.0.4.0.exe`，大小 `105454921` bytes，SHA256 为 `1134342D1C60AD57D506258C8F272092B73C75308B063B7EDC5C4E224B9664A7`；`latest.yml` 固定 `version=0.4.0`、安装包路径、大小和 SHA512，包内 `app-update.yml` 固定公开 GitHub stable channel。
+- 验证方式：Node `22.23.1` / npm `10.9.8` 下执行 `npm ci`、`npm run package:win`、`npm run verify:updater`、`npm run verify:quota`、`npm run verify:ledger`、`npm run verify:design`、`npm audit --audit-level=low` 和 `git diff --check`；依赖审计为 `0` 个漏洞。
+- 遗留问题：本机与 GitHub Actions 当前均没有 Windows 代码签名证书或签名 Secret，安装包和应用主程序 Authenticode 均为 `NotSigned`；本版本只自动检查并引导手动安装，不后台下载或执行安装包。完整自动安装需要后续可信签名版本，并以 `v0.4.0` 为旧版完成端到端验收。
+
 ## [2026-07-15] v0.4.0-dev.1 feat: 公开仓库并完成 Windows 自动升级第一阶段
 
 - 开发原因：用户要求将仓库公开并正式开发自动升级，实施前先完成包含功能与页面的规划；公开后 GitHub CI 还暴露 `package-lock.json` 缺少 `@emnapi/core / @emnapi/runtime`，需要一起恢复公开项目的可构建状态。
