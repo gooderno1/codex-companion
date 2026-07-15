@@ -29,5 +29,8 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify updater contract
+        run: npm run verify:updater
+
       - name: Check whitespace
         run: git diff --check

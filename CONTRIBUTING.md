@@ -33,6 +33,7 @@ npm run package:win
 
 ```bash
 npm run build
+npm run verify:updater
 git diff --check
 ```
 
@@ -84,3 +85,5 @@ PR 至少应说明：
 - 是否需要更新 Release notes 或 Roadmap
 
 CI 会执行 `npm ci`、`npm run build` 和 `git diff --check`。如果 CI 失败，请先修复后再请求 review。
+
+涉及应用更新时，还必须执行 `npm run verify:updater`；修改正式发布 workflow 时需确认安装包、`latest.yml`、blockmap 和 SHA256 文件同时生成，且 tag 与 `package.json` 稳定版本完全一致。

@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.3.9`
+- 对应版本：`v0.4.0-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -173,6 +173,18 @@
 - 展示方式：渲染层通过 `notifications:get` 读取应用内提醒，顶部铃铛展示最近 8 条快速摘要，通知页展示完整历史、筛选、分页和详情；通过 `notifications:updated` 接收更新，通过 `notifications:mark-read` 标记已读；系统通知只是同一条应用内提醒的外部提示。
 - 去重方式：赠送重置过期提醒按 `banked-reset:expiration:<milestone>:<estimatedExpiresAt>` 生成稳定 key；待确认提醒按状态、数量和首次观测时间生成稳定 key；额度提醒按额度窗口、周期起止和阈值生成稳定 key。同一 key 已存在时只更新标题和正文，不更新最近触发时间、不重置未读、不重复创建系统弹窗。
 - 隐私边界：提醒正文只包含聚合后的剩余百分比、周期范围和赠送重置估算时间，不展示账号、邮箱、原始 app-server 响应、余额字段、原始 JSONL、用户输入正文或模型输出正文。
+
+### 2.7 应用更新
+
+- `UpdateState.phase` 只允许 `idle / checking / up-to-date / available / downloading / downloaded / installing / error / unsupported`。
+- `currentVersion` 必须来自主进程 `app.getVersion()`；renderer 不自行决定可用版本或比较结果。
+- `availableVersion / releaseDate / releaseNotes / downloadSize` 来自 GitHub update metadata；Release notes 必须清洗为最多 `4000` 字符纯文本。
+- `progress` 只在下载态包含 `percent / bytesPerSecond / transferred / total`，百分比归一化到 `0..100`。
+- `errorCode / errorMessage` 只允许稳定错误码和脱敏中文摘要，不包含 token、请求头、下载路径或底层堆栈。
+- `canCheck` 只在 Windows 已打包 NSIS 形态为真；开发模式、便携版和其他平台输出 `unsupported`。
+- `canAutoInstall` 只有在 Windows 已打包形态与可信 publisher 门禁同时满足时为真；当前未签名构建固定为假。
+- `preferences.updates` 保存 `autoCheck / autoDownload / ignoredVersion / installOnQuit`；默认自动检查和自动下载意向为真，但 `autoDownload` 仍受 `canAutoInstall` 强制门禁。
+- renderer 通过 `updates:get-state / check / download / install / set-preferences / open-release` 触发受控动作，通过 `updates:state-changed` 接收状态；不能指定任意 feed 或 URL。
 
 ## 3. 状态字段
 

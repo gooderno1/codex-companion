@@ -1,0 +1,321 @@
+import { app } from "electron";
+import { autoUpdater } from "electron-updater";
+import type { ProgressInfo } from "builder-util-runtime";
+
+import type {
+  UpdatePreferences,
+  UpdateState
+} from "../shared/contracts";
+import {
+  downloadSizeFromInfo,
+  normalizeUpdateError,
+  RELEASES_URL,
+  releaseUrlForVersion,
+  sanitizeReleaseNotes
+} from "./updateUtils";
+
+const STARTUP_CHECK_DELAY_MS = 15_000;
+const PERIODIC_CHECK_INTERVAL_MS = 6 * 60 * 60_000;
+
+// 可信 Windows publisher 配置落地前保持为空。签名接入时必须同时配置
+// electron-builder 的 win.publisherName，并用连续两个签名版本完成升级验收。
+const TRUSTED_WINDOWS_PUBLISHER: string | null = null;
+
+interface UpdateServiceOptions {
+  preferences: UpdatePreferences;
+  onStateChanged: (state: UpdateState) => void;
+}
+
+function cloneState(state: UpdateState): UpdateState {
+  return {
+    ...state,
+    progress: state.progress ? { ...state.progress } : null
+  };
+}
+
+export class UpdateService {
+  private preferences: UpdatePreferences;
+  private state: UpdateState;
+  private startupTimer: NodeJS.Timeout | null = null;
+  private periodicTimer: NodeJS.Timeout | null = null;
+  private checkTask: Promise<UpdateState> | null = null;
+  private downloadTask: Promise<UpdateState> | null = null;
+  private started = false;
+
+  private readonly supported =
+    app.isPackaged &&
+    process.platform === "win32" &&
+    !process.env.PORTABLE_EXECUTABLE_DIR;
+
+  private readonly canAutoInstall =
+    this.supported &&
+    Boolean(TRUSTED_WINDOWS_PUBLISHER);
+
+  public constructor(private readonly options: UpdateServiceOptions) {
+    this.preferences = options.preferences;
+    this.state = {
+      phase: this.supported ? "idle" : "unsupported",
+      currentVersion: app.getVersion(),
+      availableVersion: null,
+      releaseDate: null,
+      releaseNotes: null,
+      releaseUrl: RELEASES_URL,
+      downloadSize: null,
+      progress: null,
+      lastCheckedAt: null,
+      errorCode: null,
+      errorMessage: this.supported
+        ? null
+        : "开发模式、便携版或当前平台不支持自动升级，请从 Releases 手动下载安装。",
+      canCheck: this.supported,
+      canAutoInstall: this.canAutoInstall
+    };
+  }
+
+  public start() {
+    if (this.started) {
+      return;
+    }
+    this.started = true;
+
+    if (!this.supported) {
+      this.emitState();
+      return;
+    }
+
+    autoUpdater.logger = null;
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit =
+      this.canAutoInstall && this.preferences.installOnQuit;
+    autoUpdater.autoRunAppAfterInstall = true;
+    autoUpdater.allowPrerelease = false;
+    autoUpdater.allowDowngrade = false;
+    autoUpdater.fullChangelog = false;
+    autoUpdater.disableWebInstaller = true;
+
+    autoUpdater.on("checking-for-update", () => {
+      this.patchState({
+        phase: "checking",
+        errorCode: null,
+        errorMessage: null,
+        progress: null
+      });
+    });
+    autoUpdater.on("update-not-available", () => {
+      this.patchState({
+        phase: "up-to-date",
+        availableVersion: null,
+        releaseDate: null,
+        releaseNotes: null,
+        releaseUrl: RELEASES_URL,
+        downloadSize: null,
+        progress: null,
+        lastCheckedAt: new Date().toISOString(),
+        errorCode: null,
+        errorMessage: null
+      });
+    });
+    autoUpdater.on("update-available", (info) => {
+      this.patchState({
+        phase: "available",
+        availableVersion: info.version,
+        releaseDate: info.releaseDate || null,
+        releaseNotes: sanitizeReleaseNotes(info.releaseNotes),
+        releaseUrl: releaseUrlForVersion(info.version),
+        downloadSize: downloadSizeFromInfo(info),
+        progress: null,
+        lastCheckedAt: new Date().toISOString(),
+        errorCode: null,
+        errorMessage: null
+      });
+
+      if (
+        this.canAutoInstall &&
+        this.preferences.autoDownload &&
+        this.preferences.ignoredVersion !== info.version
+      ) {
+        void this.downloadUpdate();
+      }
+    });
+    autoUpdater.on("download-progress", (progress) => {
+      this.handleDownloadProgress(progress);
+    });
+    autoUpdater.on("update-downloaded", (event) => {
+      this.patchState({
+        phase: "downloaded",
+        availableVersion: event.version,
+        releaseDate: event.releaseDate || this.state.releaseDate,
+        releaseNotes: sanitizeReleaseNotes(event.releaseNotes) ?? this.state.releaseNotes,
+        releaseUrl: releaseUrlForVersion(event.version),
+        downloadSize: downloadSizeFromInfo(event) ?? this.state.downloadSize,
+        progress: this.state.progress
+          ? { ...this.state.progress, percent: 100 }
+          : null,
+        errorCode: null,
+        errorMessage: null
+      });
+    });
+    autoUpdater.on("error", (error) => {
+      this.patchState({
+        phase: "error",
+        progress: null,
+        lastCheckedAt: new Date().toISOString(),
+        ...normalizeUpdateError(error)
+      });
+    });
+
+    this.refreshSchedule(true);
+    this.emitState();
+  }
+
+  public stop() {
+    this.clearSchedule();
+  }
+
+  public getState(): UpdateState {
+    return cloneState(this.state);
+  }
+
+  public getReleaseUrl(): string {
+    return this.state.releaseUrl.startsWith(RELEASES_URL)
+      ? this.state.releaseUrl
+      : RELEASES_URL;
+  }
+
+  public setPreferences(preferences: UpdatePreferences) {
+    const autoCheckChanged = this.preferences.autoCheck !== preferences.autoCheck;
+    this.preferences = preferences;
+    autoUpdater.autoInstallOnAppQuit =
+      this.canAutoInstall && preferences.installOnQuit;
+    if (autoCheckChanged) {
+      this.refreshSchedule(preferences.autoCheck);
+    }
+    this.emitState();
+  }
+
+  public checkForUpdates(): Promise<UpdateState> {
+    if (!this.supported) {
+      return Promise.resolve(this.getState());
+    }
+    if (this.checkTask) {
+      return this.checkTask;
+    }
+
+    this.checkTask = autoUpdater
+      .checkForUpdates()
+      .then(() => this.getState())
+      .catch((error: unknown) => {
+        this.patchState({
+          phase: "error",
+          progress: null,
+          lastCheckedAt: new Date().toISOString(),
+          ...normalizeUpdateError(error)
+        });
+        return this.getState();
+      })
+      .finally(() => {
+        this.checkTask = null;
+      });
+    return this.checkTask;
+  }
+
+  public downloadUpdate(): Promise<UpdateState> {
+    if (!this.canAutoInstall || this.state.phase !== "available") {
+      return Promise.resolve(this.getState());
+    }
+    if (this.downloadTask) {
+      return this.downloadTask;
+    }
+
+    this.patchState({
+      phase: "downloading",
+      progress: {
+        percent: 0,
+        bytesPerSecond: 0,
+        transferred: 0,
+        total: this.state.downloadSize ?? 0
+      },
+      errorCode: null,
+      errorMessage: null
+    });
+
+    this.downloadTask = autoUpdater
+      .downloadUpdate()
+      .then(() => this.getState())
+      .catch((error: unknown) => {
+        this.patchState({
+          phase: "error",
+          progress: null,
+          ...normalizeUpdateError(error)
+        });
+        return this.getState();
+      })
+      .finally(() => {
+        this.downloadTask = null;
+      });
+    return this.downloadTask;
+  }
+
+  public quitAndInstall() {
+    if (!this.canAutoInstall || this.state.phase !== "downloaded") {
+      return false;
+    }
+
+    this.patchState({ phase: "installing", errorCode: null, errorMessage: null });
+    this.clearSchedule();
+    autoUpdater.quitAndInstall(false, true);
+    return true;
+  }
+
+  private handleDownloadProgress(progress: ProgressInfo) {
+    this.patchState({
+      phase: "downloading",
+      progress: {
+        percent: Math.max(0, Math.min(100, progress.percent)),
+        bytesPerSecond: Math.max(0, progress.bytesPerSecond),
+        transferred: Math.max(0, progress.transferred),
+        total: Math.max(0, progress.total)
+      },
+      errorCode: null,
+      errorMessage: null
+    });
+  }
+
+  private patchState(patch: Partial<UpdateState>) {
+    this.state = { ...this.state, ...patch };
+    this.emitState();
+  }
+
+  private emitState() {
+    this.options.onStateChanged(this.getState());
+  }
+
+  private refreshSchedule(runStartupCheck: boolean) {
+    this.clearSchedule();
+    if (!this.started || !this.supported || !this.preferences.autoCheck) {
+      return;
+    }
+
+    if (runStartupCheck) {
+      this.startupTimer = setTimeout(() => {
+        this.startupTimer = null;
+        void this.checkForUpdates();
+      }, STARTUP_CHECK_DELAY_MS);
+    }
+
+    this.periodicTimer = setInterval(() => {
+      void this.checkForUpdates();
+    }, PERIODIC_CHECK_INTERVAL_MS);
+  }
+
+  private clearSchedule() {
+    if (this.startupTimer) {
+      clearTimeout(this.startupTimer);
+      this.startupTimer = null;
+    }
+    if (this.periodicTimer) {
+      clearInterval(this.periodicTimer);
+      this.periodicTimer = null;
+    }
+  }
+}

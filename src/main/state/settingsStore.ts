@@ -5,6 +5,7 @@ import type {
   AppPreferences,
   NotificationDeliveryMode,
   NotificationPreferences,
+  UpdatePreferences,
   WidgetPreferences
 } from "../../shared/contracts";
 import { pathExists, readJsonFile, writeJsonFile } from "../utils/fs";
@@ -144,6 +145,40 @@ function defaultNotificationPreferences(): NotificationPreferences {
   };
 }
 
+function defaultUpdatePreferences(): UpdatePreferences {
+  return {
+    autoCheck: true,
+    autoDownload: true,
+    ignoredVersion: null,
+    installOnQuit: false
+  };
+}
+
+function normalizeUpdatePreferences(
+  value: unknown,
+  fallback: UpdatePreferences
+): UpdatePreferences {
+  const record = value && typeof value === "object"
+    ? value as Partial<Record<keyof UpdatePreferences, unknown>>
+    : {};
+  const ignoredVersion = typeof record.ignoredVersion === "string" && record.ignoredVersion.trim()
+    ? record.ignoredVersion.trim()
+    : null;
+
+  return {
+    autoCheck: typeof record.autoCheck === "boolean" ? record.autoCheck : fallback.autoCheck,
+    autoDownload:
+      typeof record.autoDownload === "boolean"
+        ? record.autoDownload
+        : fallback.autoDownload,
+    ignoredVersion,
+    installOnQuit:
+      typeof record.installOnQuit === "boolean"
+        ? record.installOnQuit
+        : fallback.installOnQuit
+  };
+}
+
 export class SettingsStore {
   private readonly settingsPath: string;
 
@@ -157,7 +192,8 @@ export class SettingsStore {
       repoRoots: await resolveDefaultRepoRoots(),
       billingMonthStartDay: DEFAULT_BILLING_MONTH_START_DAY,
       widget: defaultWidgetPreferences(),
-      notifications: defaultNotificationPreferences()
+      notifications: defaultNotificationPreferences(),
+      updates: defaultUpdatePreferences()
     };
 
     const stored = await readJsonFile<Partial<AppPreferences>>(this.settingsPath);
@@ -177,7 +213,8 @@ export class SettingsStore {
       notifications: normalizeNotificationPreferences(
         stored.notifications,
         fallback.notifications
-      )
+      ),
+      updates: normalizeUpdatePreferences(stored.updates, fallback.updates)
     };
 
     await writeJsonFile(this.settingsPath, merged);
@@ -193,7 +230,8 @@ export class SettingsStore {
       repoRoots: await resolveDefaultRepoRoots(),
       billingMonthStartDay: DEFAULT_BILLING_MONTH_START_DAY,
       widget: defaultWidgetPreferences(),
-      notifications: defaultNotificationPreferences()
+      notifications: defaultNotificationPreferences(),
+      updates: defaultUpdatePreferences()
     };
     const next = updater(current);
     const normalized: AppPreferences = {
@@ -207,7 +245,8 @@ export class SettingsStore {
       notifications: normalizeNotificationPreferences(
         next.notifications,
         current.notifications
-      )
+      ),
+      updates: normalizeUpdatePreferences(next.updates, current.updates)
     };
     await writeJsonFile(this.settingsPath, normalized);
     return normalized;

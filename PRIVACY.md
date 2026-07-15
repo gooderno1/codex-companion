@@ -15,6 +15,7 @@
 - 刷新历史：最近若干次手动、自动或启动刷新结果，只包含触发来源、耗时、快照来源和聚合文件数量
 - 增量缓存：每个 Codex JSONL 文件的路径、`size`、`mtimeMs` 与解析后的统计结果，用于避免重复解析；不保存原始 JSONL 行、用户输入正文或模型输出正文
 - 通知状态：`notification-state.json` 保存提醒 key、标题、正文、类别、级别、触发时间、系统通知时间和已读时间，用于应用内提醒中心展示详情，并避免自动刷新时重复提醒
+- 更新设置：`settings.json` 保存是否自动检查、是否自动下载、忽略版本和退出安装选择；不保存 GitHub token、下载请求头或安装包本机路径
 
 默认存储位置为 Electron `userData` 目录，例如 Windows 下通常位于：
 
@@ -27,6 +28,13 @@
 - 不上传仓库名、路径、模型明细或成本数据到云端
 - 首版不请求 GitHub token
 - 应用内提醒和系统通知不展示账号、邮箱、原始 app-server 响应、原始会话正文、用户输入正文或模型输出正文
+
+## 应用更新网络边界
+
+- Windows 安装版只访问公开的 `github.com/gooderno1/codex-companion/releases` 与对应 Release 资产。
+- 更新检查会产生普通 HTTPS 请求，但不会附带 GitHub token，也不会上传 Codex session、仓库名、路径、模型、额度、通知历史或本机 Git 身份。
+- Release notes 在主进程转换为受限长度纯文本后才发送到 renderer，不直接渲染远端 HTML。
+- 可信 Windows 代码签名启用前，生产构建只检查更新并引导手动下载，不后台执行未签名安装包。
 
 ## 数据目录配置
 

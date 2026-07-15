@@ -1,14 +1,15 @@
 # DEVELOPMENT LOG
 
-## [2026-07-15] v0.4.0-dev.1 docs: 公开仓库并规划 Windows 自动升级
+## [2026-07-15] v0.4.0-dev.1 feat: 公开仓库并完成 Windows 自动升级第一阶段
 
-- 开发原因：用户要求将仓库公开，以支撑后续上线自动升级；同时要求先完成自动升级功能与页面的正式规划，规划通过前不修改应用实现。
-- 实现方式：开发前确认工作区干净、远端为 `gooderno1/codex-companion` 且可见性为 private；扫描当前跟踪文件、敏感文件名和完整 Git 提交历史中的常见 token、私钥、访问密钥模式，未发现命中；将 4 份历史文档中的开发机绝对路径和 Windows 用户目录脱敏；新增 `docs/auto-update-development-plan-2026-07-15.md`，明确 Windows NSIS stable 通道、设置页更新卡片、全局提示、下载进度、用户确认安装、IPC 边界、Release workflow、签名门禁、回滚和端到端测试；同步 README、Roadmap、Security、公开开源规划和最新 Release notes。
-- 适用范围：本规划只覆盖 Windows x64 NSIS 安装版和 GitHub 正式 Release；不包含 macOS、Linux、便携版、beta/nightly、多通道、强制更新或静默重启。
-- 触发条件：自动检查默认开启，计划在首屏加载后约 `15` 秒检查，并每 `6` 小时低频检查；自动下载和安装只有在正式打包、Windows NSIS、可信签名与用户设置同时满足时启用。
-- 排除条件：签名门禁未满足时只检查更新并打开 Releases 手动安装；`v0.3.9` 没有 updater，不能直接自动升级到 `v0.4.0`，首次真实自动升级验收需要两个连续的 updater-enabled 版本。
-- 当前结果：GitHub 仓库与现有 Releases 已公开；自动升级进入正式规划状态，应用运行时版本仍为 `v0.3.9`，本轮没有引入 `electron-updater`、IPC、页面组件或发布 workflow 实现。
-- 验证方式：执行 `npm run build`、`git diff --check`、敏感模式复扫、`gh repo view`、匿名访问仓库与 Release 资产检查；确认构建通过、工作区无空白错误、仓库为 public 且公开页面可访问。
+- 开发原因：用户要求将仓库公开并正式开发自动升级，实施前先完成包含功能与页面的规划；公开后 GitHub CI 还暴露 `package-lock.json` 缺少 `@emnapi/core / @emnapi/runtime`，需要一起恢复公开项目的可构建状态。
+- 实现方式：先扫描当前跟踪文件、敏感文件名和完整 Git 历史中的常见 token、私钥与访问密钥模式，未发现命中，并脱敏 4 份历史文档中的开发机绝对路径；建立 `docs/auto-update-development-plan-2026-07-15.md`；仓库切为 public，补齐 description、homepage、topics、Secret Scanning 和 Push Protection；应用升级到 `0.4.0-dev.1`，引入 `electron-updater@6.8.9`，新增 `UpdateService / updateUtils`、更新状态合同、设置迁移、IPC/preload、设置页更新卡片、全局提示、Release 详情/进度弹层和纯文本 Release notes；Windows workflow 增加 tag/版本校验、draft 发布、更新资产检查与 SHA256 上传；CI 增加 updater 专项校验。
+- 适用范围：Windows x64 NSIS 安装版和 GitHub stable Release；`UpdateState.phase` 覆盖 `idle / checking / up-to-date / available / downloading / downloaded / installing / error / unsupported`；不包含 macOS、Linux、便携版、beta/nightly、多通道、强制更新或静默重启。
+- 触发条件：自动检查默认开启，首屏加载后约 `15s` 检查，运行期间每 `6h` 检查；更新状态只由主进程维护；自动下载和安装仅在 packaged Windows NSIS、可信 publisher 门禁与用户设置同时满足时启用。
+- 排除条件：当前安装包 Authenticode 为 `NotSigned`，所以 `canAutoInstall=false`，只真实检查 GitHub Release 并打开受控 Releases 地址；`v0.3.9` 没有 updater，不能直接自动升级到 `v0.4.0`；首次自动安装验收需要两个连续的 updater-enabled 版本。
+- 当前结果：源码、现有 Releases 和最新 `v0.3.9` 安装包已公开；`v0.4.0-dev.1` 已具备更新检查、状态/错误展示、设置持久化、发布元数据与签名门禁；本地 NSIS 产物为 `Codex.Companion.Setup.0.4.0-dev.1.exe`，同时生成 `latest.yml`、blockmap 和包内 `app-update.yml`，安装包 SHA256 为 `C029B7805DFEA6540A2927077ACFE3424E1757641B3F08FA371C4B531E911830`。
+- 验证方式：`npm ci`、`npm run build`、`npm run verify:updater`、`npm run package:win`、`npm audit --audit-level=low` 和 `git diff --check` 通过；1360×900 开发态与 packaged 设置页人工截图通过；匿名访问仓库与 `v0.3.9` Release 资产返回 HTTP 200；packaged 构建真实请求更新 feed，在旧 Release 缺少 `latest.yml` 时按契约显示 `metadata-missing` 并降级到手动下载。
+- 遗留问题：可信 Windows 代码签名尚未接入，自动下载/安装保持关闭；需发布首个 updater-enabled 正式版后，再用更高版本完成检查、下载、签名校验、重启安装和用户数据保留的端到端验收。
 
 ## [2026-07-15] v0.3.9 release: 内部正式版
 

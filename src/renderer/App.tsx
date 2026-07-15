@@ -26,8 +26,14 @@ import type {
   RefreshTrigger,
   SourceStatus,
   TokenBreakdown,
+  UpdateState,
   WidgetMetric
 } from "../shared/contracts";
+import {
+  UpdateBanner,
+  UpdateDialog,
+  UpdateSettingsCard
+} from "./components/update/UpdateExperience";
 import { BrandMark, Glyph, type IconName } from "./icons";
 
 const NAV_ITEMS: Array<{
@@ -67,7 +73,7 @@ const PAGE_META: Record<
   },
   settings: {
     title: "设置",
-    subtitle: "数据源、计费口径、Git 与本机边界"
+    subtitle: "应用更新、数据源、计费口径、Git 与本机边界"
   }
 };
 
@@ -1835,7 +1841,10 @@ function SettingsPage({
   gitStatus,
   onSaveBillingMonthStartDay,
   onSaveCodexHome,
-  onSaveRepoRoots
+  onSaveRepoRoots,
+  updateState,
+  updateActions,
+  onShowUpdateDetails
 }: {
   snapshot: DashboardSnapshot | null;
   preferences: AppPreferences | null;
@@ -1843,6 +1852,9 @@ function SettingsPage({
   onSaveBillingMonthStartDay: (day: number) => Promise<void>;
   onSaveCodexHome: (codexHome: string) => Promise<void>;
   onSaveRepoRoots: (roots: string[]) => Promise<void>;
+  updateState: UpdateState | null;
+  updateActions: React.ComponentProps<typeof UpdateSettingsCard>["actions"];
+  onShowUpdateDetails: () => void;
 }) {
   const currentDay = preferences?.billingMonthStartDay ?? 1;
   const currentCodexHome = preferences?.codexHome ?? snapshot?.sourceHealth.codexHome ?? "";
@@ -1953,6 +1965,13 @@ function SettingsPage({
           </article>
         </div>
       </SectionCard>
+
+      <UpdateSettingsCard
+        state={updateState}
+        preferences={preferences?.updates ?? null}
+        actions={updateActions}
+        onShowDetails={onShowUpdateDetails}
+      />
 
       <SectionCard className="settings-panel">
         <div className="section-toolbar">
@@ -3911,6 +3930,9 @@ export default function App() {
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
   const [notifications, setNotifications] = useState<DashboardNotificationEntry[]>([]);
   const [gitStatus, setGitStatus] = useState<GitIntegrationStatus | null>(null);
+  const [updateState, setUpdateState] = useState<UpdateState | null>(null);
+  const [updateBusy, setUpdateBusy] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [overviewMode, setOverviewMode] = useState<OverviewMode>(resolveOverviewModeFromHash);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -3957,6 +3979,12 @@ export default function App() {
 
   useEffect(() => {
     void window.codexCompanion.getGitIntegrationStatus().then(setGitStatus);
+  }, []);
+
+  useEffect(() => {
+    void window.codexCompanion.getUpdateState().then(setUpdateState);
+    const unsubscribe = window.codexCompanion.onUpdateStateChanged(setUpdateState);
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -4142,6 +4170,50 @@ export default function App() {
     }
   }
 
+  async function checkForApplicationUpdate() {
+    setUpdateBusy(true);
+    try {
+      setUpdateState(await window.codexCompanion.checkForUpdates());
+    } finally {
+      setUpdateBusy(false);
+    }
+  }
+
+  async function downloadApplicationUpdate() {
+    setUpdateBusy(true);
+    try {
+      setUpdateDialogOpen(true);
+      setUpdateState(await window.codexCompanion.downloadUpdate());
+    } finally {
+      setUpdateBusy(false);
+    }
+  }
+
+  async function installApplicationUpdate() {
+    setUpdateBusy(true);
+    try {
+      await window.codexCompanion.installUpdate();
+    } finally {
+      setUpdateBusy(false);
+    }
+  }
+
+  async function setApplicationUpdatePreferences(
+    patch: Partial<AppPreferences["updates"]>
+  ) {
+    setUpdateBusy(true);
+    try {
+      const next = await window.codexCompanion.setUpdatePreferences(patch);
+      setPreferences(next);
+    } finally {
+      setUpdateBusy(false);
+    }
+  }
+
+  async function openApplicationRelease() {
+    await window.codexCompanion.openUpdateRelease();
+  }
+
   if (page === "widget") {
     return <WidgetView snapshot={snapshot} preferences={preferences} />;
   }
@@ -4174,6 +4246,14 @@ export default function App() {
       : gitStatus?.available === false
         ? "未检测到本机 Git 命令；Codex 用量仍可查看，代码仓库统计需要先安装 Git。"
         : "未检测到 Git 仓库，请确认仓库根目录是否包含本机代码项目。";
+  const updateActions = {
+    busy: updateBusy,
+    onCheck: checkForApplicationUpdate,
+    onDownload: downloadApplicationUpdate,
+    onInstall: installApplicationUpdate,
+    onOpenRelease: openApplicationRelease,
+    onSetPreferences: setApplicationUpdatePreferences
+  };
 
   return (
     <div className="app-shell">
@@ -4282,6 +4362,13 @@ export default function App() {
           </div>
         </header>
 
+        <UpdateBanner
+          state={updateState}
+          preferences={preferences?.updates ?? null}
+          actions={updateActions}
+          onShowDetails={() => setUpdateDialogOpen(true)}
+        />
+
         {refreshFeedback ? (
           <div className={`refresh-feedback refresh-feedback-${refreshFeedback.phase}`} role="status" aria-live="polite">
             <strong>{refreshFeedback.title}</strong>
@@ -4333,13 +4420,16 @@ export default function App() {
             ) : null}
             {currentPage === "settings" ? (
               <SettingsPage
-                key={`${preferences?.billingMonthStartDay ?? "settings"}:${preferences?.codexHome ?? ""}:${preferences?.repoRoots.join("|") ?? ""}:${preferences?.notifications.deliveryMode ?? ""}`}
+                key={`${preferences?.billingMonthStartDay ?? "settings"}:${preferences?.codexHome ?? ""}:${preferences?.repoRoots.join("|") ?? ""}:${preferences?.notifications.deliveryMode ?? ""}:${preferences?.updates.autoCheck ?? ""}:${preferences?.updates.autoDownload ?? ""}:${preferences?.updates.ignoredVersion ?? ""}`}
                 snapshot={snapshot}
                 preferences={preferences}
                 gitStatus={gitStatus}
                 onSaveBillingMonthStartDay={saveBillingMonthStartDay}
                 onSaveCodexHome={saveCodexHome}
                 onSaveRepoRoots={saveRepoRoots}
+                updateState={updateState}
+                updateActions={updateActions}
+                onShowUpdateDetails={() => setUpdateDialogOpen(true)}
               />
             ) : null}
 
@@ -4348,6 +4438,12 @@ export default function App() {
             </>
           ) : null}
         </div>
+        <UpdateDialog
+          state={updateState}
+          actions={updateActions}
+          open={updateDialogOpen}
+          onClose={() => setUpdateDialogOpen(false)}
+        />
       </main>
     </div>
   );

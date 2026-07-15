@@ -21,6 +21,7 @@ import type {
   DashboardNotificationEntry,
   DashboardSnapshot,
   RefreshTrigger,
+  UpdateState,
   WidgetPreferences
 } from "../shared/contracts";
 import { DashboardService } from "./collectors/dashboardCollector";
@@ -28,6 +29,7 @@ import { CodexSessionCacheStore } from "./state/codexSessionCacheStore";
 import { DashboardNotificationService } from "./notifications";
 import { SettingsStore } from "./state/settingsStore";
 import { SnapshotStore } from "./state/snapshotStore";
+import { UpdateService } from "./updateService";
 import { readGitIntegrationStatus } from "./utils/git";
 
 let mainWindow: BrowserWindow | null = null;
@@ -36,6 +38,7 @@ let tray: Tray | null = null;
 let isQuitting = false;
 let dashboardService: DashboardService;
 let dashboardNotificationService: DashboardNotificationService | null = null;
+let updateService: UpdateService | null = null;
 let currentPreferences: AppPreferences | null = null;
 let latestSnapshot: DashboardSnapshot | null = null;
 let persistBoundsTimer: NodeJS.Timeout | null = null;
@@ -493,6 +496,15 @@ function sendNotificationsUpdate(
   targetWindow.webContents.send("notifications:updated", notifications);
 }
 
+function broadcastUpdateState(state: UpdateState) {
+  if (mainWindow && !mainWindow.webContents.isDestroyed()) {
+    mainWindow.webContents.send("updates:state-changed", state);
+  }
+  if (!WIDGET_DISABLED && widgetWindow && !widgetWindow.webContents.isDestroyed()) {
+    widgetWindow.webContents.send("updates:state-changed", state);
+  }
+}
+
 async function broadcastDashboardNotifications() {
   if (!dashboardNotificationService) {
     return [];
@@ -850,12 +862,38 @@ function registerIpcHandlers() {
     return notifications;
   });
   ipcMain.handle("git:status", async () => readGitIntegrationStatus());
+  ipcMain.handle("updates:get-state", async () => updateService?.getState());
+  ipcMain.handle("updates:check", async () => updateService?.checkForUpdates());
+  ipcMain.handle("updates:download", async () => updateService?.downloadUpdate());
+  ipcMain.handle("updates:install", async () => {
+    isQuitting = true;
+    stopDashboardAutoRefresh();
+    if (!updateService?.quitAndInstall()) {
+      isQuitting = false;
+      return;
+    }
+  });
+  ipcMain.handle("updates:set-preferences", async (_event, patch) => {
+    const next = await dashboardService.updateUpdatePreferences(patch);
+    currentPreferences = next;
+    updateService?.setPreferences(next.updates);
+    await broadcastPreferences(next);
+    return next;
+  });
+  ipcMain.handle("updates:open-release", async () => {
+    const target = updateService?.getReleaseUrl();
+    if (!target) {
+      return;
+    }
+    await shell.openExternal(target);
+  });
   ipcMain.handle("preferences:get", async () => dashboardService.getPreferences());
   ipcMain.handle(
     "preferences:update",
     async (_event, patch: Partial<AppPreferences>) => {
       const next = await dashboardService.updatePreferences(patch);
       currentPreferences = next;
+      updateService?.setPreferences(next.updates);
       await broadcastPreferences(next);
       return next;
     }
@@ -924,6 +962,10 @@ async function bootstrap() {
   );
   dashboardNotificationService = new DashboardNotificationService(userDataPath);
   currentPreferences = await dashboardService.getPreferences();
+  updateService = new UpdateService({
+    preferences: currentPreferences.updates,
+    onStateChanged: broadcastUpdateState
+  });
 
   createMainWindow();
   if (!WIDGET_DISABLED) {
@@ -936,6 +978,7 @@ async function bootstrap() {
   });
 
   registerIpcHandlers();
+  updateService.start();
   await applyWidgetPreferences(currentPreferences);
   void broadcastDashboardNotifications();
   void loadSnapshot(false);
@@ -953,6 +996,7 @@ app.whenReady().then(() => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  updateService?.stop();
   stopDashboardAutoRefresh();
 });
 

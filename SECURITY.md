@@ -10,6 +10,14 @@
 - 仓库源码、私有路径、远端地址或模型使用明细被意外上传
 - Electron 主进程、preload 或 IPC 暴露了超出当前功能需要的系统能力
 - 打包产物包含不应发布的本地文件、临时文件或开发数据
+- 更新元数据、SHA512、Windows publisher 校验或 Release 资产被绕过、替换或指向非本仓库地址
+
+## 自动升级安全边界
+
+- 更新源固定为公开仓库 `gooderno1/codex-companion`，renderer 不能传入任意 feed URL、下载 URL或本机路径。
+- Release notes 由主进程清洗为纯文本，底层错误只输出稳定错误码和脱敏中文摘要。
+- GitHub Release workflow 使用最小 `contents: write` 权限；签名凭证不得写入源码、日志、Release notes 或安装包资源。
+- 当前安装包 Authenticode 状态为 `NotSigned`，因此生产自动下载与安装保持关闭；可信 publisher 配置和签名验收通过后才允许开启。
 
 ## 反馈方式
 

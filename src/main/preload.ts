@@ -7,6 +7,13 @@ const api: CodexCompanionApi = {
   getNotifications: () => ipcRenderer.invoke("notifications:get"),
   markNotificationsRead: (keys) => ipcRenderer.invoke("notifications:mark-read", keys),
   getGitIntegrationStatus: () => ipcRenderer.invoke("git:status"),
+  getUpdateState: () => ipcRenderer.invoke("updates:get-state"),
+  checkForUpdates: () => ipcRenderer.invoke("updates:check"),
+  downloadUpdate: () => ipcRenderer.invoke("updates:download"),
+  installUpdate: () => ipcRenderer.invoke("updates:install"),
+  setUpdatePreferences: (patch) =>
+    ipcRenderer.invoke("updates:set-preferences", patch),
+  openUpdateRelease: () => ipcRenderer.invoke("updates:open-release"),
   getPreferences: () => ipcRenderer.invoke("preferences:get"),
   updatePreferences: (patch) => ipcRenderer.invoke("preferences:update", patch),
   refreshDashboard: () => ipcRenderer.invoke("dashboard:refresh"),
@@ -49,6 +56,19 @@ const api: CodexCompanionApi = {
     ipcRenderer.on("notifications:updated", subscription);
     return () => {
       ipcRenderer.removeListener("notifications:updated", subscription);
+    };
+  },
+  onUpdateStateChanged: (listener) => {
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      state: Parameters<typeof listener>[0]
+    ) => {
+      listener(state);
+    };
+
+    ipcRenderer.on("updates:state-changed", subscription);
+    return () => {
+      ipcRenderer.removeListener("updates:state-changed", subscription);
     };
   },
   openPage: (page) => ipcRenderer.invoke("app:open-page", page),

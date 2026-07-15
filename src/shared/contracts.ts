@@ -13,6 +13,46 @@ export type RefreshTrigger = "manual" | "auto" | "startup" | "background";
 export type DashboardNotificationCategory = "banked-reset" | "quota";
 export type DashboardNotificationTone = "info" | "warning" | "danger";
 export type NotificationDeliveryMode = "balanced" | "important" | "quiet" | "off";
+export type UpdatePhase =
+  | "idle"
+  | "checking"
+  | "up-to-date"
+  | "available"
+  | "downloading"
+  | "downloaded"
+  | "installing"
+  | "error"
+  | "unsupported";
+
+export interface UpdatePreferences {
+  autoCheck: boolean;
+  autoDownload: boolean;
+  ignoredVersion: string | null;
+  installOnQuit: boolean;
+}
+
+export interface UpdateProgress {
+  percent: number;
+  bytesPerSecond: number;
+  transferred: number;
+  total: number;
+}
+
+export interface UpdateState {
+  phase: UpdatePhase;
+  currentVersion: string;
+  availableVersion: string | null;
+  releaseDate: string | null;
+  releaseNotes: string | null;
+  releaseUrl: string;
+  downloadSize: number | null;
+  progress: UpdateProgress | null;
+  lastCheckedAt: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  canCheck: boolean;
+  canAutoInstall: boolean;
+}
 
 export interface TokenBreakdown {
   input: number;
@@ -464,6 +504,7 @@ export interface AppPreferences {
   billingMonthStartDay: number;
   widget: WidgetPreferences;
   notifications: NotificationPreferences;
+  updates: UpdatePreferences;
 }
 
 export interface DashboardNotificationEntry {
@@ -494,6 +535,14 @@ export interface CodexCompanionApi {
   getNotifications(): Promise<DashboardNotificationEntry[]>;
   markNotificationsRead(keys?: string[]): Promise<DashboardNotificationEntry[]>;
   getGitIntegrationStatus(): Promise<GitIntegrationStatus>;
+  getUpdateState(): Promise<UpdateState>;
+  checkForUpdates(): Promise<UpdateState>;
+  downloadUpdate(): Promise<UpdateState>;
+  installUpdate(): Promise<void>;
+  setUpdatePreferences(
+    patch: Partial<UpdatePreferences>
+  ): Promise<AppPreferences>;
+  openUpdateRelease(): Promise<void>;
   getPreferences(): Promise<AppPreferences>;
   updatePreferences(patch: Partial<AppPreferences>): Promise<AppPreferences>;
   refreshDashboard(): Promise<DashboardSnapshot>;
@@ -509,6 +558,7 @@ export interface CodexCompanionApi {
   onNotificationsUpdated(
     listener: (notifications: DashboardNotificationEntry[]) => void
   ): () => void;
+  onUpdateStateChanged(listener: (state: UpdateState) => void): () => void;
   openPage(page: AppPage): Promise<void>;
   openExternal(url: string): Promise<void>;
   selectDirectory(): Promise<string | null>;

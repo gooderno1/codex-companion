@@ -6,6 +6,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   package:
     name: Package Windows
@@ -24,12 +27,54 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Package
+      - name: Validate release version
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($version.Contains("-")) {
+            throw "稳定发布不接受开发版本：$version"
+          }
+          if ("v$version" -ne "${{ github.ref_name }}") {
+            throw "tag ${{ github.ref_name }} 与 package.json v$version 不一致"
+          }
+
+      - name: Package without publishing
+        if: github.ref_type != 'tag'
         run: npm run package:win
+
+      - name: Package and publish draft release
+        if: github.ref_type == 'tag'
+        run: npm run release:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify update assets
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem release -Filter "*.exe" | Where-Object { $_.Name -like "*Setup*" } | Select-Object -First 1
+          $metadata = Get-ChildItem release -Filter "latest.yml" | Select-Object -First 1
+          $blockmap = Get-ChildItem release -Filter "*.blockmap" | Select-Object -First 1
+          if (-not $installer -or -not $metadata -or -not $blockmap) {
+            throw "缺少安装包、latest.yml 或 blockmap"
+          }
+          $hash = Get-FileHash -Algorithm SHA256 $installer.FullName
+          "$($hash.Hash)  $($installer.Name)" | Set-Content release/SHA256SUMS.txt
+
+      - name: Upload checksum to draft release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: gh release upload "${{ github.ref_name }}" release/SHA256SUMS.txt --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: codex-companion-windows
-          path: release/**
+          path: |
+            release/*.exe
+            release/*.yml
+            release/*.blockmap
+            release/SHA256SUMS.txt
           if-no-files-found: error

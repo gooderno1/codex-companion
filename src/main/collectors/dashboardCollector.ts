@@ -212,7 +212,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.3.9"
+      clientVersion: "0.4.0-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -2243,6 +2243,18 @@ export class DashboardService {
     }));
   }
 
+  public updateUpdatePreferences(
+    patch: Partial<AppPreferences["updates"]>
+  ): Promise<AppPreferences> {
+    return this.settingsStore.update((current) => ({
+      ...current,
+      updates: {
+        ...current.updates,
+        ...patch
+      }
+    }));
+  }
+
   public updatePreferences(patch: Partial<AppPreferences>): Promise<AppPreferences> {
     return this.settingsStore.update((current) => ({
       ...current,
@@ -2254,6 +2266,10 @@ export class DashboardService {
       widget: {
         ...current.widget,
         ...patch.widget
+      },
+      updates: {
+        ...current.updates,
+        ...patch.updates
       }
     }));
   }
