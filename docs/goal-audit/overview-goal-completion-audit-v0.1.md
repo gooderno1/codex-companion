@@ -7,11 +7,11 @@
 - 实现截图：`local_dev_work/overview-1360x900-dev78.png`、`local_dev_work/overview-1080x720-dev78.png`、`local_dev_work/overview-billing-1360x900-dev78.png`、`local_dev_work/overview-billing-1080x720-dev78.png`
 - 比例测量：`docs/design-review/overview-visual-measurement-v0.1.md`
 - 设计 token：`docs/design-tokens-v0.1.md`、`src/renderer/design-tokens.ts`、`npm run verify:design`
-- 运行快照：`C:\Users\85406\AppData\Roaming\codex-companion\snapshot.json`
+- 运行快照：`%APPDATA%\codex-companion\snapshot.json`
 - 额度校验：`npm run verify:quota`
 - 页面级截图：`npm run capture:overview`
 - 页面级验收：`npm run verify:overview`
-- 参考项目：`D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\dev-ledger`
+- 参考项目：同级参考仪表板项目（本地路径已脱敏）
 
 ## 1. 审计结论
 

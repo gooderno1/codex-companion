@@ -8,9 +8,10 @@
 ## 当前状态
 
 - 当前版本：`v0.3.9`
-- 当前定位：内部正式版，已兼容 Codex 新版仅提供周额度 primary 时的动态窗口识别与缺失 5H 降级展示。
+- 当前定位：公开预览版；已兼容 Codex 新版仅提供周额度 primary 时的动态窗口识别与缺失 5H 降级展示。
 - 当前平台：优先支持 Windows 桌面应用；源码开发可在具备 Electron 环境的系统上尝试运行。
 - 桌面挂件：相关代码已保留，但公开预览版暂时禁用，后续单独验证后再开放。
+- 自动升级：已完成正式规划，当前 `v0.3.9` 仍需从 Releases 手动下载安装；收到开始开发指令后进入 `v0.4.0-dev.*` 实施。
 
 ## 当前能力
 
@@ -28,7 +29,7 @@
 
 ## 普通用户快速开始
 
-内测成员可从 GitHub Releases 下载最新 Windows 安装包。
+用户可从 GitHub Releases 下载最新 Windows 安装包。当前安装包尚未配置可信 Windows 代码签名，安装时可能出现系统安全提示，请只从本仓库 Releases 下载并核对 SHA256。
 
 1. 打开 [Releases](https://github.com/gooderno1/codex-companion/releases)。
 2. 下载最新版本中的 Windows 安装包。
@@ -173,6 +174,7 @@ git diff --check
 
 - 协作规范：[AGENTS.md](./AGENTS.md)
 - 公开开源完善规划：[docs/open-source-readiness-plan-2026-06-30.md](./docs/open-source-readiness-plan-2026-06-30.md)
+- 自动升级开发规划：[docs/auto-update-development-plan-2026-07-15.md](./docs/auto-update-development-plan-2026-07-15.md)
 - 当前规划：[docs/project-development-plan-2026-06-02.md](./docs/project-development-plan-2026-06-02.md)
 - 数据契约：[docs/data-contract-v0.2.md](./docs/data-contract-v0.2.md)
 - 隐私说明：[PRIVACY.md](./PRIVACY.md)

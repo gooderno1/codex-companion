@@ -7,7 +7,7 @@
 - 影响页面：`codex-companion` 总览页、Codex 账本页、设置页数据源状态；`dev-ledger` Codex 用量账本与重置检测输出
 - 关键设计约束：继续保持 Codex 专用、本机读取、非官方声明、隐私边界清晰；不引入云端后端；不把原始 session 正文、仓库源码或敏感路径写入共享测试数据；两个上层项目只消费核心包的稳定输出，不各自维护分叉版重置规则
 - 相关数据源：Codex `sessions`、`archived_sessions`、`rate_limits`、`total_token_usage`、`last_token_usage`、脱敏 fixture、两个项目的快照与校验脚本
-- 目标核心包路径：`D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\codex-usage-core`
+- 目标核心包路径：同级 `codex-usage-core` 仓库（本地绝对路径已脱敏）
 - 目标远端仓库：[gooderno1/codex-usage-core](https://github.com/gooderno1/codex-usage-core)
 
 ## 1. 问题判断
@@ -158,7 +158,7 @@ codex-usage-core/
 
 ### 阶段 1：创建核心包仓库
 
-- 在 `D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\codex-usage-core` 初始化项目。
+- 在同级 `codex-usage-core` 仓库初始化项目。
 - 配置远端：[gooderno1/codex-usage-core](https://github.com/gooderno1/codex-usage-core)。
 - 基于当前 `codex-companion` 的 AGENTS 规则创建核心包 `AGENTS.md`。
 - 建立 `README.md`、`DEVELOPMENT_LOG.md`、`package.json`、TypeScript 构建与测试脚本。

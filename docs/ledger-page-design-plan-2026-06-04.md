@@ -20,8 +20,8 @@
   - `src/main/collectors/codexCollector.ts`
   - `src/main/collectors/dashboardCollector.ts`
   - `%APPDATA%/codex-companion/snapshot.json`
-  - `D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\dev-ledger\public\dashboard-data.local.json`
-  - `D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\dev-ledger\docs\data-contract.md`
+  - 同级参考仪表板项目的 `public/dashboard-data.local.json`（本地路径已脱敏）
+  - 同级参考仪表板项目的 `docs/data-contract.md`（本地路径已脱敏）
 - 实施顺序：
   1. 以第一页最新实际截图固定左侧导航、顶部工具栏和密度基线。
   2. 核对 `codex-companion` 当前底层事件结构与 `dev-ledger` 已验证周期字段，划分 `现有底层已可推导 / 已验证但需补接线 / 不应展示`。

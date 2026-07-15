@@ -2,7 +2,7 @@
 
 - 创建时间：2026-06-04
 - 审计基线：`v0.2.2-dev.37`
-- 参考项目：`D:\MyFile\Obisidian\LifeInHand\1. 项目\个人品牌-学习进步\CodeLib\MyCode\dev-ledger`
+- 参考项目：同级参考仪表板项目（本地路径已脱敏）
 - 审计范围：总览页顶部自然时间 Token、5H / 周额度卡 Token、额度余量与周期边界
 - 隐私边界：只读取 `token_count` 数值字段和时间戳，不输出原始会话正文、用户输入、模型回复或本地路径明细
 
@@ -140,7 +140,7 @@ npm run verify:quota
 
 校验对象：
 
-- 默认运行态快照：`C:\Users\85406\AppData\Roaming\codex-companion\snapshot.json`
+- 默认运行态快照：`%APPDATA%\codex-companion\snapshot.json`
 - 可通过 `CODEX_COMPANION_SNAPSHOT_PATH` 或 `npm run verify:quota -- --snapshot <path>` 指定其他快照
 
 校验内容：

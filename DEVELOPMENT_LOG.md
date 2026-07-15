@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-07-15] v0.4.0-dev.1 docs: 公开仓库并规划 Windows 自动升级
+
+- 开发原因：用户要求将仓库公开，以支撑后续上线自动升级；同时要求先完成自动升级功能与页面的正式规划，规划通过前不修改应用实现。
+- 实现方式：开发前确认工作区干净、远端为 `gooderno1/codex-companion` 且可见性为 private；扫描当前跟踪文件、敏感文件名和完整 Git 提交历史中的常见 token、私钥、访问密钥模式，未发现命中；将 4 份历史文档中的开发机绝对路径和 Windows 用户目录脱敏；新增 `docs/auto-update-development-plan-2026-07-15.md`，明确 Windows NSIS stable 通道、设置页更新卡片、全局提示、下载进度、用户确认安装、IPC 边界、Release workflow、签名门禁、回滚和端到端测试；同步 README、Roadmap、Security、公开开源规划和最新 Release notes。
+- 适用范围：本规划只覆盖 Windows x64 NSIS 安装版和 GitHub 正式 Release；不包含 macOS、Linux、便携版、beta/nightly、多通道、强制更新或静默重启。
+- 触发条件：自动检查默认开启，计划在首屏加载后约 `15` 秒检查，并每 `6` 小时低频检查；自动下载和安装只有在正式打包、Windows NSIS、可信签名与用户设置同时满足时启用。
+- 排除条件：签名门禁未满足时只检查更新并打开 Releases 手动安装；`v0.3.9` 没有 updater，不能直接自动升级到 `v0.4.0`，首次真实自动升级验收需要两个连续的 updater-enabled 版本。
+- 当前结果：GitHub 仓库与现有 Releases 已公开；自动升级进入正式规划状态，应用运行时版本仍为 `v0.3.9`，本轮没有引入 `electron-updater`、IPC、页面组件或发布 workflow 实现。
+- 验证方式：执行 `npm run build`、`git diff --check`、敏感模式复扫、`gh repo view`、匿名访问仓库与 Release 资产检查；确认构建通过、工作区无空白错误、仓库为 public 且公开页面可访问。
+
 ## [2026-07-15] v0.3.9 release: 内部正式版
 
 - 开发原因：用户要求把已完成的 Codex 额度窗口契约兼容修复发布为正式版；当前最新 Release 为 `v0.3.8`，需要将 `v0.3.9-dev.1` 收敛发布。

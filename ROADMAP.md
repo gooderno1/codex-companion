@@ -29,13 +29,15 @@
 - `v0.3.7-dev.1`：修复刷新历史页缺少返回入口；移除设置页通知策略卡；Git 与授权区明确当前不检测 GitHub 登录，后续接入 GitHub 云端能力时再提供授权引导。
 - `v0.3.7-dev.2`：补齐新用户使用路径和 Git 安装指引；本机未安装 Git 时明确 Codex 用量功能仍可用，代码仓库统计降级，并在设置页和代码仓库页提供 Git for Windows 下载入口。
 - `v0.3.7`：private 仓库内部正式版，用于内测验证刷新历史返回、新用户使用路径、Git 缺失降级和 Git for Windows 安装指引。
+- `2026-07-15`：完成源码与历史密钥模式检查、本机绝对路径脱敏和 GitHub 仓库公开；`v0.3.9` 成为公开可下载基线。
+- `v0.4.0-dev.1` 规划：完成 Windows NSIS 自动升级的功能、页面、状态契约、发布 workflow、签名门禁和端到端验收设计；本轮只规划，不修改应用实现。
 
-## 公开发布前优先级
+## 公开发布后优先级
 
-1. 继续内测 `v0.3.7` Windows 安装包，确认新用户使用路径、Git 缺失降级提示、Git for Windows 下载入口、刷新历史返回设置、设置页 GitHub 授权边界说明、赠送重置展示、通知页、系统通知和应用图标都可用。
-2. 切换 GitHub 仓库为公开可见，并补充 description、topics、homepage 和截图。
-3. 使用 GitHub Actions 验证后续 `package:win` 产物，并记录 SHA256 校验信息。
-4. 补充 README 截图，确认截图不包含真实用户名、私有路径、私有仓库名或 session 内容。
+1. 按 `docs/auto-update-development-plan-2026-07-15.md` 实施 `v0.4.0-dev.*`，先完成更新状态机、设置页更新卡片和 Release 元数据闭环。
+2. 确认 Windows 可信代码签名方案；签名前生产版本只检查更新并引导手动下载，不后台执行未签名安装包。
+3. 用两个连续的 updater-enabled 安装版完成检查、下载、重启安装和用户数据保留验收。
+4. 使用 GitHub Actions 验证安装包、`latest.yml`、blockmap 和 SHA256 资产完整性。
 5. 增加 collector 层测试，优先覆盖 JSONL 解析、`rate_limits` 缺失、仓库归因和计费窗口。
 
 ## 下一步
