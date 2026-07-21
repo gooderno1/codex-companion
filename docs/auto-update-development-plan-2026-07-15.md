@@ -4,6 +4,7 @@
 
 - `v0.4.1-dev.1` 已提交 SignPath Foundation 免费开源签名申请并建立 `CODE_SIGNING_POLICY.md`；首页、Release 模板、角色、MFA、人工审批、签名范围和事件响应已有公开口径。
 - `v0.4.1-dev.2` 按用户确认开启临时未签名升级：固定 GitHub stable Release 源，自动下载更新，只有用户点击“重启并安装”后才执行；退出时安装保持关闭。
+- `v0.4.1` 已收敛为临时未签名自动升级引导版；`v0.4.0` 用户需要手动安装一次，下一正式版用于首次真实应用内升级验收。
 - Windows 构建已恢复 exe 资源元数据写入，并在 workflow 校验应用主程序与安装包的 `ProductName=Codex Companion`；正式 tag 还必须保证 `ProductVersion` 与 `package.json` 一致。
 - 签名申请仍在审核中；尚未取得 SignPath organization / project / artifact configuration 标识，签名提交和人工批准步骤暂不能接入，`TRUSTED_WINDOWS_PUBLISHER` 继续为空。
 - `v0.4.0` 已收敛主进程 `UpdateService`、更新状态合同、设置迁移、IPC/preload、设置页更新卡片、全局提示、详情/进度弹层和错误脱敏，作为首个 updater-enabled 正式版。

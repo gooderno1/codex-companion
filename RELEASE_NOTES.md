@@ -2,7 +2,55 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.0` 仍为未签名版本；SignPath Foundation 审核和签名工作流验收完成前，不会启用自动安装。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.1` 仍为未签名版本；临时模式允许固定 stable Release 自动下载和用户确认安装，但退出时安装保持关闭。SignPath Foundation 审核通过后将切换为可信 publisher 校验。
+
+## [2026-07-21] v0.4.1 release: 临时未签名自动升级引导版
+
+### Release 范围
+
+包含开发版本：
+
+- `v0.4.1-dev.1`
+- `v0.4.1-dev.2`
+
+本次包含 SignPath Foundation 签名准入材料、Windows 资源元数据恢复、临时未签名更新政策、依赖安全补丁和相关文档；没有排除已完成的开发版本。
+
+### 主要变更
+
+- Windows packaged NSIS 安装版允许自动下载稳定版更新，并在下载完成后提供“重启并安装”。
+- `UpdateState` 新增 `trustMode / canInstallOnQuit`，明确区分 `unsigned-temporary / trusted-publisher / unsupported`。
+- 未签名模式强制 `canInstallOnQuit=false`；即使本机设置残留为真，也不会在退出应用时自动执行安装。
+- 设置页、全局更新提示和安装弹层明确展示当前未签名、Windows SmartScreen 可能拦截及退出时不安装。
+- 保留固定 GitHub owner/repo/provider/stable channel、纯文本 Release notes、受控 Releases URL 和更新错误脱敏。
+- 修复发布门禁新发现的 `axios / brace-expansion / js-yaml / tar / shell-quote` 依赖公告；使用 `shell-quote@1.10.0` override，依赖审计恢复为 `0`。
+
+### 安全与降级
+
+- `latest.yml` SHA512 用于确认下载文件与同一 Release 元数据一致，不能替代 Authenticode 发布者身份签名。
+- 安装只在用户点击“重启并安装”后触发；不做静默重启、退出时安装或强制更新。
+- Windows 仍可能显示未知发布者或 SmartScreen 提示，企业策略也可能直接阻止未签名应用。
+- 用户可随时关闭自动下载或改用 Releases 手动下载并核对 `SHA256SUMS.txt`。
+
+### 验证结果
+
+- `npm run package:win`：通过，生成 Windows NSIS 安装包、`latest.yml`、blockmap 和包内 `app-update.yml`。
+- `npm run build`、`npm run verify:updater`、`npm run verify:signing-policy`、`npm run verify:quota`、`npm run verify:ledger`、`npm run verify:design`：通过。
+- 使用无 Git credential helper 的隔离目录执行 npm `10.9.8` `ci --ignore-scripts`：通过，公开 HTTPS tag 依赖可匿名安装。
+- `npm audit --audit-level=low`：通过，`0` 个已知漏洞。
+- packaged 设置页 `1360×900` 人工检查：自动下载、未签名风险和退出时不安装文案可见，无截断或布局溢出。
+
+### 升级注意事项
+
+- `v0.4.0` 的自动安装门禁已编译关闭，不能被远程打开；因此 `v0.4.0 -> v0.4.1` 仍需从 Releases 手动安装一次。
+- 从 `v0.4.1` 开始，后续更高稳定版才可以执行首次真实的“检查 -> 自动下载 -> 用户确认 -> 重启安装”验收。
+- 现有 `settings.json`、额度快照、增量缓存、通知历史和赠送重置 baseline 无需清空。
+- 本版本只提供 Windows x64 NSIS 安装版，不提供便携版、macOS 或 Linux 自动升级。
+
+### 已知边界
+
+- 安装包和应用主程序 Authenticode 仍为 `NotSigned`；SignPath Foundation 申请尚在审核。
+- `latest.yml` 与 Release 位于同一 GitHub 发布信任域，仓库账号或发布工作流失陷时哈希本身不能提供独立发布者身份保证。
+- 完整自动升级端到端结果要在下一正式版发布后，以已安装 `v0.4.1` 为旧版验证。
 
 ## [2026-07-15] v0.4.0 release: 首个 updater-enabled 公开正式版
 
