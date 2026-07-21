@@ -4,8 +4,8 @@
 
 - 开发原因：`v0.4.1-dev.1` 的 SignPath 准入材料和 `v0.4.1-dev.2` 的临时未签名升级已完成本地与 GitHub CI 验证，用户要求先直接上线自动升级，签名获批后再更新可信 publisher 模式。
 - 实现方式：应用版本与 app-server `clientVersion` 从 `0.4.1-dev.2` 收敛为 `0.4.1`；README、Roadmap、数据合同、组件映射、自动升级规划和 Release notes 同步正式版、引导安装与下一连续版本验收口径；正式 tag 继续由 GitHub Actions 构建唯一 Release 资产。
-- 当前结果：`v0.4.1` 作为首个启用临时未签名自动下载和用户确认安装的正式引导版；`v0.4.0` 用户仍需手动安装本版一次，后续版本可从本版进入应用内升级流程。SignPath 接入点、签名政策和退出时安装门禁保持不变。
-- 验证方式：开发提交 GitHub CI run `29812664970` 通过；本地 `npm run package:win`、更新器/签名政策/额度/账本/设计专项校验、无 credential helper 匿名 lockfile 安装、`npm audit --audit-level=low` 和 `git diff --check` 通过；tag 资产大小、SHA256 和公开下载状态将在 GitHub Actions 完成后回写。
+- 当前结果：`v0.4.1` 已发布为 GitHub latest Release，作为首个启用临时未签名自动下载和用户确认安装的正式引导版；正式安装包 `Codex.Companion.Setup.0.4.1.exe` 大小 `105461840` bytes，SHA256 `8E0CEB8D03B7767748D5A3B9412D167AEAFCE5024572D391E35C6A07FDE5E289`。`v0.4.0` 用户仍需手动安装本版一次，后续版本可从本版进入应用内升级流程。SignPath 接入点、签名政策和退出时安装门禁保持不变。
+- 验证方式：开发提交 GitHub CI run `29812664970`、正式提交 CI run `29812912877` 和 Windows Release run `29812915888` 通过；本地 `npm run package:win`、更新器/签名政策/额度/账本/设计专项校验、无 credential helper 匿名 lockfile 安装、`npm audit --audit-level=low` 和 `git diff --check` 通过；重新下载 4 个远端资产，安装包实际 SHA256 与 `SHA256SUMS.txt`、GitHub asset digest 一致，`latest.yml` 版本/路径/大小/SHA512 正确，Release 页面、tag 资产和 latest metadata 匿名 HTTP 访问均返回 `200`。
 - 遗留问题：安装包仍未签名，Windows SmartScreen 或企业策略可能拦截；首次真实自动升级需要下一稳定版，并以已安装 `v0.4.1` 为旧版完成端到端验收。
 
 ## [2026-07-21] v0.4.1-dev.2 feat(updater): 开启临时未签名自动升级

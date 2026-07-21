@@ -39,6 +39,12 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - `npm audit --audit-level=low`：通过，`0` 个已知漏洞。
 - packaged 设置页 `1360×900` 人工检查：自动下载、未签名风险和退出时不安装文案可见，无截断或布局溢出。
 
+### Release 资产校验
+
+- GitHub Actions 正式构建：`Codex.Companion.Setup.0.4.1.exe`，大小 `105461840` bytes，SHA256 为 `8E0CEB8D03B7767748D5A3B9412D167AEAFCE5024572D391E35C6A07FDE5E289`。
+- 重新下载后的安装包 SHA256 与 `SHA256SUMS.txt`、GitHub asset digest 一致。
+- Release 页面、安装包、blockmap、`latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名 HTTP 访问均返回 `200`。
+
 ### 升级注意事项
 
 - `v0.4.0` 的自动安装门禁已编译关闭，不能被远程打开；因此 `v0.4.0 -> v0.4.1` 仍需从 Releases 手动安装一次。
