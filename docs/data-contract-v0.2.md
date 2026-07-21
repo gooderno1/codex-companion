@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.4.0`
+- 对应版本：`v0.4.1-dev.2`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -182,8 +182,9 @@
 - `progress` 只在下载态包含 `percent / bytesPerSecond / transferred / total`，百分比归一化到 `0..100`。
 - `errorCode / errorMessage` 只允许稳定错误码和脱敏中文摘要，不包含 token、请求头、下载路径或底层堆栈。
 - `canCheck` 只在 Windows 已打包 NSIS 形态为真；开发模式、便携版和其他平台输出 `unsupported`。
-- `canAutoInstall` 只有在 Windows 已打包形态与可信 publisher 门禁同时满足时为真；当前未签名构建固定为假。
-- `preferences.updates` 保存 `autoCheck / autoDownload / ignoredVersion / installOnQuit`；默认自动检查和自动下载意向为真，但 `autoDownload` 仍受 `canAutoInstall` 强制门禁。
+- `canAutoInstall` 在 Windows 已打包 NSIS 形态并满足当前更新政策时为真；临时未签名模式允许自动下载和用户确认安装，其他平台、开发模式和便携版固定为假。
+- `trustMode` 只允许 `unsigned-temporary / trusted-publisher / unsupported`；`canInstallOnQuit` 仅在可信 publisher 模式为真，临时未签名模式固定为假。
+- `preferences.updates` 保存 `autoCheck / autoDownload / ignoredVersion / installOnQuit`；默认自动检查和自动下载为真，但 `autoDownload` 仍受 `canAutoInstall` 门禁，`installOnQuit` 还必须受 `canInstallOnQuit` 门禁。
 - renderer 通过 `updates:get-state / check / download / install / set-preferences / open-release` 触发受控动作，通过 `updates:state-changed` 接收状态；不能指定任意 feed 或 URL。
 
 ## 3. 状态字段

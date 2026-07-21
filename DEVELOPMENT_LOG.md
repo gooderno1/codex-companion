@@ -1,5 +1,16 @@
 # DEVELOPMENT LOG
 
+## [2026-07-21] v0.4.1-dev.2 feat(updater): 开启临时未签名自动升级
+
+- 开发原因：SignPath Foundation 仍在审核，用户确认先上线自动升级、签名获批后再切换可信发布者校验；已发布的 `v0.4.0` 把自动安装门禁编译为关闭状态，不能通过远端配置补开。
+- 实现方式：新增纯函数更新政策层，`UpdateState` 增加 `trustMode / canInstallOnQuit`；Windows packaged NSIS 未签名模式输出 `canAutoInstall=true / canInstallOnQuit=false / trustMode=unsigned-temporary`，允许固定 stable Release 自动下载和用户点击“重启并安装”，无论本机偏好如何都强制关闭 `autoInstallOnAppQuit`。设置卡、更新提示和安装弹层明确展示未签名、SmartScreen 与退出时不安装边界；签名模式继续预留 `TRUSTED_WINDOWS_PUBLISHER` 和 publisher 校验切换点。
+- 安全边界：更新源仍固定为 `gooderno1/codex-companion` stable Release；renderer 不能指定 feed、下载 URL 或文件路径；`latest.yml` SHA512 只证明下载文件与同一 Release 元数据一致，不能替代发布者身份签名；临时模式不静默重启、不退出时安装，Releases 与 SHA256 继续作为手动兜底。
+- 兼容范围：仅 Windows x64 NSIS 安装版；开发模式、便携版、macOS 和 Linux 仍输出 `unsupported`。`v0.4.0 -> v0.4.1` 仍需手动安装一次，真实自动升级验收从首个启用正式版到下一正式版开始。
+- 依赖安全：发布前 `npm audit` 新发现 `axios / brace-expansion / js-yaml / tar / shell-quote` 公告；使用 npm `10.9.8` 在现有声明范围内更新传递依赖，并通过 `overrides.shell-quote=1.10.0` 修复 `concurrently@10.0.3` 固定旧版依赖的问题，没有使用 `--force` 或降级主依赖；保留 CI 所需 `@emnapi/core / @emnapi/runtime` 锁文件条目和核心包公开 HTTPS resolved URL。
+- 当前结果：本地生成 `Codex.Companion.Setup.0.4.1-dev.2.exe`（`105462389` bytes，SHA256 `F3CBE67D68077BB5348178475AB6611DB5D1ABDED5E4AA7C85DB7D39CD2D551C`）和应用主程序（SHA256 `8527F4835294CA4695A05F913A73459569560449F234BF0BB77BAC15DF5FB122`）；两者 `ProductName=Codex Companion`、版本 `0.4.1-dev.2`、Authenticode `NotSigned`。packaged 设置页在 `1360×900` 下显示自动下载已开启、未签名风险和退出时不安装，无截断或布局溢出。
+- 验证方式：执行 `npm run build`、`npm run package:win`、`npm run verify:updater`、`npm run verify:signing-policy`、`npm run verify:quota`、`npm run verify:ledger`、`npm run verify:design`、`npm audit --audit-level=low` 和 `git diff --check`；构建、NSIS、更新策略三模式断言、签名政策、额度/账本/设计校验通过，依赖审计为 `0` 个漏洞；核对包内 `app-update.yml` 固定 owner/repo/provider/channel，`latest.yml` 包含安装包大小和 SHA512。
+- 遗留问题：SignPath Foundation 仍待回复；`v0.4.1` 发布后需要用户手动安装一次，再通过更高版本验证自动下载、用户确认安装、重启启动和本机数据保留。Windows 可能因 SmartScreen 或企业策略阻止未签名安装。
+
 ## [2026-07-15] v0.4.1-dev.1 chore(security): 补齐 SignPath Foundation 签名准入材料
 
 - 开发原因：SignPath Foundation 免费开源签名申请已提交，需要在审核期间补齐其公开条件要求的 `Code signing policy`、签名角色、MFA、人工审批、产物范围、文件元数据和 Release 页面入口；现有应用主程序仍保留 Electron 的产品名与 `42.7.0` 版本资源，不符合签名产物元数据约束。

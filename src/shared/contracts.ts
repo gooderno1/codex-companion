@@ -23,6 +23,10 @@ export type UpdatePhase =
   | "installing"
   | "error"
   | "unsupported";
+export type UpdateTrustMode =
+  | "unsigned-temporary"
+  | "trusted-publisher"
+  | "unsupported";
 
 export interface UpdatePreferences {
   autoCheck: boolean;
@@ -52,6 +56,8 @@ export interface UpdateState {
   errorMessage: string | null;
   canCheck: boolean;
   canAutoInstall: boolean;
+  canInstallOnQuit: boolean;
+  trustMode: UpdateTrustMode;
 }
 
 export interface TokenBreakdown {

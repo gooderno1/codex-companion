@@ -1,22 +1,23 @@
 # Codex Companion 自动升级功能开发规划
 
-## 实施状态（2026-07-15）
+## 实施状态（2026-07-21）
 
 - `v0.4.1-dev.1` 已提交 SignPath Foundation 免费开源签名申请并建立 `CODE_SIGNING_POLICY.md`；首页、Release 模板、角色、MFA、人工审批、签名范围和事件响应已有公开口径。
+- `v0.4.1-dev.2` 按用户确认开启临时未签名升级：固定 GitHub stable Release 源，自动下载更新，只有用户点击“重启并安装”后才执行；退出时安装保持关闭。
 - Windows 构建已恢复 exe 资源元数据写入，并在 workflow 校验应用主程序与安装包的 `ProductName=Codex Companion`；正式 tag 还必须保证 `ProductVersion` 与 `package.json` 一致。
-- 签名申请仍在审核中；尚未取得 SignPath organization / project / artifact configuration 标识，签名提交和人工批准步骤暂不能接入，`TRUSTED_WINDOWS_PUBLISHER` 继续为空，生产自动安装仍关闭。
+- 签名申请仍在审核中；尚未取得 SignPath organization / project / artifact configuration 标识，签名提交和人工批准步骤暂不能接入，`TRUSTED_WINDOWS_PUBLISHER` 继续为空。
 - `v0.4.0` 已收敛主进程 `UpdateService`、更新状态合同、设置迁移、IPC/preload、设置页更新卡片、全局提示、详情/进度弹层和错误脱敏，作为首个 updater-enabled 正式版。
 - Windows 构建已生成安装包、`latest.yml`、blockmap 和包内 `app-update.yml`；Release workflow 已增加 tag/版本校验、draft 发布、资产完整性和 SHA256 生成。
 - `codex-usage-core` 已在隐私审计后公开，依赖改为固定 HTTPS Git tag；lockfile 使用 CI 对齐工具链生成，CI 增加 `npm run verify:updater`。
 - 1360×900 开发态与 packaged 设置页已人工检查；packaged 构建可真实访问 GitHub update feed。
-- 当前安装包 Authenticode 为 `NotSigned`，因此 `canAutoInstall=false`；生产自动下载/安装仍等待可信 Windows 代码签名和两个连续 updater-enabled 版本的端到端验收。
+- 当前安装包 Authenticode 为 `NotSigned`；临时模式 `canAutoInstall=true / canInstallOnQuit=false / trustMode=unsigned-temporary`。`v0.4.0` 无法远程打开已编译的旧门禁，仍需手动安装首个启用版本，随后再用连续版本完成端到端验收。
 
 - 创建时间：2026-07-15
 - 创建时版本基线：`v0.3.9`
 - 目标开发版本：`v0.4.0-dev.1` 起
 - 需求主题：基于公开 GitHub Releases，为 Windows NSIS 安装版提供可感知、可控制、可追踪的自动升级能力
 - 影响页面：设置页、全局更新提示、退出安装确认；不新增一级侧栏页面
-- 关键设计约束：Codex 专用、非官方声明、本机数据不上传、Windows 优先、稳定通道优先、用户确认安装、失败可恢复、生产自动安装以可信代码签名为上线门槛
+- 关键设计约束：Codex 专用、非官方声明、本机数据不上传、Windows 优先、稳定通道优先、用户确认安装、失败可恢复、未签名阶段禁止退出时安装、签名接入后固定可信 publisher
 - 相关数据源：应用 `package.json` 版本、Electron `app.getVersion()`、GitHub Release、`latest.yml`、NSIS 安装包与 blockmap、Electron `userData` 中的更新设置与状态
 
 ## 1. 当前基线与问题
@@ -25,7 +26,7 @@
 - 当前 GitHub workflow 只构建并上传 Actions artifact，没有生成可供已安装应用消费的稳定发布闭环。
 - 当前 Release 只包含安装包，没有 `latest.yml` 和 blockmap，应用主进程也没有更新服务或更新 IPC。
 - 当前设置页已有本机数据源、计费口径、Git 状态和刷新历史，适合追加“应用更新”卡片。
-- 当前安装包没有可信 Windows 代码签名。可先开发和验证更新链路，但生产自动下载与安装必须在签名方案落地后启用。
+- 当前安装包没有可信 Windows 代码签名。临时允许固定 stable Release 自动下载和用户确认安装，并清晰展示未知发布者风险；退出时安装必须等待签名方案落地。
 - `package.json` 当前为 `private: true`，该字段只阻止误发布到 npm，不影响 GitHub 仓库公开，也不需要为自动升级移除。
 
 ## 2. 产品目标
@@ -54,7 +55,7 @@
 - 平台：Windows x64 NSIS 安装版。
 - 通道：仅 `stable`，对应 GitHub 正式 Release；draft 和 prerelease 不进入稳定通道。
 - 检查方式：启动后延迟检查、运行期间低频检查、设置页手动检查。
-- 下载方式：签名和生产门禁通过后支持自动下载；安装必须由用户确认。
+- 下载方式：Windows NSIS 安装版支持自动下载；未签名阶段安装必须由用户明确确认。
 - 发布源：公开仓库 `gooderno1/codex-companion` 的 GitHub Releases。
 - 状态展示：设置页更新卡片、全局可关闭提示、下载/安装确认弹层。
 - 记录：本机保存最近检查时间、已忽略版本和最近错误摘要，不保存 GitHub token。
@@ -79,7 +80,7 @@
 - 当前版本：使用主进程 `app.getVersion()`，不由 renderer 自行读取 package 文件。
 - 更新通道：首版固定显示“稳定版”。
 - 自动检查：默认开启，可关闭；关闭后仍保留“检查更新”。
-- 自动下载：签名门禁通过后默认开启，可关闭；未签名开发构建显示不可用原因。
+- 自动下载：Windows NSIS 安装版默认开启，可关闭；未签名构建必须显示风险和签名状态。
 - 最近检查：显示本机时间；从未检查时显示“尚未检查”。
 - 当前状态：使用统一状态文案，不直接暴露底层异常堆栈。
 
@@ -115,7 +116,8 @@
 - GitHub 限流或服务异常：`更新服务暂时不可用，请稍后重试或打开 Releases。`
 - 元数据缺失：`该版本的更新文件不完整，请从 Releases 手动下载安装。`
 - 校验失败：`更新文件校验失败，已停止安装并删除本次下载。`
-- 未签名/不受支持构建：`当前构建仅支持检查更新，请从 Releases 手动安装。`
+- 临时未签名构建：`当前安装包未签名，Windows 可能显示未知发布者或 SmartScreen 提示；只有确认后才安装。`
+- 不受支持构建：`当前安装形态仅支持检查更新，请从 Releases 手动安装。`
 
 ## 5. 更新状态与数据契约
 
@@ -146,12 +148,14 @@ type UpdatePhase =
 - `progress`：百分比、每秒字节、已下载和总字节；非下载态为 `null`。
 - `lastCheckedAt`：最近一次检查完成时间。
 - `errorCode / errorMessage`：稳定错误码和脱敏中文摘要，不向 renderer 发送 token、请求头或本机下载路径。
-- `canAutoInstall`：签名、平台、安装形态和打包态共同判断的能力标记。
+- `canAutoInstall`：平台、安装形态、打包态和当前更新政策共同判断的应用内安装能力标记。
+- `canInstallOnQuit`：只有可信 publisher 模式可为真；临时未签名模式固定为假。
+- `trustMode`：`unsigned-temporary / trusted-publisher / unsupported`，供 renderer 明确展示当前信任边界。
 
 建议设置字段：
 
 - `updates.autoCheck: boolean`，默认 `true`。
-- `updates.autoDownload: boolean`，签名生产构建默认 `true`，其他构建强制归一化为 `false`。
+- `updates.autoDownload: boolean`，Windows NSIS 安装版默认 `true`，其他构建受 `canAutoInstall` 强制门禁。
 - `updates.ignoredVersion: string | null`。
 - `updates.installOnQuit: boolean`，只在用户明确选择后写入，默认 `false`。
 
@@ -164,7 +168,7 @@ type UpdatePhase =
 新增独立 `UpdateService`，负责：
 
 - 初始化 `electron-updater`，只在 `app.isPackaged` 且 Windows NSIS 安装态运行。
-- 设置 `autoDownload` 和 `autoInstallOnAppQuit`，后者由明确用户选择控制。
+- 设置 `autoDownload` 和 `autoInstallOnAppQuit`；未签名模式无论设置值如何都强制关闭后者。
 - 监听 checking、available、not-available、download-progress、downloaded、error 事件。
 - 将底层事件归一化为 `UpdateState` 并广播给所有窗口。
 - 对并发检查和下载去重；一次只允许一个更新任务。
@@ -204,8 +208,8 @@ renderer 不接触 `electron-updater`、GitHub token、任意下载 URL或文件
 - 启动检查：主窗口创建并完成首屏加载后延迟约 `15` 秒执行，避免与首次 Codex/Git 扫描争抢启动资源。
 - 周期检查：自动检查开启时每 `6` 小时一次；不复用当前 5 分钟仪表板刷新定时器。
 - 手动检查：始终可用；连续点击合并为同一个任务。
-- 自动下载：只在正式打包、Windows NSIS、可信签名已启用且用户允许时执行。
-- 自动安装：默认不自动重启；只有用户点击“重启并安装”或明确选择“退出时安装”后执行。
+- 自动下载：只在正式打包、Windows NSIS、当前更新政策允许且用户允许时执行。
+- 自动安装：默认不自动重启；临时未签名阶段只有用户点击“重启并安装”后执行，退出时安装强制关闭；可信 publisher 模式才允许评估退出时安装。
 - 版本比较：遵循 SemVer，只接受高于当前版本的稳定版本；首版不允许降级。
 - 忽略版本：只忽略精确版本，不屏蔽更高版本和安全修复。
 
@@ -237,14 +241,15 @@ renderer 不接触 `electron-updater`、GitHub token、任意下载 URL或文件
 ## 9. 安全、隐私与签名门禁
 
 - GitHub provider 使用 HTTPS；客户端依据更新元数据中的 SHA512 校验下载文件。
-- 生产自动安装必须启用 Windows 可信代码签名，并固定预期 publisher；签名缺失或不匹配时停止自动安装。
+- 临时未签名模式必须固定公开 stable Release 源、保留更新元数据哈希校验、展示未知发布者风险，并禁止退出时安装；该哈希不能替代发布者身份签名。
+- SignPath 接入后必须启用 Windows 可信代码签名并固定预期 publisher；签名缺失或不匹配时停止可信模式安装。
 - 代码签名证书、密码、Azure Trusted Signing 配置或其他凭证不得进入源码、日志、Release notes 和安装包资源。
 - 更新请求只访问公开 GitHub Release，不需要用户 GitHub token。
 - 应用不上传 Codex session、仓库源码、路径、模型、额度、通知历史或本机 Git 身份。
 - `releaseNotes` 必须转为纯文本或白名单结构，防止远端 HTML 注入 renderer。
 - IPC 对动作和状态做运行时校验；renderer 不能指定任意 feed URL、下载 URL或本机路径。
 
-签名门禁未满足时，正式公开版本只启用“检查更新 + 打开 Releases 手动安装”，不在后台下载或执行未签名安装包。
+签名门禁未满足时，正式公开版本可启用“自动检查 + 自动下载 + 用户确认安装”的临时模式；不得静默重启或退出时安装，并必须保留 Releases 手动下载兜底。
 
 ## 10. 测试与验证计划
 
@@ -287,8 +292,9 @@ renderer 不接触 `electron-updater`、GitHub token、任意下载 URL或文件
 2. `v0.4.0-dev.2`：实现设置页卡片、全局提示、进度弹层和中文错误文案。
 3. `v0.4.0-dev.3`：改造 GitHub Actions Release workflow，生成并校验完整更新资产。
 4. `v0.4.0-dev.4`：补单元测试、UI 状态测试和隔离环境端到端升级验证。
-5. 签名迭代：接入可信 Windows 代码签名，验证 publisher 与安装链路后打开生产自动下载/安装能力。
-6. `v0.4.0`：完成文档、Release notes、升级注意事项和从上一 updater-enabled 版本升级验收后发布。
+5. `v0.4.1-dev.2`：开启临时未签名自动下载和用户确认安装，增加信任模式合同、风险文案并强制关闭退出时安装。
+6. 首个启用正式版：作为引导版本由 `v0.4.0` 用户手动安装一次；后续更高版本完成真实自动升级验收。
+7. 签名迭代：接入可信 Windows 代码签名，固定 publisher，关闭临时未签名开关并完成连续签名版本验收。
 
 每个开发版本都同步更新 `DEVELOPMENT_LOG.md`；涉及页面、契约、隐私和发布流程时同步更新 README、组件映射、PRIVACY、SECURITY、Roadmap 和 Release notes。
 
@@ -296,8 +302,8 @@ renderer 不接触 `electron-updater`、GitHub token、任意下载 URL或文件
 
 收到用户明确“开始修改”或同等指令后才进入实现。本规划通过后，实施前还需确认：
 
-- 生产签名采用证书文件还是 Azure Trusted Signing；若尚未确定，先实现签名前的检查/手动下载降级和完整测试，不提前启用自动安装。
-- `v0.4.0` 是否作为首个 updater-enabled 正式版；若是，真正的自动升级验收发生在 `v0.4.0 -> v0.4.1`。
+- SignPath Foundation 申请仍在审核，organization / project / artifact configuration 标识待回复后补齐。
+- `v0.4.0` 的自动安装门禁已编译关闭，真正的应用内自动升级验收只能发生在首个启用正式版到下一正式版之间。
 - 发布 workflow 是否继续使用现有个人仓库和 GitHub Releases；首版默认保持不变。
 
 ## 14. 参考资料

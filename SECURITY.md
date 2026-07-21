@@ -17,7 +17,8 @@
 - 更新源固定为公开仓库 `gooderno1/codex-companion`，renderer 不能传入任意 feed URL、下载 URL或本机路径。
 - Release notes 由主进程清洗为纯文本，底层错误只输出稳定错误码和脱敏中文摘要。
 - GitHub Release workflow 使用最小 `contents: write` 权限；签名凭证不得写入源码、日志、Release notes 或安装包资源。
-- 当前安装包 Authenticode 状态为 `NotSigned`，因此生产自动下载与安装保持关闭；可信 publisher 配置和签名验收通过后才允许开启。
+- 当前安装包 Authenticode 状态为 `NotSigned`。临时未签名模式只允许 Windows NSIS 安装版从本仓库 stable Release 自动下载，并要求用户点击“重启并安装”；退出时安装和静默重启保持关闭，Windows 仍可能拦截未知发布者。
+- `latest.yml` 的 SHA512 用于确认下载文件与同一 Release 元数据一致，但不能替代发布者身份签名；SignPath 接入后必须固定可信 publisher，并关闭临时未签名开关。
 - Windows 签名范围、角色、人工审批、元数据限制和事件响应以 [Code signing policy](./CODE_SIGNING_POLICY.md) 为准。
 - 如果签名产物来源、证书主体或版本元数据不符合政策，应立即停止发布和自动升级，撤下可疑资产并联系 SignPath 配合调查。
 

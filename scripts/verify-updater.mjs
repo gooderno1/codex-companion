@@ -13,6 +13,44 @@ const {
   sanitizeReleaseNotes
 } = require("../dist-electron/main/updateUtils.js");
 const { SettingsStore } = require("../dist-electron/main/state/settingsStore.js");
+const { resolveUpdateCapabilities } = require("../dist-electron/main/updatePolicy.js");
+
+assert.deepEqual(
+  resolveUpdateCapabilities({
+    supported: true,
+    trustedPublisherConfigured: false,
+    allowUnsignedInstall: true
+  }),
+  {
+    canAutoInstall: true,
+    canInstallOnQuit: false,
+    trustMode: "unsigned-temporary"
+  }
+);
+assert.deepEqual(
+  resolveUpdateCapabilities({
+    supported: true,
+    trustedPublisherConfigured: true,
+    allowUnsignedInstall: false
+  }),
+  {
+    canAutoInstall: true,
+    canInstallOnQuit: true,
+    trustMode: "trusted-publisher"
+  }
+);
+assert.deepEqual(
+  resolveUpdateCapabilities({
+    supported: false,
+    trustedPublisherConfigured: false,
+    allowUnsignedInstall: true
+  }),
+  {
+    canAutoInstall: false,
+    canInstallOnQuit: false,
+    trustMode: "unsupported"
+  }
+);
 
 assert.equal(
   sanitizeReleaseNotes("<p>安全更新<br>修复 &amp; 优化</p>"),

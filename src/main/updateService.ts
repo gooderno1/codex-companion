@@ -13,12 +13,15 @@ import {
   releaseUrlForVersion,
   sanitizeReleaseNotes
 } from "./updateUtils";
+import { resolveUpdateCapabilities } from "./updatePolicy";
 
 const STARTUP_CHECK_DELAY_MS = 15_000;
 const PERIODIC_CHECK_INTERVAL_MS = 6 * 60 * 60_000;
 
-// 可信 Windows publisher 配置落地前保持为空。签名接入时必须同时配置
-// electron-builder 的 win.publisherName，并用连续两个签名版本完成升级验收。
+// 临时允许未签名的 Windows NSIS 安装版在应用内下载并由用户明确确认安装。
+// 可信 publisher 接入前禁止退出时静默安装；签名接入时必须同时配置
+// electron-builder 的 win.publisherName，并关闭此临时开关。
+const ALLOW_UNSIGNED_UPDATE_INSTALL = true;
 const TRUSTED_WINDOWS_PUBLISHER: string | null = null;
 
 interface UpdateServiceOptions {
@@ -47,9 +50,11 @@ export class UpdateService {
     process.platform === "win32" &&
     !process.env.PORTABLE_EXECUTABLE_DIR;
 
-  private readonly canAutoInstall =
-    this.supported &&
-    Boolean(TRUSTED_WINDOWS_PUBLISHER);
+  private readonly capabilities = resolveUpdateCapabilities({
+    supported: this.supported,
+    trustedPublisherConfigured: Boolean(TRUSTED_WINDOWS_PUBLISHER),
+    allowUnsignedInstall: ALLOW_UNSIGNED_UPDATE_INSTALL
+  });
 
   public constructor(private readonly options: UpdateServiceOptions) {
     this.preferences = options.preferences;
@@ -68,7 +73,9 @@ export class UpdateService {
         ? null
         : "开发模式、便携版或当前平台不支持自动升级，请从 Releases 手动下载安装。",
       canCheck: this.supported,
-      canAutoInstall: this.canAutoInstall
+      canAutoInstall: this.capabilities.canAutoInstall,
+      canInstallOnQuit: this.capabilities.canInstallOnQuit,
+      trustMode: this.capabilities.trustMode
     };
   }
 
@@ -86,7 +93,7 @@ export class UpdateService {
     autoUpdater.logger = null;
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit =
-      this.canAutoInstall && this.preferences.installOnQuit;
+      this.capabilities.canInstallOnQuit && this.preferences.installOnQuit;
     autoUpdater.autoRunAppAfterInstall = true;
     autoUpdater.allowPrerelease = false;
     autoUpdater.allowDowngrade = false;
@@ -130,7 +137,7 @@ export class UpdateService {
       });
 
       if (
-        this.canAutoInstall &&
+        this.capabilities.canAutoInstall &&
         this.preferences.autoDownload &&
         this.preferences.ignoredVersion !== info.version
       ) {
@@ -186,7 +193,7 @@ export class UpdateService {
     const autoCheckChanged = this.preferences.autoCheck !== preferences.autoCheck;
     this.preferences = preferences;
     autoUpdater.autoInstallOnAppQuit =
-      this.canAutoInstall && preferences.installOnQuit;
+      this.capabilities.canInstallOnQuit && preferences.installOnQuit;
     if (autoCheckChanged) {
       this.refreshSchedule(preferences.autoCheck);
     }
@@ -220,7 +227,7 @@ export class UpdateService {
   }
 
   public downloadUpdate(): Promise<UpdateState> {
-    if (!this.canAutoInstall || this.state.phase !== "available") {
+    if (!this.capabilities.canAutoInstall || this.state.phase !== "available") {
       return Promise.resolve(this.getState());
     }
     if (this.downloadTask) {
@@ -257,7 +264,7 @@ export class UpdateService {
   }
 
   public quitAndInstall() {
-    if (!this.canAutoInstall || this.state.phase !== "downloaded") {
+    if (!this.capabilities.canAutoInstall || this.state.phase !== "downloaded") {
       return false;
     }
 

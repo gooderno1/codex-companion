@@ -179,8 +179,10 @@ export function UpdateSettingsCard({
           <span>
             <strong>自动下载</strong>
             <small>
-              {state?.canAutoInstall
-                ? "发现新版本后自动下载，安装和重启仍由你确认。"
+              {state?.trustMode === "unsigned-temporary"
+                ? "发现新版本后自动下载；当前未签名，安装和重启只会在你明确确认后进行。"
+                : state?.canAutoInstall
+                  ? "发现新版本后自动下载，安装和重启仍由你确认。"
                 : "可信 Windows 代码签名启用前保持关闭，只提供检查和手动下载。"}
             </small>
           </span>
@@ -202,9 +204,14 @@ export function UpdateSettingsCard({
       ) : null}
 
       {state?.errorMessage ? <p className="update-error-copy">{state.errorMessage}</p> : null}
-      {!state?.canAutoInstall ? (
+      {state?.trustMode === "unsigned-temporary" ? (
         <p className="settings-note">
-          当前构建不会后台执行未签名安装包；请从本仓库 Releases 下载并核对 SHA256。
+          临时未签名自动升级已开启：更新源固定为本仓库，下载文件按更新元数据校验；Windows
+          仍无法验证发布者身份，安装时可能显示 SmartScreen 提示。退出时不会自动安装。
+        </p>
+      ) : !state?.canAutoInstall ? (
+        <p className="settings-note">
+          当前安装形态不支持应用内升级；请从本仓库 Releases 下载并核对 SHA256。
         </p>
       ) : null}
 
@@ -267,7 +274,9 @@ export function UpdateBanner({
         </strong>
         <span>
           {state.phase === "downloaded"
-            ? "重启后完成升级，本机配置和历史快照会保留。"
+            ? state.trustMode === "unsigned-temporary"
+              ? "当前安装包未签名；确认重启后安装，本机配置和历史快照会保留。"
+              : "重启后完成升级，本机配置和历史快照会保留。"
             : state.canAutoInstall
               ? "可在应用内下载，安装和重启由你确认。"
               : "当前版本只检查更新，请从 Releases 手动下载安装。"}
@@ -360,7 +369,9 @@ export function UpdateDialog({
 
         {state.errorMessage ? <p className="update-error-copy">{state.errorMessage}</p> : null}
         <p className="update-dialog-note">
-          安装会关闭并重新打开应用；Codex 数据目录、仓库目录、快照与通知历史不会被清空。
+          {state.trustMode === "unsigned-temporary"
+            ? "当前安装包未签名，Windows 可能显示发布者或 SmartScreen 提示。只有点击“重启并安装”才会执行；Codex 数据目录、仓库目录、快照与通知历史不会被清空。"
+            : "安装会关闭并重新打开应用；Codex 数据目录、仓库目录、快照与通知历史不会被清空。"}
         </p>
         <div className="update-dialog-actions">
           <button type="button" className="secondary-button" onClick={onClose}>
