@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { promisify } from "node:util";
 
 const require = createRequire(import.meta.url);
+const execFileAsync = promisify(execFile);
 const {
   downloadSizeFromInfo,
   normalizeUpdateError,
@@ -15,6 +18,7 @@ const {
 const { SettingsStore } = require("../dist-electron/main/state/settingsStore.js");
 const { resolveUpdateCapabilities } = require("../dist-electron/main/updatePolicy.js");
 const {
+  buildWindowsHiddenLauncherScript,
   buildWindowsInstallHelperScript,
   expectedInstallerFileName,
   validateDownloadedInstaller
@@ -156,6 +160,50 @@ try {
   assert.match(helperScript, /'--updated', '\/S', '--force-run'/);
   assert.match(helperScript, /install_succeeded/);
   assert.match(helperScript, /\/Delete \/TN \$taskName \/F/);
+
+  const hiddenLauncher = buildWindowsHiddenLauncherScript({
+    powerShellPath: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    scriptPath: "C:\\Users\\fixture\\install-helper.ps1"
+  });
+  assert.match(hiddenLauncher, /WScript\.Shell/);
+  assert.match(hiddenLauncher, /shell\.Run\(command, 0, True\)/);
+  assert.match(hiddenLauncher, /-WindowStyle Hidden/);
+
+  if (process.platform === "win32") {
+    const hiddenScriptPath = path.join(tempRoot, "hidden-helper-smoke.ps1");
+    const hiddenLauncherPath = path.join(tempRoot, "hidden-helper-smoke.vbs");
+    const hiddenMarkerPath = path.join(tempRoot, "hidden-helper-smoke.json");
+    const markerLiteral = hiddenMarkerPath.replaceAll("'", "''");
+    await writeFile(
+      hiddenScriptPath,
+      `\uFEFF$process = Get-Process -Id $PID\r\n` +
+        `$payload = @{ pid = $PID; mainWindowHandle = [int64]$process.MainWindowHandle } | ConvertTo-Json -Compress\r\n` +
+        `$utf8NoBom = [System.Text.UTF8Encoding]::new($false)\r\n` +
+        `[System.IO.File]::WriteAllText('${markerLiteral}', $payload, $utf8NoBom)\r\n`,
+      "utf8"
+    );
+    await writeFile(
+      hiddenLauncherPath,
+      `\uFEFF${buildWindowsHiddenLauncherScript({
+        powerShellPath: path.join(
+          process.env.SystemRoot ?? "C:\\Windows",
+          "System32",
+          "WindowsPowerShell",
+          "v1.0",
+          "powershell.exe"
+        ),
+        scriptPath: hiddenScriptPath
+      })}`,
+      "utf16le"
+    );
+    await execFileAsync(
+      path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "wscript.exe"),
+      ["//B", "//NoLogo", hiddenLauncherPath],
+      { windowsHide: true, timeout: 10_000 }
+    );
+    const hiddenMarker = JSON.parse(await readFile(hiddenMarkerPath, "utf8"));
+    assert.equal(hiddenMarker.mainWindowHandle, 0);
+  }
 } finally {
   await rm(tempRoot, { recursive: true, force: true });
 }

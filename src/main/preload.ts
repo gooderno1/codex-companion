@@ -71,7 +71,21 @@ const api: CodexCompanionApi = {
       ipcRenderer.removeListener("updates:state-changed", subscription);
     };
   },
+  onNavigate: (listener) => {
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      route: Parameters<typeof listener>[0]
+    ) => {
+      listener(route);
+    };
+
+    ipcRenderer.on("app:navigate", subscription);
+    return () => {
+      ipcRenderer.removeListener("app:navigate", subscription);
+    };
+  },
   openPage: (page) => ipcRenderer.invoke("app:open-page", page),
+  openNotification: (key) => ipcRenderer.invoke("notifications:open", key),
   openExternal: (url) => ipcRenderer.invoke("app:open-external", url),
   selectDirectory: () => ipcRenderer.invoke("app:select-directory"),
   showWidget: () => ipcRenderer.invoke("widget:show"),

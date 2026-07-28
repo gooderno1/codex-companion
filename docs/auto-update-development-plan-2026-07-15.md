@@ -4,6 +4,7 @@
 
 - `v0.4.2`（2026-07-28）已收敛为首个 LarkSync 式外部安装 helper 正式版；从本版开始，后续稳定版的用户确认安装由临时 Windows 计划任务接手，不再调用 `electron-updater.quitAndInstall()`。
 - `v0.4.3`（2026-07-28）作为首个高于 `v0.4.2` 的连续稳定版发布，用于在通知跳转修复之外验证“检查、下载、用户确认、helper 交接、NSIS 安装和重启”的真实升级闭环；正式结论以旧版安装态验收结果为准。
+- `v0.4.4-dev.1`（2026-07-28）修复真实升级时 PowerShell 控制台持续前台显示的问题：计划任务不再直接运行 `powershell.exe`，改由无控制台的 `wscript.exe //B` 执行 UTF-16 VBScript 启动器，再以窗口样式 `0` 同步等待隐藏 PowerShell worker，保持计划任务存活和安装状态回写。
 - `v0.4.2-dev.1`（2026-07-28）已参考 LarkSync 改造安装交接：继续由 `electron-updater` 从固定 stable Release 检查、下载并执行 `latest.yml` SHA512 校验；下载完成后记录受控安装包路径，用户确认时通过当前用户的临时 Windows 计划任务启动 PowerShell helper，确认 helper 已接手后退出旧主进程，再以 `--updated /S --force-run` 运行 NSIS。
 - helper 只接受 `LOCALAPPDATA/codex-companion-updater` 内、文件名与目标版本完全一致的安装包，并在 `userData/updates/install-helper` 写入交接状态和脱敏日志；任务在安装结束时自删除，renderer 不能指定文件路径、任务名或安装参数。
 - SignPath 申请截至 2026-07-28 未取得可用项目配置，签名不再作为自动升级上线前提；未签名风险、固定源、元数据哈希、用户确认和普通退出不安装边界继续保留。

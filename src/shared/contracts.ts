@@ -565,7 +565,9 @@ export interface CodexCompanionApi {
     listener: (notifications: DashboardNotificationEntry[]) => void
   ): () => void;
   onUpdateStateChanged(listener: (state: UpdateState) => void): () => void;
+  onNavigate(listener: (route: string) => void): () => void;
   openPage(page: AppPage): Promise<void>;
+  openNotification(key: string): Promise<void>;
   openExternal(url: string): Promise<void>;
   selectDirectory(): Promise<string | null>;
   showWidget(): Promise<void>;

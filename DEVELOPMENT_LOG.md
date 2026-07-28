@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-28] v0.4.4-dev.1 fix: 隐藏升级窗口并直达通知详情
+
+- 开发原因：用户通过 `v0.4.3` 真实升级发现 PowerShell 命令行窗口会持续置于前台直到安装完成；点击 Windows 系统通知或顶部单条通知后只发生主页重载，没有定位到对应通知详情。
+- 实现方式：计划任务从直接执行 `powershell.exe` 改为执行无控制台的 `wscript.exe //B //NoLogo`；新增 UTF-16 VBScript 启动器，以 `WScript.Shell.Run(command, 0, True)` 隐藏运行并同步等待 PowerShell worker，保留计划任务存活、handoff 和自删除语义。通知 IPC 新增 `notifications:open`，主进程按 key 构造 `#/notifications?notification=<key>`；已加载主窗口通过 `app:navigate` 只更新 hash，不再 `loadURL` 重载 renderer；通知页从查询参数定位目标分页并选中详情。
+- 当前结果：升级 helper 不再创建可见 PowerShell 控制台；Windows 系统通知和顶部单条“查看详情”均携带通知 key 进入对应详情，通知页内“查看关联页面”继续按业务 page 跳转；应用和 app-server 客户端版本更新为 `0.4.4-dev.1`。
+- 验证方式：`npm run build`、`npm run verify:notifications`、`npm run verify:updater`、`npm run verify:signing-policy`、`npm audit --audit-level=low` 和 `git diff --check` 通过，审计为 `0` 个漏洞；更新器专项用真实 `wscript.exe` 执行生成的 VBScript 与 PowerShell smoke，子进程 `MainWindowHandle=0`；通知页用本机第 `13` 条历史通知深链接截图，确认落在第 `2 / 2` 页并选中对应右侧详情；`npm run package:win` 生成 `102739390` bytes 安装包，SHA256 `7B8642055BFABD6891D1CC22D0BE5C8D61B1C296F9CF41826D38B28FB92C234F`，Authenticode 为 `NotSigned`。
+
 ## [2026-07-28] v0.4.3 docs(release): 记录正式资产验证
 
 - 开发原因：`v0.4.3` 的正式 CI、Windows Package、Release 发布和匿名下载检查已经完成，需要把最终远端构建结果写回仓库。

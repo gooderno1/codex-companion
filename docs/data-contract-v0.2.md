@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.4.3`
+- 对应版本：`v0.4.4-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -170,7 +170,7 @@
   - `LimitWindow.sourceStatus` 非 `observed` 的额度窗口不提醒。
   - `可观测月额度` 暂不触发提醒，因为当前月额度字段仍未稳定观测。
 - 状态存储：写入 Electron `userData/notification-state.json`，保存通知 key、标题、正文、页面、类别、级别、创建时间、最近触发时间、系统通知时间和已读时间。
-- 展示方式：渲染层通过 `notifications:get` 读取应用内提醒，顶部铃铛展示最近 8 条快速摘要，通知页展示完整历史、筛选、分页和详情；通过 `notifications:updated` 接收更新，通过 `notifications:mark-read` 标记已读；系统通知只是同一条应用内提醒的外部提示。Windows 系统通知对象在等待点击期间由主进程保活，点击后统一唤起主窗口并进入 `#/notifications`；通知记录携带的 `page` 只用于通知页内“查看关联页面”。
+- 展示方式：渲染层通过 `notifications:get` 读取应用内提醒，顶部铃铛展示最近 8 条快速摘要，通知页展示完整历史、筛选、分页和详情；通过 `notifications:updated` 接收更新，通过 `notifications:mark-read` 标记已读；系统通知只是同一条应用内提醒的外部提示。Windows 系统通知对象在等待点击期间由主进程保活；系统通知与顶部单条“查看详情”通过 `notifications:open` 携带 key，主进程发送 `app:navigate`，渲染层进入 `#/notifications?notification=<key>` 并定位对应分页和详情，不重新加载主页；通知记录携带的 `page` 只用于通知页内“查看关联页面”。
 - 去重方式：赠送重置过期提醒按 `banked-reset:expiration:<milestone>:<estimatedExpiresAt>` 生成稳定 key；待确认提醒按状态、数量和首次观测时间生成稳定 key；额度提醒按额度窗口、周期起止和阈值生成稳定 key。同一 key 已存在时只更新标题和正文，不更新最近触发时间、不重置未读、不重复创建系统弹窗。
 - 隐私边界：提醒正文只包含聚合后的剩余百分比、周期范围和赠送重置估算时间，不展示账号、邮箱、原始 app-server 响应、余额字段、原始 JSONL、用户输入正文或模型输出正文。
 

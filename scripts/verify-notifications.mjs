@@ -23,8 +23,8 @@ assert.match(
 );
 assert.match(
   mainSource,
-  /openPage\(SYSTEM_NOTIFICATION_CLICK_PAGE\)/,
-  "系统通知点击必须使用通知页路由"
+  /openNotification\(item\.key\)/,
+  "系统通知点击必须携带目标通知 key"
 );
 assert.doesNotMatch(
   mainSource,
@@ -32,4 +32,24 @@ assert.doesNotMatch(
   "系统通知点击不能再直接跳到关联业务页面"
 );
 
-console.log("通知跳转合同校验通过：系统通知点击进入通知页，通知对象在等待点击期间保持存活。");
+const rendererSource = await readFile(
+  new URL("../src/renderer/App.tsx", import.meta.url),
+  "utf8"
+);
+assert.match(
+  rendererSource,
+  /openNotification\(item\.key\)/,
+  "顶部单条通知的查看详情必须打开对应通知"
+);
+assert.match(
+  rendererSource,
+  /targetKey=\{notificationKey\}/,
+  "通知页必须接收深链接中的目标通知 key"
+);
+assert.match(
+  rendererSource,
+  /targetKey \?\? notifications\[0\]\?\.key \?\? null/,
+  "通知页必须选中深链接指定的通知"
+);
+
+console.log("通知跳转合同校验通过：系统通知与顶部单条详情均携带通知 key，并选中对应详情。");

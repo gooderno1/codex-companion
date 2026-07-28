@@ -146,6 +146,14 @@ function resolveOverviewModeFromHash(): OverviewMode {
   return params.get("overviewMode") === "natural" ? "natural" : "billing";
 }
 
+function resolveNotificationKeyFromHash(): string | null {
+  if (resolvePageFromHash() !== "notifications") {
+    return null;
+  }
+  const [, query = ""] = window.location.hash.split("?");
+  return new URLSearchParams(query).get("notification");
+}
+
 function formatNumber(value: number) {
   return value.toLocaleString("zh-CN");
 }
@@ -1588,11 +1596,11 @@ function NotificationCenter({
                       type="button"
                       className="secondary-button"
                       onClick={() => {
-                        void window.codexCompanion.openPage(item.page);
+                        void window.codexCompanion.openNotification(item.key);
                         setIsOpen(false);
                       }}
                     >
-                      查看页面
+                      查看详情
                     </button>
                     {!item.readAt ? (
                       <button
@@ -1623,15 +1631,19 @@ type NotificationCategoryFilter = "all" | DashboardNotificationEntry["category"]
 
 function NotificationPage({
   notifications,
-  onMarkRead
+  onMarkRead,
+  targetKey
 }: {
   notifications: DashboardNotificationEntry[];
   onMarkRead: (keys?: string[]) => Promise<void>;
+  targetKey: string | null;
 }) {
   const [statusFilter, setStatusFilter] = useState<NotificationStatusFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<NotificationCategoryFilter>("all");
   const [pageIndex, setPageIndex] = useState(0);
-  const [selectedKey, setSelectedKey] = useState<string | null>(notifications[0]?.key ?? null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(
+    targetKey ?? notifications[0]?.key ?? null
+  );
   const pageSize = 10;
 
   const filteredNotifications = useMemo(
@@ -1649,7 +1661,15 @@ function NotificationPage({
     [categoryFilter, notifications, statusFilter]
   );
   const pageCount = Math.max(1, Math.ceil(filteredNotifications.length / pageSize));
-  const safePageIndex = Math.min(pageIndex, pageCount - 1);
+  const selectedIndex = filteredNotifications.findIndex(
+    (item) => item.key === selectedKey
+  );
+  const targetPageIndex =
+    targetKey === selectedKey && selectedIndex >= 0
+      ? Math.floor(selectedIndex / pageSize)
+      : null;
+  const safePageIndex =
+    targetPageIndex ?? Math.min(pageIndex, pageCount - 1);
   const pagedNotifications = filteredNotifications.slice(
     safePageIndex * pageSize,
     safePageIndex * pageSize + pageSize
@@ -3926,6 +3946,9 @@ function WidgetView({
 
 export default function App() {
   const [page, setPage] = useState<AppPage>(resolvePageFromHash());
+  const [notificationKey, setNotificationKey] = useState<string | null>(
+    resolveNotificationKeyFromHash
+  );
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
   const [notifications, setNotifications] = useState<DashboardNotificationEntry[]>([]);
@@ -3960,6 +3983,7 @@ export default function App() {
     const handleHashChange = () => {
       setPage(resolvePageFromHash());
       setOverviewMode(resolveOverviewModeFromHash());
+      setNotificationKey(resolveNotificationKeyFromHash());
     };
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
@@ -3968,6 +3992,22 @@ export default function App() {
   useEffect(() => {
     void window.codexCompanion.getPreferences().then(setPreferences);
     const unsubscribe = window.codexCompanion.onPreferencesUpdated(setPreferences);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.codexCompanion.onNavigate((route) => {
+      if (!/^#\/(?:overview|ledger|repositories|notifications|refresh-history|settings)$/.test(
+        route.split("?")[0]
+      )) {
+        return;
+      }
+      if (window.location.hash === route) {
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+        return;
+      }
+      window.location.hash = route;
+    });
     return unsubscribe;
   }, []);
 
@@ -4411,8 +4451,10 @@ export default function App() {
             ) : null}
             {currentPage === "notifications" ? (
               <NotificationPage
+                key={notificationKey ?? "notifications"}
                 notifications={notifications}
                 onMarkRead={markNotificationsRead}
+                targetKey={notificationKey}
               />
             ) : null}
             {currentPage === "refresh-history" ? (

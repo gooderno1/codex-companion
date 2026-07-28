@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.4.3`
+- 当前适用版本：`v0.4.4-dev.1`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
 
 ## 总览页
@@ -19,8 +19,8 @@
 | 项目表头排序 | `ProjectSortHeader` | 页面级 | `name / token / cost / code / commits / sessions / recent`、`asc / desc` | 本地页面状态 |
 | 数据状态标签 | `status-pill` | 全局复用 | `observed / pending / unobserved / stale` | `snapshot.sourceHealth.sourceStatus` |
 | 刷新反馈条 | `refresh-feedback` | 全局复用 | `refreshing / done / error`、约 `5s` 自动隐藏 | `snapshot.sourceHealth.refresh` |
-| 提醒中心 | `NotificationCenter` | 全局复用 | `DashboardNotificationEntry[]`、未读数、最近 8 条详情弹层、标记已读、查看全部 | `notifications:get`、`notifications:updated`、`notifications:mark-read`；展示同一条提醒的标题、正文、类别、级别和触发时间 |
-| 通知页 | `NotificationPage` | 页面级 | 全部 / 未读 / 已读筛选、赠送重置 / 额度筛选、每页 10 条、详情侧栏 | `DashboardNotificationEntry[]`；支持查看关联页面和标记已读 |
+| 提醒中心 | `NotificationCenter` | 全局复用 | `DashboardNotificationEntry[]`、未读数、最近 8 条详情弹层、标记已读、查看全部、单条详情深链接 | `notifications:get`、`notifications:updated`、`notifications:mark-read`、`notifications:open`；单条“查看详情”携带通知 key 进入通知页 |
+| 通知页 | `NotificationPage` | 页面级 | 全部 / 未读 / 已读筛选、赠送重置 / 额度筛选、每页 10 条、详情侧栏、`notification` 查询参数 | `DashboardNotificationEntry[]`；深链接自动定位目标所在分页并选中详情，支持查看关联页面和标记已读 |
 | 首次加载检测 | `FirstLoadPanel` / `DataSourceStatusPanel` | 全局复用 | `generatedFrom=pending`、Codex 检测、Git 命令状态、Git 仓库检测 | `snapshot.sourceHealth`、`snapshot.repositories.summary`、`preferences`、`git:status` |
 | 数据源手动提示 | `setup-banner` | 全局复用 | Codex 或 Git 未检测到时引导打开设置 | `snapshot.sourceHealth.sourceStatus`、`snapshot.repositories.summary.totalTracked` |
 | 应用更新提示 | `UpdateBanner` / `UpdateDialog` | 全局复用 | `available / downloading / downloaded / error`、Release 说明、进度、用户确认安装 | `updates:get-state`、`updates:state-changed`；忽略版本只隐藏相同版本主动提示 |
@@ -28,7 +28,7 @@
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
 | Windows 应用图标 | `build/app-icon.ico` / `createAppIcon` / `scripts/generate-app-icon.mjs` | 打包与主进程复用 | `.ico` 资产、打包前生成、缺失时运行时 PNG 兜底 | 使用本项目 `BrandMark` 品牌几何生成，接入 Windows 可执行文件、主窗口和托盘图标，避免使用默认 Electron 图标 |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
-| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 一次性去重、已读状态、系统通知对象保活、点击进入通知页 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；Windows 系统通知点击统一进入 `#/notifications`，通知页内再提供“查看关联页面”；赠送重置按过期前 `7d / 3d / 1d / 12h / 1h` 各提醒一次，5H / 周额度低于 `20% / 10%` 时按周期阈值各提醒一次 |
+| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 一次性去重、已读状态、系统通知对象保活、点击进入对应通知详情 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；Windows 系统通知点击进入 `#/notifications?notification=<key>`，通知页内再提供“查看关联页面”；页面切换通过 `app:navigate` 更新 hash，不重新加载整个 renderer |
 | Codex 增量缓存 | `CodexSessionCacheStore` / `collectCodexData` | 主进程复用 | `size`、`mtimeMs`、解析结果 | `%APPDATA%/codex-companion/codex-session-cache.json` |
 
 ## 刷新历史页

@@ -28,6 +28,7 @@ export interface WindowsInstallHelperOptions {
 const HANDOFF_FILE_NAME = "install-handoff.json";
 const LOG_FILE_NAME = "install-helper.log";
 const SCRIPT_FILE_NAME = "install-helper.ps1";
+const LAUNCHER_FILE_NAME = "install-helper.vbs";
 const HELPER_START_TIMEOUT_MS = 5_000;
 
 function escapePowerShellLiteral(value: string): string {
@@ -162,6 +163,30 @@ export function buildWindowsInstallHelperScript({
   ].join("\r\n");
 }
 
+function escapeVbScriptLiteral(value: string): string {
+  return value.replaceAll('"', '""');
+}
+
+export function buildWindowsHiddenLauncherScript({
+  powerShellPath,
+  scriptPath
+}: {
+  powerShellPath: string;
+  scriptPath: string;
+}): string {
+  const command =
+    `"${powerShellPath}" -NoProfile -NonInteractive -ExecutionPolicy Bypass ` +
+    `-WindowStyle Hidden -File "${scriptPath}"`;
+  return [
+    "Option Explicit",
+    "Dim shell, command, exitCode",
+    'Set shell = CreateObject("WScript.Shell")',
+    `command = "${escapeVbScriptLiteral(command)}"`,
+    "exitCode = shell.Run(command, 0, True)",
+    "WScript.Quit exitCode"
+  ].join("\r\n");
+}
+
 async function waitForHelperStart(
   handoffPath: string,
   requestId: string
@@ -211,6 +236,7 @@ export async function launchWindowsInstallHelper(
   const requestId = `${Date.now()}-${process.pid}`;
   const taskName = `CodexCompanionUpdate-${requestId}`;
   const scriptPath = path.join(options.helperDirectory, SCRIPT_FILE_NAME);
+  const launcherPath = path.join(options.helperDirectory, LAUNCHER_FILE_NAME);
   const handoffPath = path.join(options.helperDirectory, HANDOFF_FILE_NAME);
   const logPath = path.join(options.helperDirectory, LOG_FILE_NAME);
   const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
@@ -222,6 +248,7 @@ export async function launchWindowsInstallHelper(
     "powershell.exe"
   );
   const taskSchedulerPath = path.join(systemRoot, "System32", "schtasks.exe");
+  const wscriptPath = path.join(systemRoot, "System32", "wscript.exe");
   const script = buildWindowsInstallHelperScript({
     installerPath,
     handoffPath,
@@ -231,14 +258,22 @@ export async function launchWindowsInstallHelper(
     taskName,
     taskSchedulerPath
   });
+  const launcher = buildWindowsHiddenLauncherScript({
+    powerShellPath,
+    scriptPath
+  });
 
   await unlink(handoffPath).catch(() => undefined);
   await writeFile(scriptPath, `\uFEFF${script}`, "utf8");
-  await Promise.all([access(powerShellPath), access(taskSchedulerPath)]);
+  await writeFile(launcherPath, `\uFEFF${launcher}`, "utf16le");
+  await Promise.all([
+    access(powerShellPath),
+    access(taskSchedulerPath),
+    access(wscriptPath)
+  ]);
 
   const taskCommand =
-    `"${powerShellPath}" -NoProfile -NonInteractive -ExecutionPolicy Bypass ` +
-    `-WindowStyle Hidden -File "${scriptPath}"`;
+    `"${wscriptPath}" //B //NoLogo "${launcherPath}"`;
   if (taskCommand.length > 261) {
     throw new Error("更新 helper 路径过长，无法注册 Windows 安装任务");
   }

@@ -79,11 +79,19 @@ function delay(ms: number) {
   });
 }
 
-function resolveRendererUrl(page: AppPage): string {
+function resolveRendererRoute(page: AppPage, notificationKey?: string): string {
   const overviewMode = process.env.CODEX_COMPANION_OVERVIEW_MODE;
   const overviewQuery =
     page === "overview" && overviewMode === "billing" ? "?overviewMode=billing" : "";
-  const route = `#/${page}${overviewQuery}`;
+  const notificationQuery =
+    page === "notifications" && notificationKey
+      ? `?notification=${encodeURIComponent(notificationKey)}`
+      : "";
+  return `#/${page}${notificationQuery || overviewQuery}`;
+}
+
+function resolveRendererUrl(page: AppPage, notificationKey?: string): string {
+  const route = resolveRendererRoute(page, notificationKey);
   if (process.env.VITE_DEV_SERVER_URL) {
     return `${process.env.VITE_DEV_SERVER_URL}/${route}`;
   }
@@ -107,6 +115,14 @@ function resolveInitialPage(): AppPage {
   }
 
   return "overview";
+}
+
+function resolveInitialNotificationKey(page: AppPage): string | undefined {
+  if (page !== "notifications") {
+    return undefined;
+  }
+  const key = process.env.CODEX_COMPANION_CAPTURE_NOTIFICATION_KEY;
+  return key && key.length <= 512 ? key : undefined;
 }
 
 function scheduleMainWindowCapture() {
@@ -567,7 +583,7 @@ async function showDashboardNotifications(snapshot: DashboardSnapshot) {
       activeSystemNotifications.set(item.key, notification);
       notification.once("click", () => {
         releaseNotification();
-        void openPage(SYSTEM_NOTIFICATION_CLICK_PAGE);
+        void openNotification(item.key);
       });
       notification.once("close", releaseNotification);
       notification.once("failed", releaseNotification);
@@ -759,7 +775,7 @@ function refreshTrayMenu() {
   tray.setContextMenu(menu);
 }
 
-async function openPage(page: AppPage) {
+async function openPage(page: AppPage, notificationKey?: string) {
   if (page === "widget") {
     return;
   }
@@ -768,12 +784,27 @@ async function openPage(page: AppPage) {
     return;
   }
 
-  await mainWindow.loadURL(resolveRendererUrl(page));
+  const route = resolveRendererRoute(page, notificationKey);
+  if (
+    mainWindow.webContents.getURL() &&
+    !mainWindow.webContents.isLoadingMainFrame()
+  ) {
+    mainWindow.webContents.send("app:navigate", route);
+  } else {
+    await mainWindow.loadURL(resolveRendererUrl(page, notificationKey));
+  }
   if (mainWindow.isMinimized()) {
     mainWindow.restore();
   }
   mainWindow.show();
   mainWindow.focus();
+}
+
+async function openNotification(key: string) {
+  if (typeof key !== "string" || key.length === 0 || key.length > 512) {
+    throw new Error("通知标识不受支持");
+  }
+  await openPage(SYSTEM_NOTIFICATION_CLICK_PAGE, key);
 }
 
 function createMainWindow() {
@@ -794,7 +825,10 @@ function createMainWindow() {
   });
 
   scheduleMainWindowCapture();
-  void mainWindow.loadURL(resolveRendererUrl(resolveInitialPage()));
+  const initialPage = resolveInitialPage();
+  void mainWindow.loadURL(
+    resolveRendererUrl(initialPage, resolveInitialNotificationKey(initialPage))
+  );
 
   mainWindow.on("close", (event) => {
     if (isQuitting) {
@@ -874,6 +908,9 @@ function registerIpcHandlers() {
       (await dashboardNotificationService?.markNotificationsRead(keys)) ?? [];
     await broadcastDashboardNotifications();
     return notifications;
+  });
+  ipcMain.handle("notifications:open", async (_event, key: string) => {
+    await openNotification(key);
   });
   ipcMain.handle("git:status", async () => readGitIntegrationStatus());
   ipcMain.handle("updates:get-state", async () => updateService?.getState());
