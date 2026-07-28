@@ -27,7 +27,14 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - `npm audit --audit-level=low`：通过，`0` 个已知漏洞。
 - `npm run package:win`：正式版验证通过；本地安装包大小 `102726983` bytes，SHA256 `ADD43B3018D10F7D6D9C6660D74EB9E76DF4E0B562006B6173919335456EF43A`，Authenticode 为 `NotSigned`，同时生成 `108111` bytes blockmap 和 `359` bytes `latest.yml`。
 - 开发提交 CI run `30351563693`：构建、通知跳转、更新器、签名政策和空白检查全部通过。
-- 正式安装包、远端 SHA256 与匿名下载结果以 `v0.4.3` tag workflow 为准。
+
+### Release 资产校验
+
+- 正式 CI run `30351709925` 与 Windows Package run `30351712649` 均成功。
+- 正式安装包 `Codex.Companion.Setup.0.4.3.exe` 大小 `102650354` bytes，SHA256 为 `3D1DB124F2CAD3FB601286385FAE123026831F5E56401F754F19A0CEAB840F2F`；实算结果与 GitHub asset digest、`SHA256SUMS.txt` 一致。
+- blockmap 大小 `108119` bytes；electron-builder 未将其上传至 draft Release，发布流程只从同一成功 Windows Package run 的 Actions artifact 取回并补入，没有混用本机构建产物。
+- `latest.yml` 大小 `359` bytes，`version=0.4.3`，安装包路径、大小与 SHA512 完整；`SHA256SUMS.txt` 大小 `99` bytes。
+- Release 页面、安装包、blockmap、tag `latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名 HTTP 访问均返回 `200`。
 
 ### 升级注意事项
 

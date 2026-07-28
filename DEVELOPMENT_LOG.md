@@ -1,12 +1,20 @@
 # DEVELOPMENT LOG
 
+## [2026-07-28] v0.4.3 docs(release): 记录正式资产验证
+
+- 开发原因：`v0.4.3` 的正式 CI、Windows Package、Release 发布和匿名下载检查已经完成，需要把最终远端构建结果写回仓库。
+- 实现方式：记录 CI run `30351709925`、Windows Package run `30351712649`、正式安装包与更新元数据；electron-builder 未把 blockmap 上传到 draft Release 时，只从同一成功 workflow 的 Actions artifact 取回 blockmap，核对安装包哈希与 Release digest 一致后补入 Release。
+- 当前结果：`v0.4.3` 已发布为 latest Release；正式安装包大小 `102650354` bytes，SHA256 `3D1DB124F2CAD3FB601286385FAE123026831F5E56401F754F19A0CEAB840F2F`；blockmap 大小 `108119` bytes；`latest.yml` 大小 `359` bytes，版本、路径、大小和 SHA512 与安装包一致；`SHA256SUMS.txt` 大小 `99` bytes。
+- 验证方式：两个正式 GitHub Actions workflow 均成功；安装包实算 SHA256 与 GitHub asset digest、`SHA256SUMS.txt` 三方一致；Release 页面、安装包、blockmap、tag `latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名 HTTP 访问均返回 `200`。
+- 遗留问题：真实 `v0.4.2 → v0.4.3` helper 升级闭环仍需在已安装旧版环境中验收。
+
 ## [2026-07-28] v0.4.3 release: 发布系统通知跳转修复
 
 - 开发原因：`v0.4.3-dev.1` 已修复 Windows 系统通知无法可靠进入通知页的问题，用户要求修复完成后直接发布版本。
 - 实现方式：应用版本与 app-server `clientVersion` 从 `0.4.3-dev.1` 收敛为 `0.4.3`；README、Roadmap、数据合同、组件映射、自动升级规划和 Release notes 同步正式版口径；`v0.4.3` 同时作为首个供已安装 `v0.4.2` 使用外部 helper 升级的连续稳定版。
 - 当前结果：Windows 系统通知点击会进入通知页，通知详情仍可继续打开关联业务页面；本地正式安装包大小 `102726983` bytes，SHA256 `ADD43B3018D10F7D6D9C6660D74EB9E76DF4E0B562006B6173919335456EF43A`，Authenticode 为 `NotSigned`；正式 tag 由 GitHub Actions 构建唯一 Release 资产。
 - 验证方式：正式收敛前已通过全量构建、通知跳转专项、更新器专项、签名政策、零漏洞审计、Windows NSIS 打包和空白检查；`v0.4.3` 再次执行相同验证通过，生成 `108111` bytes blockmap 和版本、路径、大小、SHA512 完整的 `359` bytes `latest.yml`；开发提交 CI run `30351563693` 通过。
-- 遗留问题：正式资产与真实 `v0.4.2 → v0.4.3` helper 升级闭环需在 Release 发布后核对。
+- 遗留问题：真实 `v0.4.2 → v0.4.3` helper 升级闭环需在已安装旧版环境中验收。
 
 ## [2026-07-28] v0.4.3-dev.1 fix(notifications): 修复系统通知跳转
 
