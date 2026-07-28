@@ -26,7 +26,10 @@ import type {
 } from "../shared/contracts";
 import { DashboardService } from "./collectors/dashboardCollector";
 import { CodexSessionCacheStore } from "./state/codexSessionCacheStore";
-import { DashboardNotificationService } from "./notifications";
+import {
+  DashboardNotificationService,
+  SYSTEM_NOTIFICATION_CLICK_PAGE
+} from "./notifications";
 import { SettingsStore } from "./state/settingsStore";
 import { SnapshotStore } from "./state/snapshotStore";
 import { UpdateService } from "./updateService";
@@ -48,6 +51,7 @@ const STARTUP_BACKGROUND_REFRESH_DELAY_MS = 15_000;
 let dashboardRefreshTimer: NodeJS.Timeout | null = null;
 let dashboardRefreshTask: Promise<DashboardSnapshot> | null = null;
 let startupRefreshTimer: NodeJS.Timeout | null = null;
+const activeSystemNotifications = new Map<string, Notification>();
 
 const preloadPath = path.join(__dirname, "preload.js");
 const ALLOWED_EXTERNAL_URLS = new Set(["https://git-scm.com/download/win"]);
@@ -549,14 +553,24 @@ async function showDashboardNotifications(snapshot: DashboardSnapshot) {
     }
 
     for (const item of notifications) {
+      activeSystemNotifications.get(item.key)?.close();
       const notification = new Notification({
         title: item.title,
         body: item.body,
         silent: false
       });
-      notification.on("click", () => {
-        void openPage(item.page);
+      const releaseNotification = () => {
+        if (activeSystemNotifications.get(item.key) === notification) {
+          activeSystemNotifications.delete(item.key);
+        }
+      };
+      activeSystemNotifications.set(item.key, notification);
+      notification.once("click", () => {
+        releaseNotification();
+        void openPage(SYSTEM_NOTIFICATION_CLICK_PAGE);
       });
+      notification.once("close", releaseNotification);
+      notification.once("failed", releaseNotification);
       notification.show();
     }
   } catch (error) {

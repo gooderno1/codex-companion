@@ -1,6 +1,6 @@
 {
   "name": "codex-companion",
-  "version": "0.4.2",
+  "version": "0.4.3-dev.1",
   "private": true,
   "description": "非官方 Codex 额度、Token 与代码活动桌面伴侣",
   "license": "MIT",
@@ -37,6 +37,7 @@
     "capture:repositories": "node scripts/capture-repositories-screenshots.mjs",
     "verify:design": "node scripts/verify-design-tokens.mjs",
     "verify:ledger": "node scripts/verify-ledger-page.mjs",
+    "verify:notifications": "node scripts/verify-notifications.mjs",
     "verify:overview": "node scripts/verify-overview-readiness.mjs",
     "verify:quota": "node scripts/verify-quota-snapshot.mjs",
     "verify:signing-policy": "node scripts/verify-code-signing-policy.mjs",

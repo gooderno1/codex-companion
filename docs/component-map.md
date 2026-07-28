@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.4.2`
+- 当前适用版本：`v0.4.3-dev.1`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
 
 ## 总览页
@@ -28,7 +28,7 @@
 | 图标资产 | `src/renderer/icons.tsx` `BrandMark` / `Glyph` | 全局复用 | `IconName` | 本项目自定义 SVG |
 | Windows 应用图标 | `build/app-icon.ico` / `createAppIcon` / `scripts/generate-app-icon.mjs` | 打包与主进程复用 | `.ico` 资产、打包前生成、缺失时运行时 PNG 兜底 | 使用本项目 `BrandMark` 品牌几何生成，接入 Windows 可执行文件、主窗口和托盘图标，避免使用默认 Electron 图标 |
 | 数据刷新广播 | `dashboard:updated` / `onDashboardUpdated` | 全局复用 | `DashboardSnapshot` | 主进程周期采集、后台采集和手动刷新 |
-| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 一次性去重、已读状态、点击打开关联页面 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；赠送重置按过期前 `7d / 3d / 1d / 12h / 1h` 各提醒一次，5H / 周额度低于 `20% / 10%` 时按周期阈值各提醒一次；设置页不再展示通知策略入口 |
+| 应用提醒与系统通知 | `DashboardNotificationService` / `notification-state.json` | 主进程复用 | `generatedFrom=live`、通知 key 一次性去重、已读状态、系统通知对象保活、点击进入通知页 | `snapshot.overview.bankedResetCredits`、`windowPeriods.fiveHour / weekLimit`、`limitWindows[0..1]`；Windows 系统通知点击统一进入 `#/notifications`，通知页内再提供“查看关联页面”；赠送重置按过期前 `7d / 3d / 1d / 12h / 1h` 各提醒一次，5H / 周额度低于 `20% / 10%` 时按周期阈值各提醒一次 |
 | Codex 增量缓存 | `CodexSessionCacheStore` / `collectCodexData` | 主进程复用 | `size`、`mtimeMs`、解析结果 | `%APPDATA%/codex-companion/codex-session-cache.json` |
 
 ## 刷新历史页

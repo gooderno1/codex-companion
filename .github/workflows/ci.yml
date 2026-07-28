@@ -32,6 +32,9 @@ jobs:
       - name: Verify updater contract
         run: npm run verify:updater
 
+      - name: Verify notification navigation
+        run: npm run verify:notifications
+
       - name: Verify code signing policy
         run: npm run verify:signing-policy
 

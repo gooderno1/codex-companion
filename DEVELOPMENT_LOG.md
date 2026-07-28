@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-28] v0.4.3-dev.1 fix(notifications): 修复系统通知跳转
+
+- 开发原因：Windows 系统通知点击后没有进入独立通知页；现有回调使用通知记录的关联业务页面，并且 `Notification` 实例只保存在循环局部变量中，后台等待点击期间缺少明确保活。
+- 实现方式：新增固定系统通知点击目标 `SYSTEM_NOTIFICATION_CLICK_PAGE=notifications`；主进程用通知 key 保存活动 `Notification` 实例，在点击、关闭或失败后释放；点击事件统一调用 `openPage("notifications")`，继续由通知页详情中的“查看关联页面”使用记录自身的 `page`；新增 `verify:notifications` 并接入 CI，校验目标路由、对象保活和旧错误回调不存在。
+- 当前结果：点击 Windows 系统通知会恢复最小化窗口或显示隐藏窗口、聚焦主窗口并进入独立通知页；顶部铃铛和通知页中的关联页面入口行为不变；应用和 app-server 客户端版本更新为 `0.4.3-dev.1`。
+- 验证方式：`npm run build`、`npm run verify:notifications`、`npm run verify:updater`、`npm run verify:signing-policy`、`npm audit --audit-level=low` 和 `git diff --check` 通过，依赖审计为 `0` 个漏洞；`npm run package:win` 生成 `Codex.Companion.Setup.0.4.3-dev.1.exe`，大小 `102726377` bytes，SHA256 `870648ADAC761164F87DBCA649AD7920E013F070BF029256995E492786C17CC3`，安装包仍未签名。
+
 ## [2026-07-28] v0.4.2 docs(release): 记录正式资产验证
 
 - 开发原因：`v0.4.2` 的正式 tag workflow、Release 发布和匿名下载检查已经完成，需要把最终构建结果写回仓库，替换发布时的待验证状态。
