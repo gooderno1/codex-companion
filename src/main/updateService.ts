@@ -15,7 +15,10 @@ import {
   releaseUrlForVersion,
   sanitizeReleaseNotes
 } from "./updateUtils";
-import { resolveUpdateCapabilities } from "./updatePolicy";
+import {
+  resolveUpdateCapabilities,
+  shouldAutomaticallyDownloadUpdate
+} from "./updatePolicy";
 import {
   consumeInstallHandoff,
   launchWindowsInstallHelper
@@ -152,9 +155,12 @@ export class UpdateService {
       });
 
       if (
-        this.capabilities.canAutoInstall &&
-        this.preferences.autoDownload &&
-        this.preferences.ignoredVersion !== info.version
+        shouldAutomaticallyDownloadUpdate({
+          canAutoInstall: this.capabilities.canAutoInstall,
+          autoDownload: this.preferences.autoDownload,
+          ignoredVersion: this.preferences.ignoredVersion,
+          availableVersion: info.version
+        })
       ) {
         void this.downloadUpdate();
       }
@@ -208,6 +214,17 @@ export class UpdateService {
 
   public setPreferences(preferences: UpdatePreferences) {
     const autoCheckChanged = this.preferences.autoCheck !== preferences.autoCheck;
+    const autoDownloadEnabled =
+      !this.preferences.autoDownload && preferences.autoDownload;
+    const shouldStartDownload =
+      autoDownloadEnabled &&
+      this.state.phase === "available" &&
+      shouldAutomaticallyDownloadUpdate({
+        canAutoInstall: this.capabilities.canAutoInstall,
+        autoDownload: preferences.autoDownload,
+        ignoredVersion: preferences.ignoredVersion,
+        availableVersion: this.state.availableVersion
+      });
     this.preferences = preferences;
     autoUpdater.autoInstallOnAppQuit =
       this.capabilities.canInstallOnQuit && preferences.installOnQuit;
@@ -215,6 +232,9 @@ export class UpdateService {
       this.refreshSchedule(preferences.autoCheck);
     }
     this.emitState();
+    if (shouldStartDownload) {
+      void this.downloadUpdate();
+    }
   }
 
   public checkForUpdates(): Promise<UpdateState> {

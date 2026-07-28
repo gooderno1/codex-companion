@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-28] v0.4.5-dev.1 fix: 补强自动下载并精简更新说明
+
+- 开发原因：用户询问自动检查和自动下载是否真实执行，并确认当前更新交互已足够清晰，不再需要解释性小字。
+- 实现方式：复核 `UpdateService` 的正式安装版门禁、启动 `15s` 延迟检查、`6h` 周期检查和 `update-available -> downloadUpdate()` 路径；抽取自动下载判定函数，统一校验 `canAutoInstall=true`、`autoDownload=true`、存在可用版本且未忽略该版本；在已经处于 `available` 时开启自动下载，立即承接下载。移除设置卡片标题说明、两个开关说明、未签名说明段、全局更新提示副文案和更新详情安装说明，保留版本、状态、进度、错误、Release notes 与操作按钮。
+- 当前结果：自动检查与自动下载在 Windows packaged NSIS、非便携形态下真实执行；开发模式、便携版和其他平台仍输出 `unsupported`。更新界面信息层级更精简，运行风险和未签名边界继续由 README、Release notes 与系统提示承载。
+- 验证方式：`npm run build`、`npm run verify:updater`、`npm run verify:design`、`npm run verify:signing-policy`、`npm audit --audit-level=low` 和 `git diff --check` 通过，审计为 `0` 个漏洞；专项校验覆盖允许自动下载、关闭自动下载、忽略当前版本和不支持自动安装四种判定分支。开发态设置页 `1360×900` 截图确认更新卡片无多余说明且无布局溢出；`npm run package:win` 生成 `102759958` bytes 安装包，SHA256 `EBA3B5B79777AE0932FAC2BF45889ED52A0266E117A95184DD3E92747EC0B5C1`，Authenticode 为 `NotSigned`，同时生成 `108038` bytes blockmap 和版本、路径、大小、SHA512 完整的 `377` bytes `latest.yml`。
+
 ## [2026-07-28] v0.4.4 docs(release): 记录正式资产验证
 
 - 开发原因：`v0.4.4` 的正式 CI、Windows Package、Release 发布和匿名下载检查已完成，需要把最终远端构建结果写回仓库。

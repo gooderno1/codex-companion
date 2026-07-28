@@ -6,6 +6,25 @@ export interface UpdateCapabilities {
   trustMode: UpdateTrustMode;
 }
 
+export function shouldAutomaticallyDownloadUpdate({
+  canAutoInstall,
+  autoDownload,
+  ignoredVersion,
+  availableVersion
+}: {
+  canAutoInstall: boolean;
+  autoDownload: boolean;
+  ignoredVersion: string | null;
+  availableVersion: string | null;
+}): boolean {
+  return (
+    canAutoInstall &&
+    autoDownload &&
+    Boolean(availableVersion) &&
+    ignoredVersion !== availableVersion
+  );
+}
+
 export function resolveUpdateCapabilities({
   supported,
   trustedPublisherConfigured,

@@ -1848,12 +1848,6 @@ svg {
   font-size: 13px;
 }
 
-.update-toggle small {
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 .update-progress-block {
   display: grid;
   gap: 8px;
@@ -1924,11 +1918,6 @@ svg {
   font-size: 13px;
 }
 
-.update-banner span {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
 .update-banner-actions,
 .update-dialog-actions {
   display: flex;
@@ -1996,8 +1985,7 @@ svg {
   font-size: 20px;
 }
 
-.update-dialog-head p,
-.update-dialog-note {
+.update-dialog-head p {
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
@@ -2033,10 +2021,6 @@ svg {
   font-size: 13px;
   line-height: 1.65;
   white-space: pre-wrap;
-}
-
-.update-dialog-note {
-  margin: 0;
 }
 
 .update-dialog-actions {

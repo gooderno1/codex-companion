@@ -136,7 +136,6 @@ export function UpdateSettingsCard({
       <div className="section-toolbar">
         <div>
           <h3>应用更新</h3>
-          <p>从公开 GitHub Releases 检查 Windows 稳定版；不会上传 Codex 或仓库数据。</p>
         </div>
         <span className={`detection-pill ${phaseClass(state)}`}>{phaseLabel(state)}</span>
       </div>
@@ -164,7 +163,6 @@ export function UpdateSettingsCard({
           />
           <span>
             <strong>自动检查</strong>
-            <small>启动约 15 秒后检查，运行期间每 6 小时检查一次。</small>
           </span>
         </label>
         <label className={`update-toggle${state?.canAutoInstall ? "" : " is-disabled"}`}>
@@ -178,13 +176,6 @@ export function UpdateSettingsCard({
           />
           <span>
             <strong>自动下载</strong>
-            <small>
-              {state?.trustMode === "unsigned-temporary"
-                ? "发现新版本后自动下载；确认后由本机更新 helper 在应用退出后完成安装。"
-                : state?.canAutoInstall
-                  ? "发现新版本后自动下载，安装和重启仍由你确认。"
-                : "可信 Windows 代码签名启用前保持关闭，只提供检查和手动下载。"}
-            </small>
           </span>
         </label>
       </div>
@@ -204,17 +195,6 @@ export function UpdateSettingsCard({
       ) : null}
 
       {state?.errorMessage ? <p className="update-error-copy">{state.errorMessage}</p> : null}
-      {state?.trustMode === "unsigned-temporary" ? (
-        <p className="settings-note">
-          当前采用与 LarkSync 相同的外部安装交接：更新源固定为本仓库，下载文件按更新元数据校验；
-          点击“重启并安装”后，本机 helper 会等待应用退出再运行 NSIS。安装包仍未签名，Windows
-          可能显示 SmartScreen 提示。
-        </p>
-      ) : !state?.canAutoInstall ? (
-        <p className="settings-note">
-          当前安装形态不支持应用内升级；请从本仓库 Releases 下载并核对 SHA256。
-        </p>
-      ) : null}
 
       <div className="settings-action-row">
         <button
@@ -273,15 +253,6 @@ export function UpdateBanner({
             ? `v${state.availableVersion} 已准备安装`
             : `发现新版本 v${state.availableVersion}`}
         </strong>
-        <span>
-          {state.phase === "downloaded"
-            ? state.trustMode === "unsigned-temporary"
-              ? "确认后应用退出，由本机更新 helper 安装并重新打开；本机数据会保留。"
-              : "重启后完成升级，本机配置和历史快照会保留。"
-            : state.canAutoInstall
-              ? "可在应用内下载，安装和重启由你确认。"
-              : "当前版本只检查更新，请从 Releases 手动下载安装。"}
-        </span>
       </div>
       <div className="update-banner-actions">
         <button type="button" className="secondary-button" onClick={onShowDetails}>
@@ -369,11 +340,6 @@ export function UpdateDialog({
         ) : null}
 
         {state.errorMessage ? <p className="update-error-copy">{state.errorMessage}</p> : null}
-        <p className="update-dialog-note">
-          {state.trustMode === "unsigned-temporary"
-            ? "点击“重启并安装”后，应用会退出，本机更新 helper 将运行已校验的 NSIS 安装包并重新打开应用。安装包未签名，Windows 仍可能显示发布者或 SmartScreen 提示；Codex 数据目录、仓库目录、快照与通知历史不会被清空。"
-            : "安装会关闭并重新打开应用；Codex 数据目录、仓库目录、快照与通知历史不会被清空。"}
-        </p>
         <div className="update-dialog-actions">
           <button type="button" className="secondary-button" onClick={onClose}>
             稍后

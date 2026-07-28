@@ -16,7 +16,10 @@ const {
   sanitizeReleaseNotes
 } = require("../dist-electron/main/updateUtils.js");
 const { SettingsStore } = require("../dist-electron/main/state/settingsStore.js");
-const { resolveUpdateCapabilities } = require("../dist-electron/main/updatePolicy.js");
+const {
+  resolveUpdateCapabilities,
+  shouldAutomaticallyDownloadUpdate
+} = require("../dist-electron/main/updatePolicy.js");
 const {
   buildWindowsHiddenLauncherScript,
   buildWindowsInstallHelperScript,
@@ -35,6 +38,42 @@ assert.deepEqual(
     canInstallOnQuit: false,
     trustMode: "unsigned-temporary"
   }
+);
+assert.equal(
+  shouldAutomaticallyDownloadUpdate({
+    canAutoInstall: true,
+    autoDownload: true,
+    ignoredVersion: null,
+    availableVersion: "0.4.5"
+  }),
+  true
+);
+assert.equal(
+  shouldAutomaticallyDownloadUpdate({
+    canAutoInstall: true,
+    autoDownload: false,
+    ignoredVersion: null,
+    availableVersion: "0.4.5"
+  }),
+  false
+);
+assert.equal(
+  shouldAutomaticallyDownloadUpdate({
+    canAutoInstall: true,
+    autoDownload: true,
+    ignoredVersion: "0.4.5",
+    availableVersion: "0.4.5"
+  }),
+  false
+);
+assert.equal(
+  shouldAutomaticallyDownloadUpdate({
+    canAutoInstall: false,
+    autoDownload: true,
+    ignoredVersion: null,
+    availableVersion: "0.4.5"
+  }),
+  false
 );
 assert.deepEqual(
   resolveUpdateCapabilities({
