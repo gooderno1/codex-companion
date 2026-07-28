@@ -2,7 +2,39 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.4` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.5` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-07-28] v0.4.5 release: 补强自动下载并精简更新界面
+
+### Release 范围
+
+包含开发版本：
+
+- `v0.4.5-dev.1`
+
+本次不改变更新源、安装 helper、签名门禁或退出安装策略，只补齐自动下载开关的即时行为并精简已清晰交互中的说明文字。
+
+### 主要变更
+
+- 确认自动检查已在正式 Windows NSIS 安装版实装：启动约 `15s` 后检查，开关开启时每 `6h` 检查一次。
+- 发现未忽略的新版本且自动下载开启时，继续自动开始下载。
+- 已经发现新版本后才打开“自动下载”，现在也会立即开始下载，无需等待下一次检查。
+- 设置页更新卡片、全局更新提示和详情弹层移除重复解释性小字，保留版本、状态、进度、错误、Release notes 和操作按钮。
+
+### 验证结果
+
+- `npm run build`、`npm run verify:updater`、`npm run verify:design`、`npm run verify:signing-policy` 和 `git diff --check`：通过。
+- 更新器专项覆盖允许自动下载、关闭自动下载、忽略当前版本和不支持自动安装四种判定分支。
+- 开发态设置页 `1360×900` 截图检查：说明文字已移除，无截断或布局溢出。
+- `npm audit --audit-level=low`：通过，`0` 个已知漏洞。
+- 本地正式安装包大小 `102759963` bytes，SHA256 `5C8FEDAB41481C55F52CA9971D8B49922F7D1FD6CEE466B0C0092A03E132CA16`，Authenticode 为 `NotSigned`；同时生成 `108383` bytes blockmap 和版本、路径、大小、SHA512 完整的 `359` bytes `latest.yml`。
+- 远端 Release 资产结果在正式 workflow 完成后补充。
+
+### 升级注意事项
+
+- 自动检查和自动下载只在 Windows packaged NSIS、非便携形态下执行；开发模式、便携版和其他平台仍使用 Releases 手动安装。
+- 安装包仍未签名，Windows SmartScreen 或企业策略可能拦截。
+- 普通退出不会安装；下载完成后仍需点击“重启并安装”。
 
 ## [2026-07-28] v0.4.4 release: 隐藏升级窗口并直达通知详情
 
