@@ -37,6 +37,14 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - 计划任务 smoke test：受控假安装器得到 `helper_started → install_failed(exitCode=2)`，任务结束后查询确认已删除。
 - 本地稳定版安装包大小 `102726036` bytes，SHA256 `FBA1F6FF3DBC4B7382E23A0211C3A17EE3EFC2B4B372A29B7B5C59BD3F7A44FC`，Authenticode 为 `NotSigned`；远端正式资产以 tag workflow 构建结果为准。
 
+### Release 资产校验
+
+- GitHub CI run `30344390143` 与 Windows Package run `30344392312` 均成功。
+- 正式安装包 `Codex.Companion.Setup.0.4.2.exe` 大小 `102650328` bytes，SHA256 为 `739BAC6C7829566F8196252A1B4A7DDCDAFA4441B502B3175669042EA76853FF`；实算结果与 GitHub asset digest、`SHA256SUMS.txt` 一致。
+- blockmap 大小 `108025` bytes；electron-builder 未将其上传至 draft Release，发布流程只从同一成功 Windows Package run 的 Actions artifact 取回并补入，没有混用本机构建产物。
+- `latest.yml` 大小 `359` bytes，`version=0.4.2`，安装包路径、大小与 SHA512 完整；`SHA256SUMS.txt` 大小 `99` bytes。
+- Release 页面、安装包、blockmap、`latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名 HTTP 访问均返回 `200`。
+
 ### 升级注意事项
 
 - `v0.4.1` 内置的仍是旧安装逻辑，不能从远端获得新 helper；如果 `v0.4.1 → v0.4.2` 的旧链路未能完成，请从 Releases 手动安装 `v0.4.2` 一次。

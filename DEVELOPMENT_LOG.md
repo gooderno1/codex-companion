@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-28] v0.4.2 docs(release): 记录正式资产验证
+
+- 开发原因：`v0.4.2` 的正式 tag workflow、Release 发布和匿名下载检查已经完成，需要把最终构建结果写回仓库，替换发布时的待验证状态。
+- 实现方式：记录 CI run `30344390143`、Windows Package run `30344392312`、正式安装包与更新元数据；electron-builder 未把 blockmap 上传到 draft Release 时，只从同一成功 workflow 的 Actions artifact 取回对应 blockmap，核对安装包哈希后补入 Release。
+- 当前结果：`v0.4.2` 已发布为 latest Release；正式安装包大小 `102650328` bytes，SHA256 `739BAC6C7829566F8196252A1B4A7DDCDAFA4441B502B3175669042EA76853FF`；blockmap 大小 `108025` bytes；`latest.yml` 大小 `359` bytes，版本、路径、大小和 SHA512 与安装包一致；`SHA256SUMS.txt` 大小 `99` bytes。
+- 验证方式：两个 GitHub Actions workflow 均成功；安装包实算 SHA256 与 GitHub asset digest、`SHA256SUMS.txt` 三方一致；Release 页面、安装包、blockmap、`latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名 HTTP 访问均返回 `200`。
+- 遗留问题：新 helper 的真实连续版本升级闭环仍需在发布下一稳定版后，以已安装 `v0.4.2` 为旧版验证。
+
 ## [2026-07-28] v0.4.2 fix(ci): 补齐 npm 10 可选 peer lockfile
 
 - 开发原因：`v0.4.2-dev.1` 的 GitHub CI 在 Windows runner 的 npm `10.9.8` 上执行 `npm ci` 时，报告 lockfile 缺少 `@emnapi/core@1.11.3` 与 `@emnapi/runtime@1.11.3`；本机 npm 11 的 lockfile 生成结果省略了这两个可选 peer。lockfile 修复后的 runner 又把临时目录 8.3 短路径 `RUNNER~1` 规范化为长路径 `runneradmin`，暴露 updater 测试错误地比较原始路径字符串。
@@ -13,7 +21,7 @@
 - 实现方式：应用版本与 app-server `clientVersion` 从 `0.4.2-dev.1` 收敛为 `0.4.2`；README、Roadmap、数据合同、组件映射、自动升级规划和 Release notes 同步正式版、旧版引导与下一连续版本验收口径；正式 tag 继续由 GitHub Actions 构建唯一 Release 资产。
 - 当前结果：`v0.4.2` 成为首个内置外部安装 helper 的正式版；`v0.4.1` 用户仍由旧逻辑尝试本次升级，失败时需要手动安装一次，之后更高稳定版才使用新 helper。本地稳定版安装包大小 `102726036` bytes，SHA256 `FBA1F6FF3DBC4B7382E23A0211C3A17EE3EFC2B4B372A29B7B5C59BD3F7A44FC`，Authenticode 为 `NotSigned`。
 - 验证方式：正式收敛前的 `v0.4.2-dev.1` 已通过匿名 `npm ci`、全量构建、Windows NSIS 打包、更新器与签名政策专项、计划任务 smoke test、零漏洞审计和空白检查；`v0.4.2` 再次执行相同全量构建、NSIS 打包、专项校验、审计和空白检查通过；正式 tag 资产由 GitHub Actions 复验。
-- 遗留问题：需等待正式 tag workflow 完成并核对远端安装包、blockmap、`latest.yml`、SHA256 和 latest Release 可访问性；真实 helper 升级闭环需由 `v0.4.2` 升级到下一稳定版验证。
+- 遗留问题：真实 helper 升级闭环需由 `v0.4.2` 升级到下一稳定版验证。
 
 ## [2026-07-28] v0.4.2-dev.1 feat(updater): 改用 LarkSync 式外部安装交接
 
