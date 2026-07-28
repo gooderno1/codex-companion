@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-28] v0.4.5 docs(release): 记录正式资产验证
+
+- 开发原因：`v0.4.5` 的正式 CI、Windows Package、Release 发布和匿名下载检查已完成，需要把最终远端构建结果写回仓库。
+- 实现方式：记录 CI run `30365661489`、Windows Package run `30365654231`、正式安装包与更新元数据；electron-builder 的草稿 Release 只上传 blockmap，因此从同一成功 workflow 的 Actions artifact 取回安装包和 `latest.yml`，先确认 artifact blockmap SHA256 与 Release digest 一致，再核对安装包 SHA256、清单和元数据后补齐缺失资产。
+- 当前结果：`v0.4.5` 已发布为 latest Release；正式安装包大小 `102651361` bytes，SHA256 `D6517CE5BFA79A328F65299D0E2407292335B04227E5661AEB7DE807B0CDD14C`；blockmap 大小 `108043` bytes；`latest.yml` 大小 `359` bytes，版本、路径、大小和 SHA512 与安装包一致；`SHA256SUMS.txt` 大小 `99` bytes。
+- 验证方式：两个正式 GitHub Actions workflow 均成功；安装包实算 SHA256 与 GitHub asset digest、`SHA256SUMS.txt` 三方一致；Release 页面、安装包、blockmap、tag `latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名 HTTP 访问均返回 `200`。
+
 ## [2026-07-28] v0.4.5 release: 发布自动下载补强与界面精简
 
 - 开发原因：`v0.4.5-dev.1` 已确认自动检查和自动下载的生产链路，并补齐开关开启后的即时下载行为，需要发布给现有 `v0.4.4` 安装用户。

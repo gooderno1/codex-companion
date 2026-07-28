@@ -28,7 +28,14 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - 开发态设置页 `1360×900` 截图检查：说明文字已移除，无截断或布局溢出。
 - `npm audit --audit-level=low`：通过，`0` 个已知漏洞。
 - 本地正式安装包大小 `102759963` bytes，SHA256 `5C8FEDAB41481C55F52CA9971D8B49922F7D1FD6CEE466B0C0092A03E132CA16`，Authenticode 为 `NotSigned`；同时生成 `108383` bytes blockmap 和版本、路径、大小、SHA512 完整的 `359` bytes `latest.yml`。
-- 远端 Release 资产结果在正式 workflow 完成后补充。
+
+### Release 资产校验
+
+- 正式 CI run `30365661489` 与 Windows Package run `30365654231` 均成功。
+- 正式安装包 `Codex.Companion.Setup.0.4.5.exe` 大小 `102651361` bytes，SHA256 为 `D6517CE5BFA79A328F65299D0E2407292335B04227E5661AEB7DE807B0CDD14C`；实算结果与 GitHub asset digest、`SHA256SUMS.txt` 一致。
+- blockmap 大小 `108043` bytes；草稿 Release 初始缺少安装包与 `latest.yml`，发布流程从同一成功 Windows Package run 的 Actions artifact 取回，先核对 artifact blockmap 与 Release blockmap digest 一致，再补齐缺失资产，没有混用本机构建产物。
+- `latest.yml` 大小 `359` bytes，`version=0.4.5`，安装包路径、大小与 SHA512 完整；`SHA256SUMS.txt` 大小 `99` bytes。
+- Release 页面、安装包、blockmap、tag `latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名 HTTP 访问均返回 `200`。
 
 ### 升级注意事项
 
