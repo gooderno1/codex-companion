@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -133,7 +133,7 @@ try {
       expectedVersion: "0.4.2",
       updaterCacheDirectory: updaterCache
     }),
-    installerPath
+    await realpath(installerPath)
   );
   await assert.rejects(
     validateDownloadedInstaller({

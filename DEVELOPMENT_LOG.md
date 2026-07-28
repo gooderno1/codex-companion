@@ -2,8 +2,8 @@
 
 ## [2026-07-28] v0.4.2 fix(ci): 补齐 npm 10 可选 peer lockfile
 
-- 开发原因：`v0.4.2-dev.1` 的 GitHub CI 在 Windows runner 的 npm `10.9.8` 上执行 `npm ci` 时，报告 lockfile 缺少 `@emnapi/core@1.11.3` 与 `@emnapi/runtime@1.11.3`；本机 npm 11 的 lockfile 生成结果省略了这两个可选 peer。
-- 实现方式：使用与 CI 一致的 npm `10.9.8` 重新生成 lockfile，显式保留两个 `@emnapi` 可选 peer 及其 `wasi-threads` 依赖，并把 npm 自动规范化为 SSH 的共享核心包 resolved URL 恢复为公开 HTTPS。
+- 开发原因：`v0.4.2-dev.1` 的 GitHub CI 在 Windows runner 的 npm `10.9.8` 上执行 `npm ci` 时，报告 lockfile 缺少 `@emnapi/core@1.11.3` 与 `@emnapi/runtime@1.11.3`；本机 npm 11 的 lockfile 生成结果省略了这两个可选 peer。lockfile 修复后的 runner 又把临时目录 8.3 短路径 `RUNNER~1` 规范化为长路径 `runneradmin`，暴露 updater 测试错误地比较原始路径字符串。
+- 实现方式：使用与 CI 一致的 npm `10.9.8` 重新生成 lockfile，显式保留两个 `@emnapi` 可选 peer 及其 `wasi-threads` 依赖，并把 npm 自动规范化为 SSH 的共享核心包 resolved URL 恢复为公开 HTTPS；安装包路径断言改为比较双方 `realpath`，继续验证真实路径 confinement，不依赖短路径表示。
 - 当前结果：lockfile 同时满足 npm 10 Windows CI、公开匿名核心包读取和 npm 安全审计要求；失败的首次 tag workflow 在发布资产前取消，`v0.4.2` tag 改由包含本修复的提交重新触发。
 - 验证方式：使用 npm `10.9.8` 执行匿名 `npm ci`，再执行构建、更新器专项、零漏洞审计和空白检查。
 
