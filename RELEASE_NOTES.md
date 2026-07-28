@@ -2,7 +2,40 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.3` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.4` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-07-28] v0.4.4 release: 隐藏升级窗口并直达通知详情
+
+### Release 范围
+
+包含开发版本：
+
+- `v0.4.4-dev.1`
+
+本次修复 `v0.4.3` 真实升级和通知交互中暴露的两个问题，不改变通知生成规则、额度阈值、数据源或自动升级下载校验。
+
+### 主要变更
+
+- Windows 计划任务不再直接执行 `powershell.exe`，改为无控制台的 `wscript.exe //B //NoLogo` 执行 UTF-16 VBScript 启动器。
+- VBScript 通过 `WScript.Shell.Run(command, 0, True)` 隐藏运行并等待 PowerShell worker，安装期间不再持续显示前台命令行窗口，同时保持 handoff、计划任务存活与安装完成自删除。
+- 系统通知和顶部单条“查看详情”通过 `notifications:open` 携带通知 key，进入 `#/notifications?notification=<key>`。
+- 已加载的主窗口通过 `app:navigate` 更新 hash，不再用 `loadURL` 重载 renderer；通知页会定位目标分页并选中对应右侧详情。
+- 通知页里的“查看关联页面”仍按通知记录的业务 `page` 打开总览或账本等关联页面。
+
+### 验证结果
+
+- `npm run build`、`npm run verify:notifications`、`npm run verify:updater`、`npm run verify:signing-policy` 和 `git diff --check`：通过。
+- 更新器专项实际调用 `wscript.exe` 运行生成的 VBScript 与 PowerShell smoke，子进程 `MainWindowHandle=0`。
+- 通知深链接使用本机第 `13` 条历史通知截图验证，页面进入第 `2 / 2` 页并选中对应详情。
+- `npm audit --audit-level=low`：通过，`0` 个已知漏洞。
+- `npm run package:win`：正式版安装包大小 `102745114` bytes，SHA256 `05E4F31CDC6901606DCBD6873C42C02073C7B15A19D7D405F245EC9365FFFBE2`，Authenticode 为 `NotSigned`；同时生成 `108401` bytes blockmap 和 `359` bytes `latest.yml`。
+- 开发提交 CI run `30353622218`：构建、通知跳转、隐藏 helper、签名政策和空白检查全部通过。
+- 正式远端资产与匿名下载结果以 `v0.4.4` tag workflow 为准。
+
+### 升级注意事项
+
+- 从 `v0.4.3` 升级本版时，旧版 helper 仍可能显示一次命令行窗口；安装完成并运行 `v0.4.4` 后，后续升级才使用本次隐藏启动修复。
+- 安装包仍未签名，Windows SmartScreen 或企业策略可能拦截。
 
 ## [2026-07-28] v0.4.3 release: 修复系统通知跳转
 
