@@ -8,11 +8,12 @@
 ## 当前状态
 
 - 当前正式版本：`v0.4.1`；这是首个启用临时未签名自动下载和用户确认安装的引导版本。
+- 当前开发版本：`v0.4.2-dev.1`；安装阶段已改为与 LarkSync 相同的“主程序退出 + 外部 Windows helper + NSIS”交接方式。
 - 当前定位：公开预览正式版；已接入 Windows 稳定版更新检查、设置页更新状态和 GitHub Release 元数据链路。
 - 当前平台：优先支持 Windows 桌面应用；源码开发可在具备 Electron 环境的系统上尝试运行。
 - 桌面挂件：相关代码已保留，但公开预览版暂时禁用，后续单独验证后再开放。
-- 自动升级：`v0.4.1` 已开启临时未签名升级模式；Windows NSIS 安装版可自动下载更新，但只有用户点击“重启并安装”后才执行，退出时不会静默安装。
-- 代码签名：已提交 SignPath Foundation 免费开源签名申请并补齐公开政策、角色、人工审批和产物元数据门禁；审核通过并完成签名验收前，Release 仍保持未签名状态。
+- 自动升级：Windows NSIS 安装版从固定 GitHub stable Release 自动检查和下载；`v0.4.2-dev.1` 起，用户点击“重启并安装”后由独立本机 helper 等待旧进程退出，再运行 NSIS 并重新打开应用。
+- 代码签名：SignPath Foundation 申请截至 2026-07-28 未取得签名项目配置；Release 继续保持未签名状态，Windows 仍可能显示未知发布者或 SmartScreen 提示。
 
 ## 当前能力
 
@@ -53,7 +54,8 @@
 - 从首个 updater-enabled 正式版开始，应用会按稳定通道检查公开 GitHub Release。
 - 设置页“应用更新”卡片可关闭自动检查、手动重试、查看更新说明或打开 Releases。
 - 当前安装包尚未配置可信 Windows 代码签名；自动下载使用固定公开 Release 更新源和 `latest.yml` 文件哈希，Windows 仍可能显示未知发布者或 SmartScreen 提示。
-- 未签名阶段禁用退出时安装和静默重启；后续签名门禁通过后，更新链路切换为可信 publisher 校验，下载进度、更新说明和“重启并安装”继续保持用户可见。
+- 未签名阶段不会在普通退出时安装。用户明确点击“重启并安装”后，主进程通过当前用户的临时 Windows 计划任务启动受控外部 helper；helper 校验安装包必须位于 `electron-updater` 缓存且文件名与目标版本一致，等待旧进程退出后以 `--updated /S --force-run` 执行 NSIS，并在结束时删除临时任务。
+- `v0.4.1` 内置的仍是旧安装交接逻辑，无法被远端改写；首次切换到包含外部 helper 的正式版时，如旧链路未能完成安装，需要从 Releases 手动安装一次。之后的更高版本才使用新 helper。
 - 更新请求只访问本仓库公开 Release，不携带 GitHub token，也不上传 Codex session、仓库路径、模型或额度数据。
 
 ## Code signing policy

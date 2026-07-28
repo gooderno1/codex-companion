@@ -868,8 +868,9 @@ function registerIpcHandlers() {
   ipcMain.handle("updates:install", async () => {
     isQuitting = true;
     stopDashboardAutoRefresh();
-    if (!updateService?.quitAndInstall()) {
+    if (!(await updateService?.quitAndInstall())) {
       isQuitting = false;
+      startDashboardAutoRefresh();
       return;
     }
   });

@@ -6,8 +6,8 @@
 
 ## 当前状态
 
-- SignPath Foundation 申请已于 2026-07-15 提交，目前等待审核和项目配置。
-- 在 SignPath 明确批准、签名工作流接通并完成验收前，公开 Release 仍是未签名产物。临时更新模式可以从本仓库 stable Release 自动下载，但只在用户明确点击“重启并安装”后执行；退出时安装和静默重启禁止启用。
+- SignPath Foundation 申请已于 2026-07-15 提交；截至 2026-07-28 未取得 organization、project 或 artifact configuration，当前不再把签名获批作为自动升级上线前提。
+- 在签名工作流接通并完成验收前，公开 Release 仍是未签名产物。临时更新模式可以从本仓库 stable Release 自动下载；用户明确点击“重启并安装”后，由外部本机 helper 等待主程序退出并运行 NSIS，普通退出不会安装。
 - 本政策不会使既有安装包获得签名，也不代表 SignPath Foundation 已经批准本项目。
 
 ## 项目与签名范围
@@ -46,7 +46,7 @@
 
 - 完整隐私边界见 [PRIVACY.md](./PRIVACY.md)。应用不会上传原始 Codex session、仓库源码、仓库路径、模型明细或成本数据。
 - 应用仅在用户启用更新检查或主动操作时访问本项目公开 GitHub Releases；不会为更新请求附带 GitHub token。
-- 安装、升级和卸载均使用用户可见的 NSIS 流程。未签名阶段只允许用户确认后的安装；可信签名校验与连续版本升级验收通过后，才允许评估退出时安装，安装前仍保持用户可见和可确认。
+- 安装、升级和卸载均使用 NSIS。未签名阶段只允许用户确认后启动外部本机 helper，helper 等待旧进程退出后执行静默 NSIS 并重启应用；可信签名校验与连续版本升级验收通过后，才允许评估普通退出时安装。
 
 ## 用户验证
 
@@ -75,3 +75,4 @@ Get-FileHash .\Codex.Companion.Setup.<version>.exe -Algorithm SHA256
 
 - 2026-07-15：建立首版政策，记录签名范围、角色、MFA、自动构建、人工审批、文件元数据、隐私和事件响应要求。
 - 2026-07-21：记录临时未签名升级边界；允许固定 stable Release 自动下载和用户确认安装，明确禁止退出时安装，并保留 SignPath 接入后的 publisher 校验要求。
+- 2026-07-28：记录 SignPath 尚未提供签名配置；安装交接改为外部 Windows helper 等待旧进程退出后运行已校验 NSIS，普通退出仍不安装。

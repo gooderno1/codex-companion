@@ -1,6 +1,8 @@
 import { app } from "electron";
 import { autoUpdater } from "electron-updater";
 import type { ProgressInfo } from "builder-util-runtime";
+import os from "node:os";
+import path from "node:path";
 
 import type {
   UpdatePreferences,
@@ -14,6 +16,10 @@ import {
   sanitizeReleaseNotes
 } from "./updateUtils";
 import { resolveUpdateCapabilities } from "./updatePolicy";
+import {
+  consumeInstallHandoff,
+  launchWindowsInstallHelper
+} from "./windowsUpdateInstaller";
 
 const STARTUP_CHECK_DELAY_MS = 15_000;
 const PERIODIC_CHECK_INTERVAL_MS = 6 * 60 * 60_000;
@@ -23,6 +29,12 @@ const PERIODIC_CHECK_INTERVAL_MS = 6 * 60 * 60_000;
 // electron-builder 的 win.publisherName，并关闭此临时开关。
 const ALLOW_UNSIGNED_UPDATE_INSTALL = true;
 const TRUSTED_WINDOWS_PUBLISHER: string | null = null;
+
+function updaterCacheDirectory(): string {
+  const baseCachePath =
+    process.env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local");
+  return path.join(baseCachePath, "codex-companion-updater");
+}
 
 interface UpdateServiceOptions {
   preferences: UpdatePreferences;
@@ -43,6 +55,7 @@ export class UpdateService {
   private periodicTimer: NodeJS.Timeout | null = null;
   private checkTask: Promise<UpdateState> | null = null;
   private downloadTask: Promise<UpdateState> | null = null;
+  private downloadedInstallerPath: string | null = null;
   private started = false;
 
   private readonly supported =
@@ -109,6 +122,7 @@ export class UpdateService {
       });
     });
     autoUpdater.on("update-not-available", () => {
+      this.downloadedInstallerPath = null;
       this.patchState({
         phase: "up-to-date",
         availableVersion: null,
@@ -123,6 +137,7 @@ export class UpdateService {
       });
     });
     autoUpdater.on("update-available", (info) => {
+      this.downloadedInstallerPath = null;
       this.patchState({
         phase: "available",
         availableVersion: info.version,
@@ -148,6 +163,7 @@ export class UpdateService {
       this.handleDownloadProgress(progress);
     });
     autoUpdater.on("update-downloaded", (event) => {
+      this.downloadedInstallerPath = event.downloadedFile;
       this.patchState({
         phase: "downloaded",
         availableVersion: event.version,
@@ -173,6 +189,7 @@ export class UpdateService {
 
     this.refreshSchedule(true);
     this.emitState();
+    void this.reconcileInstallHandoff();
   }
 
   public stop() {
@@ -263,15 +280,53 @@ export class UpdateService {
     return this.downloadTask;
   }
 
-  public quitAndInstall() {
-    if (!this.capabilities.canAutoInstall || this.state.phase !== "downloaded") {
+  public async quitAndInstall(): Promise<boolean> {
+    if (
+      !this.capabilities.canAutoInstall ||
+      this.state.phase !== "downloaded" ||
+      !this.state.availableVersion ||
+      !this.downloadedInstallerPath
+    ) {
       return false;
     }
 
-    this.patchState({ phase: "installing", errorCode: null, errorMessage: null });
-    this.clearSchedule();
-    autoUpdater.quitAndInstall(false, true);
-    return true;
+    try {
+      this.patchState({ phase: "installing", errorCode: null, errorMessage: null });
+      this.clearSchedule();
+      await launchWindowsInstallHelper({
+        installerPath: this.downloadedInstallerPath,
+        expectedVersion: this.state.availableVersion,
+        updaterCacheDirectory: updaterCacheDirectory(),
+        helperDirectory: path.join(app.getPath("userData"), "updates", "install-helper"),
+        parentPid: process.pid
+      });
+      app.quit();
+      return true;
+    } catch (error) {
+      this.patchState({
+        phase: "error",
+        progress: null,
+        ...normalizeUpdateError(error)
+      });
+      return false;
+    }
+  }
+
+  private async reconcileInstallHandoff() {
+    const handoff = await consumeInstallHandoff(
+      path.join(app.getPath("userData"), "updates", "install-helper")
+    );
+    if (
+      handoff &&
+      ["parent_timeout", "launch_failed", "install_failed"].includes(handoff.stage)
+    ) {
+      this.patchState({
+        phase: "error",
+        progress: null,
+        errorCode: "install-helper-failed",
+        errorMessage: "上次自动安装未完成，请重试或从 Releases 手动安装。"
+      });
+    }
   }
 
   private handleDownloadProgress(progress: ProgressInfo) {

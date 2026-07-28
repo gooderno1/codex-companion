@@ -180,7 +180,7 @@ export function UpdateSettingsCard({
             <strong>自动下载</strong>
             <small>
               {state?.trustMode === "unsigned-temporary"
-                ? "发现新版本后自动下载；当前未签名，安装和重启只会在你明确确认后进行。"
+                ? "发现新版本后自动下载；确认后由本机更新 helper 在应用退出后完成安装。"
                 : state?.canAutoInstall
                   ? "发现新版本后自动下载，安装和重启仍由你确认。"
                 : "可信 Windows 代码签名启用前保持关闭，只提供检查和手动下载。"}
@@ -206,8 +206,9 @@ export function UpdateSettingsCard({
       {state?.errorMessage ? <p className="update-error-copy">{state.errorMessage}</p> : null}
       {state?.trustMode === "unsigned-temporary" ? (
         <p className="settings-note">
-          临时未签名自动升级已开启：更新源固定为本仓库，下载文件按更新元数据校验；Windows
-          仍无法验证发布者身份，安装时可能显示 SmartScreen 提示。退出时不会自动安装。
+          当前采用与 LarkSync 相同的外部安装交接：更新源固定为本仓库，下载文件按更新元数据校验；
+          点击“重启并安装”后，本机 helper 会等待应用退出再运行 NSIS。安装包仍未签名，Windows
+          可能显示 SmartScreen 提示。
         </p>
       ) : !state?.canAutoInstall ? (
         <p className="settings-note">
@@ -275,7 +276,7 @@ export function UpdateBanner({
         <span>
           {state.phase === "downloaded"
             ? state.trustMode === "unsigned-temporary"
-              ? "当前安装包未签名；确认重启后安装，本机配置和历史快照会保留。"
+              ? "确认后应用退出，由本机更新 helper 安装并重新打开；本机数据会保留。"
               : "重启后完成升级，本机配置和历史快照会保留。"
             : state.canAutoInstall
               ? "可在应用内下载，安装和重启由你确认。"
@@ -370,7 +371,7 @@ export function UpdateDialog({
         {state.errorMessage ? <p className="update-error-copy">{state.errorMessage}</p> : null}
         <p className="update-dialog-note">
           {state.trustMode === "unsigned-temporary"
-            ? "当前安装包未签名，Windows 可能显示发布者或 SmartScreen 提示。只有点击“重启并安装”才会执行；Codex 数据目录、仓库目录、快照与通知历史不会被清空。"
+            ? "点击“重启并安装”后，应用会退出，本机更新 helper 将运行已校验的 NSIS 安装包并重新打开应用。安装包未签名，Windows 仍可能显示发布者或 SmartScreen 提示；Codex 数据目录、仓库目录、快照与通知历史不会被清空。"
             : "安装会关闭并重新打开应用；Codex 数据目录、仓库目录、快照与通知历史不会被清空。"}
         </p>
         <div className="update-dialog-actions">

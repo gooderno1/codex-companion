@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.4.1`
+- 当前适用版本：`v0.4.2-dev.1`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
 
 ## 总览页
@@ -88,7 +88,7 @@
 - `BankedResetCreditStrip` 固定放在顶部四卡和 `5H / 周额度窗口` 两张额度卡之间；普通态必须是一行状态，不占用顶部四卡；展开态只显示脱敏逐个明细，不展示 app-server 原始响应或余额字段。
 - 设置页 `Codex 数据目录` 支持手动输入、系统目录选择和恢复默认；保存后通过 `preferences:update` 写入本机配置并立即刷新，路径只用于读取本机 Codex sessions、archived_sessions 和 rate_limits。
 - 设置页 `仓库根目录` 支持手动输入、系统目录选择、移除和恢复默认；保存后通过 `preferences:update` 写入本机配置并立即刷新，路径只用于本地 Git 仓库扫描和 Codex 会话归因。
-- 应用更新由主进程 `UpdateService` 维护唯一状态；启动检查延迟约 `15s`，周期检查间隔 `6h`，不复用 5 分钟仪表板刷新；临时未签名 Windows NSIS 构建允许自动下载和用户确认安装，但 `canInstallOnQuit=false`，renderer 必须展示未签名与 SmartScreen 风险。
+- 应用更新由主进程 `UpdateService` 维护唯一状态；启动检查延迟约 `15s`，周期检查间隔 `6h`，不复用 5 分钟仪表板刷新；临时未签名 Windows NSIS 构建允许自动下载和用户确认安装，但 `canInstallOnQuit=false`，renderer 必须展示未签名与 SmartScreen 风险。确认后由 `windowsUpdateInstaller` 校验缓存路径和版本文件名，通过当前用户的临时 Windows 计划任务启动 PowerShell helper，观察到 helper 状态后退出，helper 安装结束时自删除任务。
 - 左侧品牌图标使用 `src/renderer/icons.tsx` 中的 `BrandMark` SVG，必须保持非官方自定义资产，不使用 OpenAI / Codex 官方 logo。
 - Windows 应用图标使用 `build/app-icon.ico`，打包前由 `scripts/generate-app-icon.mjs` 生成；主窗口和托盘优先读取同一图标资产，缺失时才用主进程品牌 PNG 兜底；图标必须保持非官方自定义蓝青图形。
 - 左侧导航图标使用 `src/renderer/icons.tsx` 中的 `Glyph` SVG：总览为首页图标，账本为文档账本图标，代码仓库为代码方块图标，设置为齿轮图标；图标本身不使用额外白色胶囊背景。

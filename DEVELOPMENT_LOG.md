@@ -1,5 +1,16 @@
 # DEVELOPMENT LOG
 
+## [2026-07-28] v0.4.2-dev.1 feat(updater): 改用 LarkSync 式外部安装交接
+
+- 开发原因：SignPath Foundation 申请未取得签名项目配置；用户要求不再等待签名，改用 LarkSync 已验证的“主程序退出后由外部 helper 安装”方式继续自动升级。
+- 实现方式：保留 `electron-updater` 的固定 GitHub stable feed、版本比较、`latest.yml` SHA512 校验、断点缓存和下载进度；监听 `update-downloaded.downloadedFile`，用户点击“重启并安装”后验证真实路径位于 `LOCALAPPDATA/codex-companion-updater`、文件名精确匹配 `Codex.Companion.Setup.<availableVersion>.exe`，再生成 UTF-8 BOM PowerShell worker，通过当前用户的临时 Windows 计划任务启动，避免应用所在 Job 在退出时连带回收 helper。
+- 安装交接：任务创建后立即触发，主程序必须观察到同一 `requestId` 的首个 helper 状态才退出；helper 最多等待旧主进程 `120s`，随后以 `--updated /S --force-run` 运行 NSIS，并在结束时删除临时计划任务。本机交接状态使用 `helper_started / parent_timeout / installer_started / launch_failed / install_succeeded / install_failed`，失败时下次启动只向 renderer 返回脱敏中文错误，不暴露安装路径、脚本或日志。
+- 安全边界：renderer 仍不能指定 feed、下载 URL、安装路径或参数；安装动作必须由用户确认；普通退出不安装；安装包仍为 `NotSigned`，SHA512 只能证明文件与同一 Release 元数据一致，不能替代发布者身份。
+- 依赖安全：`npm audit` 新发现 builder 工具链、redirect 凭据处理、PostCSS、tar 和 `brace-expansion` 公告；在现有声明范围内把 `electron-builder` 锁定结果更新到 `26.15.3`，并用 `overrides.brace-expansion=5.0.8` 修复剩余传递依赖，没有执行 `--force` 或跨主版本降级；核心包 lockfile 继续使用公开 HTTPS Git URL。
+- 当前结果：应用和 app-server 客户端版本更新为 `0.4.2-dev.1`；设置卡、全局提示、确认弹层、README、安全政策、签名政策、Roadmap、数据合同、组件映射和正式规划已同步外部 helper 口径。已安装 `v0.4.1` 仍包含旧交接逻辑，首次切换到 helper 正式版时可能需要手动安装一次。
+- 验证方式：匿名 `npm ci`、`npm run build`、`npm run verify:updater`、`npm run verify:signing-policy`、`npm audit --audit-level=low` 和 `git diff --check` 通过，审计为 `0` 个漏洞；`npm run package:win` 生成 `102725900` bytes 的开发安装包，SHA256 为 `BCE4C5CAA751CA6A1B77D8CADC69DCD9635478D0A92322D2C1792F937F49B417`、Authenticode 为 `NotSigned`，包内 `app-update.yml` 固定公开仓库，`latest.yml` 的版本、大小和 SHA512 完整；计划任务 smoke test 使用受控失败安装器得到 `helper_started → install_failed(exitCode=2)`，并确认临时任务已删除。
+- 遗留问题：发布首个 helper 正式版后，还需用下一连续稳定版完成真实“检查 → 下载 → 用户确认 → helper → NSIS → 重启 → 数据保留”验收。
+
 ## [2026-07-21] v0.4.1 release: 发布临时未签名自动升级引导版
 
 - 开发原因：`v0.4.1-dev.1` 的 SignPath 准入材料和 `v0.4.1-dev.2` 的临时未签名升级已完成本地与 GitHub CI 验证，用户要求先直接上线自动升级，签名获批后再更新可信 publisher 模式。

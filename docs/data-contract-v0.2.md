@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.4.1`
+- 对应版本：`v0.4.2-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -186,6 +186,8 @@
 - `trustMode` 只允许 `unsigned-temporary / trusted-publisher / unsupported`；`canInstallOnQuit` 仅在可信 publisher 模式为真，临时未签名模式固定为假。
 - `preferences.updates` 保存 `autoCheck / autoDownload / ignoredVersion / installOnQuit`；默认自动检查和自动下载为真，但 `autoDownload` 仍受 `canAutoInstall` 门禁，`installOnQuit` 还必须受 `canInstallOnQuit` 门禁。
 - renderer 通过 `updates:get-state / check / download / install / set-preferences / open-release` 触发受控动作，通过 `updates:state-changed` 接收状态；不能指定任意 feed 或 URL。
+- `downloaded` 事件中的安装包路径只保留在主进程；确认安装时必须验证真实路径位于 `LOCALAPPDATA/codex-companion-updater`、文件名为 `Codex.Companion.Setup.<availableVersion>.exe`，再启动独立 Windows helper。
+- helper 由当前用户的临时 Windows 计划任务启动，主程序必须观察到相同 `requestId` 的首个交接状态后才能退出；helper 等待当前主进程退出后才以 `--updated /S --force-run` 运行 NSIS，并把 `helper_started / parent_timeout / installer_started / launch_failed / install_succeeded / install_failed` 写入本机 `userData/updates/install-helper/install-handoff.json`，结束时删除临时任务；renderer 不读取路径、任务名和底层日志。
 
 ## 3. 状态字段
 
