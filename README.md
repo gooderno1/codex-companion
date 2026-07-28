@@ -7,12 +7,11 @@
 
 ## 当前状态
 
-- 当前正式版本：`v0.4.1`；这是首个启用临时未签名自动下载和用户确认安装的引导版本。
-- 当前开发版本：`v0.4.2-dev.1`；安装阶段已改为与 LarkSync 相同的“主程序退出 + 外部 Windows helper + NSIS”交接方式。
+- 当前正式版本：`v0.4.2`；安装阶段已改为与 LarkSync 相同的“主程序退出 + 外部 Windows helper + NSIS”交接方式。
 - 当前定位：公开预览正式版；已接入 Windows 稳定版更新检查、设置页更新状态和 GitHub Release 元数据链路。
 - 当前平台：优先支持 Windows 桌面应用；源码开发可在具备 Electron 环境的系统上尝试运行。
 - 桌面挂件：相关代码已保留，但公开预览版暂时禁用，后续单独验证后再开放。
-- 自动升级：Windows NSIS 安装版从固定 GitHub stable Release 自动检查和下载；`v0.4.2-dev.1` 起，用户点击“重启并安装”后由独立本机 helper 等待旧进程退出，再运行 NSIS 并重新打开应用。
+- 自动升级：Windows NSIS 安装版从固定 GitHub stable Release 自动检查和下载；`v0.4.2` 起，用户点击“重启并安装”后由独立本机 helper 等待旧进程退出，再运行 NSIS 并重新打开应用。
 - 代码签名：SignPath Foundation 申请截至 2026-07-28 未取得签名项目配置；Release 继续保持未签名状态，Windows 仍可能显示未知发布者或 SmartScreen 提示。
 
 ## 当前能力

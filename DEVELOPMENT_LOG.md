@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-28] v0.4.2 release: 发布外部安装 helper 正式版
+
+- 开发原因：`v0.4.2-dev.1` 已完成 LarkSync 式外部安装交接、计划任务 breakaway、安全门禁和 Windows 打包验证，需要发布可供现有用户安装的稳定版，作为后续连续版本真实自动升级验收起点。
+- 实现方式：应用版本与 app-server `clientVersion` 从 `0.4.2-dev.1` 收敛为 `0.4.2`；README、Roadmap、数据合同、组件映射、自动升级规划和 Release notes 同步正式版、旧版引导与下一连续版本验收口径；正式 tag 继续由 GitHub Actions 构建唯一 Release 资产。
+- 当前结果：`v0.4.2` 成为首个内置外部安装 helper 的正式版；`v0.4.1` 用户仍由旧逻辑尝试本次升级，失败时需要手动安装一次，之后更高稳定版才使用新 helper。本地稳定版安装包大小 `102726036` bytes，SHA256 `FBA1F6FF3DBC4B7382E23A0211C3A17EE3EFC2B4B372A29B7B5C59BD3F7A44FC`，Authenticode 为 `NotSigned`。
+- 验证方式：正式收敛前的 `v0.4.2-dev.1` 已通过匿名 `npm ci`、全量构建、Windows NSIS 打包、更新器与签名政策专项、计划任务 smoke test、零漏洞审计和空白检查；`v0.4.2` 再次执行相同全量构建、NSIS 打包、专项校验、审计和空白检查通过；正式 tag 资产由 GitHub Actions 复验。
+- 遗留问题：需等待正式 tag workflow 完成并核对远端安装包、blockmap、`latest.yml`、SHA256 和 latest Release 可访问性；真实 helper 升级闭环需由 `v0.4.2` 升级到下一稳定版验证。
+
 ## [2026-07-28] v0.4.2-dev.1 feat(updater): 改用 LarkSync 式外部安装交接
 
 - 开发原因：SignPath Foundation 申请未取得签名项目配置；用户要求不再等待签名，改用 LarkSync 已验证的“主程序退出后由外部 helper 安装”方式继续自动升级。

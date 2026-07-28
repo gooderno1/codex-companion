@@ -2,7 +2,52 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.1` 仍为未签名版本；临时模式允许固定 stable Release 自动下载和用户确认安装，但退出时安装保持关闭。SignPath Foundation 审核通过后将切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.2` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-07-28] v0.4.2 release: LarkSync 式外部安装 helper
+
+### Release 范围
+
+包含开发版本：
+
+- `v0.4.2-dev.1`
+
+本次包含外部 Windows helper、安装包路径门禁、交接状态、用户可见文案、依赖安全更新和相关文档；没有排除已完成的开发版本。
+
+### 主要变更
+
+- 保留 `electron-updater` 的固定 GitHub stable feed、版本比较、`latest.yml` SHA512 校验、缓存复用和下载进度。
+- 不再调用 `electron-updater.quitAndInstall()`；下载完成后只在主进程保存 `downloadedFile`，renderer 无法读取或修改安装路径。
+- 用户点击“重启并安装”后，验证安装包真实路径必须位于 `LOCALAPPDATA/codex-companion-updater`，文件名必须为 `Codex.Companion.Setup.<version>.exe`。
+- 通过当前用户的临时 Windows 计划任务启动 PowerShell helper，确认相同 `requestId` 已接手后才退出主程序；helper 等待旧 PID 退出，再以 `--updated /S --force-run` 运行 NSIS。
+- helper 记录 `helper_started / parent_timeout / installer_started / launch_failed / install_succeeded / install_failed`，安装结束时删除临时任务；失败状态在下次启动转成脱敏中文错误。
+
+### 安全与降级
+
+- 安装动作仍要求用户明确确认，普通退出不会安装或重启。
+- 安装包仍未签名，Windows SmartScreen 或企业策略可能拦截；SHA512 不能替代 Authenticode 发布者身份。
+- renderer 不能指定 feed、下载 URL、安装路径、任务名、PowerShell 脚本或 NSIS 参数。
+- 用户级 Task Scheduler 被策略禁用、helper 启动超时或安装失败时，应用保留 Releases 手动安装兜底。
+
+### 验证结果
+
+- `npm run package:win`：通过，生成 Windows NSIS 安装包、`latest.yml`、blockmap 和包内 `app-update.yml`。
+- `npm run build`、`npm run verify:updater`、`npm run verify:signing-policy`、`git diff --check`：通过。
+- 匿名 `npm ci` 与 `npm audit --audit-level=low`：通过，`0` 个已知漏洞。
+- 计划任务 smoke test：受控假安装器得到 `helper_started → install_failed(exitCode=2)`，任务结束后查询确认已删除。
+- 本地稳定版安装包大小 `102726036` bytes，SHA256 `FBA1F6FF3DBC4B7382E23A0211C3A17EE3EFC2B4B372A29B7B5C59BD3F7A44FC`，Authenticode 为 `NotSigned`；远端正式资产以 tag workflow 构建结果为准。
+
+### 升级注意事项
+
+- `v0.4.1` 内置的仍是旧安装逻辑，不能从远端获得新 helper；如果 `v0.4.1 → v0.4.2` 的旧链路未能完成，请从 Releases 手动安装 `v0.4.2` 一次。
+- 从 `v0.4.2` 升级到后续更高稳定版时，才会使用本次新增的外部 helper。
+- 本机 `settings.json`、额度快照、增量缓存、通知历史和赠送重置 baseline 不会被安装流程清空。
+- 本版本只提供 Windows x64 NSIS 安装版。
+
+### 已知边界
+
+- 首次真实新 helper 端到端验收需要下一稳定版，以已安装 `v0.4.2` 为旧版执行。
+- Task Scheduler 被企业策略禁用时不能自动安装，需要使用 Releases 手动升级。
 
 ## [2026-07-21] v0.4.1 release: 临时未签名自动升级引导版
 
