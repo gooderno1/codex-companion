@@ -2,7 +2,38 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.2` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.3` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-07-28] v0.4.3 release: 修复系统通知跳转
+
+### Release 范围
+
+包含开发版本：
+
+- `v0.4.3-dev.1`
+
+本次只修复 Windows 系统通知的点击路由与回调生命周期，并增加对应自动校验；不改变通知生成规则、额度阈值、已读状态或数据采集口径。
+
+### 主要变更
+
+- Windows 系统通知点击后统一唤起主窗口并进入独立通知页，不再直接跳到额度或总览等关联业务页面。
+- 主进程按通知 key 保活活动 `Notification` 实例，直到用户点击、关闭或系统报告失败，避免后台等待期间点击回调失效。
+- 通知记录自身的 `page` 字段继续保留，只供通知页详情里的“查看关联页面”使用。
+- 新增 `npm run verify:notifications` 并接入 CI，固定验证通知页目标、对象保活和旧错误回调不存在。
+
+### 验证结果
+
+- `npm run build`、`npm run verify:notifications`、`npm run verify:updater`、`npm run verify:signing-policy` 和 `git diff --check`：通过。
+- `npm audit --audit-level=low`：通过，`0` 个已知漏洞。
+- `npm run package:win`：正式版验证通过；本地安装包大小 `102726983` bytes，SHA256 `ADD43B3018D10F7D6D9C6660D74EB9E76DF4E0B562006B6173919335456EF43A`，Authenticode 为 `NotSigned`，同时生成 `108111` bytes blockmap 和 `359` bytes `latest.yml`。
+- 开发提交 CI run `30351563693`：构建、通知跳转、更新器、签名政策和空白检查全部通过。
+- 正式安装包、远端 SHA256 与匿名下载结果以 `v0.4.3` tag workflow 为准。
+
+### 升级注意事项
+
+- 已安装 `v0.4.2` 会检测到本版，并使用外部 helper 执行用户确认后的升级；这也是新 helper 的首个连续稳定版验收机会。
+- 已安装 `v0.4.1` 仍携带旧升级逻辑；如果升级失败，请从 Releases 手动安装本版。
+- 安装包仍未签名，Windows SmartScreen 或企业策略可能拦截。
 
 ## [2026-07-28] v0.4.2 release: LarkSync 式外部安装 helper
 

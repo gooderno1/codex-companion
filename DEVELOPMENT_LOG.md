@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-07-28] v0.4.3 release: 发布系统通知跳转修复
+
+- 开发原因：`v0.4.3-dev.1` 已修复 Windows 系统通知无法可靠进入通知页的问题，用户要求修复完成后直接发布版本。
+- 实现方式：应用版本与 app-server `clientVersion` 从 `0.4.3-dev.1` 收敛为 `0.4.3`；README、Roadmap、数据合同、组件映射、自动升级规划和 Release notes 同步正式版口径；`v0.4.3` 同时作为首个供已安装 `v0.4.2` 使用外部 helper 升级的连续稳定版。
+- 当前结果：Windows 系统通知点击会进入通知页，通知详情仍可继续打开关联业务页面；本地正式安装包大小 `102726983` bytes，SHA256 `ADD43B3018D10F7D6D9C6660D74EB9E76DF4E0B562006B6173919335456EF43A`，Authenticode 为 `NotSigned`；正式 tag 由 GitHub Actions 构建唯一 Release 资产。
+- 验证方式：正式收敛前已通过全量构建、通知跳转专项、更新器专项、签名政策、零漏洞审计、Windows NSIS 打包和空白检查；`v0.4.3` 再次执行相同验证通过，生成 `108111` bytes blockmap 和版本、路径、大小、SHA512 完整的 `359` bytes `latest.yml`；开发提交 CI run `30351563693` 通过。
+- 遗留问题：正式资产与真实 `v0.4.2 → v0.4.3` helper 升级闭环需在 Release 发布后核对。
+
 ## [2026-07-28] v0.4.3-dev.1 fix(notifications): 修复系统通知跳转
 
 - 开发原因：Windows 系统通知点击后没有进入独立通知页；现有回调使用通知记录的关联业务页面，并且 `Notification` 实例只保存在循环局部变量中，后台等待点击期间缺少明确保活。
