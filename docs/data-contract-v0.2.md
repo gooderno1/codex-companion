@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.4.5`
+- 对应版本：`v0.4.6-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -10,6 +10,7 @@
 
 - 默认读取 `~/.codex/sessions/**/*.jsonl`
 - 默认读取 `~/.codex/archived_sessions/*.jsonl`
+- 当前额度优先读取 Codex 官方桌面端同源的 `https://chatgpt.com/backend-api/wham/usage`；鉴权信息来自 Codex home 下的 `auth.json`，仅在主进程内存使用
 - Codex home 可在设置页维护，也可通过 `CODEX_HOME` 作为首次默认路径；保存后写入 Electron `userData/settings.json`
 - 如果用户在设置页恢复默认 Codex 数据目录，应用回退到 `CODEX_HOME || ~/.codex`
 - 派生增量缓存：`%APPDATA%/codex-companion/codex-session-cache.json`
@@ -51,7 +52,9 @@
 
 ### 2.2 额度
 
-- Codex 用量、额度周期、reset 检测和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.1.0-dev.11`，固定到 `gooderno1/codex-usage-core#v0.1.0-dev.11`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。赠送重置优先使用 `rateLimitResetCredits.credits[]` 的官方 `grantedAt / expiresAt`；明细缺失或被截断时继续使用估算，权威总数始终取 `availableCount`。
+- Codex 用量、额度周期、reset 检测、官方 Usage 读取和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.2.0-dev.1`，固定到 `gooderno1/codex-usage-core#v0.2.0-dev.1`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。赠送重置优先使用 `rateLimitResetCredits.credits[]` 的官方 `grantedAt / expiresAt`；明细缺失或被截断时继续使用估算，权威总数始终取 `availableCount`。
+- 当前额度来源优先级为：官方 Usage 当前快照；请求失败时回退本地 session `rate_limits`。本地观测继续承担 token 增量、历史周期和 reset 证据，不因当前快照接入而删除。
+- 官方 Usage 按 `limit_window_seconds / 60` 自适应映射窗口；响应新增 `300` 分钟窗口后无需更新槽位代码即可显示 5H。响应缺少某个窗口时保持未观测，不用缓存或历史窗口伪造当前值。
 - `5 小时额度` 使用时长分类为 `five-hour` 的 `300` 分钟窗口；该窗口可位于 `primary` 或 `secondary`，不存在时 `limitWindows[0]` 输出 `key=fiveHour / sourceStatus=unobserved / sourceSlot=null`。
 - `周额度` 使用时长分类为 `weekly` 的 `10080` 分钟窗口；该窗口可位于 `primary` 或 `secondary`，当前新版契约为 `primary=10080 / secondary=null`。
 - 如果同一台机器同时观测到多个 Codex `rate_limits` 池，页面可见的 `5 小时额度 / 周额度` 必须优先选择主额度池 `rate_limits.limit_id = codex`；模型或实验池，例如 `codex_bengalfox`，不能因为观测时间更新而覆盖主额度显示。

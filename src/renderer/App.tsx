@@ -4304,7 +4304,7 @@ export default function App() {
             <div>
               <h1>Codex Companion</h1>
               <p className="brand-caption">非官方 Codex 本机仪表盘</p>
-              <p className="brand-status">本机读取 · 无上传</p>
+              <p className="brand-status">本机数据 · 官方额度只读</p>
             </div>
           </div>
 

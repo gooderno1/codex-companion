@@ -3,11 +3,11 @@
 `Codex Companion`（中文名：`Codex 伴侣`）是一个面向 Codex 重度用户的非官方开源桌面伴侣，用于在本机查看 Codex 额度、Token、API 等价成本和本地 Git 代码活动。
 
 > 本项目是非官方工具，不隶属于 OpenAI，也不代表 OpenAI 或 Codex 官方产品。
-> 本项目采用 local-first 设计，首版不上传原始 Codex session 文件，也不读取用户仓库的 GitHub 云端元数据；应用更新只访问本项目公开 Releases。
+> 本项目采用 local-first 设计，不上传原始 Codex session 文件，也不读取用户仓库的 GitHub 云端元数据；当前额度只通过 Codex 官方 Usage 接口读取。
 
 ## 当前状态
 
-- 当前正式版本：`v0.4.5`；自动更新设置已精简说明文案，开启自动下载后会立即承接已经发现的新版本。
+- 当前开发版本：`v0.4.6-dev.1`；最新正式版本：`v0.4.5`。
 - 当前定位：公开预览正式版；已接入 Windows 稳定版更新检查、设置页更新状态和 GitHub Release 元数据链路。
 - 当前平台：优先支持 Windows 桌面应用；源码开发可在具备 Electron 环境的系统上尝试运行。
 - 桌面挂件：相关代码已保留，但公开预览版暂时禁用，后续单独验证后再开放。
@@ -17,9 +17,9 @@
 ## 当前能力
 
 - 读取本机 `~/.codex/sessions` 与 `~/.codex/archived_sessions`。
-- 解析 `token_count`、`turn_context.model`、`rate_limits` 等字段。
+- 解析 `token_count`、`turn_context.model`、`rate_limits` 等字段，并读取 Codex 官方 Usage 当前额度。
 - 展示今日、近 7 日、自然周、自然月的 Token、会话数、API 等价成本和代码改动。
-- 按 `window_minutes` 识别 5 小时额度与周额度，不固定绑定 `primary / secondary`；当前契约未提供 5H 时明确显示“未观测”，不会把 7 天 primary 误标为 5H。
+- 当前额度优先取 Codex 官方 Usage 响应，失败时回退本地 session 中的 `rate_limits`；按窗口时长识别 5 小时额度与周额度，不固定绑定 `primary / secondary`。官方当前未返回 5H 时明确显示“未观测”，不会用历史值或 7 天窗口冒充。
 - 展示 Codex 赠送重置次数；新版 Codex 返回逐笔明细时直接展示官方获取时间和到期时间，明细缺失或被截断的库存继续按本地观测与 30 天规则估算，并明确标注来源。
 - 后台刷新、启动刷新和手动刷新后按本机快照触发提醒：点击 Windows 系统通知或顶部单条“查看详情”会唤起主窗口、进入通知页并选中对应消息；顶部铃铛保留快速摘要，通知页支持筛选、分页、详情和标记已读；赠送重置过期提醒只在提前 `7 天 / 3 天 / 1 天 / 12 小时 / 1 小时` 各提醒一次，额度提醒在对应周期阈值到达时提醒一次。
 - 按模型聚合自然月 Token 与 API 等价成本。
@@ -35,7 +35,7 @@
 
 1. 打开 [Releases](https://github.com/gooderno1/codex-companion/releases)。
 2. 下载最新版本中的 Windows 安装包。
-3. 启动应用，确认左侧显示 `非官方 Codex 本机仪表盘` 和 `本机读取 · 无上传`。
+3. 启动应用，确认左侧显示 `非官方 Codex 本机仪表盘` 和 `本机数据 · 官方额度只读`。
 4. 进入 `设置`，确认 Codex 数据目录和仓库根目录。
 5. 点击 `刷新`，等待应用完成 Codex session 与 Git 仓库采集。
 
@@ -119,7 +119,8 @@ Codex Companion 不要求登录 GitHub，但代码仓库统计需要本机 `git`
 ## 数据来源
 
 - Codex 本地会话：`sessions` 与 `archived_sessions` 中的 JSONL 文件。
-- Codex 额度快照：JSONL 中的 `rate_limits`。
+- Codex 当前额度：Codex 官方桌面端同源的 `https://chatgpt.com/backend-api/wham/usage` 只读响应；仅在主进程内使用本机 Codex 登录凭据完成鉴权。
+- Codex 额度历史与回退：JSONL 中的 `rate_limits`，继续用于本地周期证据、reset 检测，以及官方 Usage 请求失败时的降级显示。
 - Codex 赠送重置：本机 app-server `account/rateLimits/read` 的 `rateLimitResetCredits.availableCount / credits[]`；只读，不调用 consume。
 - Git 仓库：会话 `cwd` 反推仓库根目录，以及用户配置的本地仓库根目录。
 - 本地配置与快照：Electron `userData` 目录，例如 Windows 下通常位于 `%APPDATA%\codex-companion`。
@@ -130,7 +131,8 @@ Codex Companion 不要求登录 GitHub，但代码仓库统计需要本机 `git`
 
 - 不上传原始 Codex session 文件。
 - 不上传仓库源码。
-- 不上传仓库名、路径、模型明细或成本数据到云端。
+- 不向本项目或第三方服务器上传仓库名、路径、模型明细或成本数据。
+- 当前额度请求只发往 Codex 官方 `chatgpt.com`：访问令牌与账号 ID 仅在主进程内存中用于鉴权，不写入快照、不传给 renderer、不记录日志。
 - 当前版本不检测 GitHub 登录、不请求 GitHub token；设置页的 Git 与授权区只展示本机 `git` 命令、`user.name` 和 `user.email` 状态，并说明后续接入 GitHub 云端能力时再提供授权引导。
 - 增量缓存只保存 JSONL 文件路径、`size`、`mtimeMs` 和解析后的聚合统计结果，不保存用户输入正文或模型输出正文。
 - 应用内提醒和系统通知只使用聚合后的额度余量、赠送重置官方/估算到期时间和本机快照状态，不包含账号、邮箱、原始 app-server 响应、用户输入正文或模型输出正文。
@@ -159,9 +161,10 @@ Codex Companion 不要求登录 GitHub，但代码仓库统计需要本机 `git`
 - 确认目标目录下存在 `.git`。
 - 确认本机可以执行 `git` 命令。
 
-### 周额度或月额度显示异常
+### 5H、周额度或月额度显示异常
 
-- 周额度来自 Codex 本地 `rate_limits` 的可观测快照和重置证据。
+- 5H 与周额度优先来自 Codex 官方 Usage；官方请求失败时回退本地 `rate_limits`。
+- 窗口按 `300 / 10080` 分钟自适应识别。官方当前没有返回某个窗口时，该卡显示“未观测”，不会沿用已经失效的历史值。
 - 月额度只有在 Codex 原始数据暴露稳定月级窗口时才会显示为已观测。
 - 自然月 Token 或计费月 Token 不等同于官方月额度。
 

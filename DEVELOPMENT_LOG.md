@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-31] v0.4.6-dev.1 fix(usage): 接入官方 Usage 当前额度并保留本地回退
+
+- 开发原因：Codex 官方额度窗口会动态恢复或缺失；仅依赖 session JSONL 的 `rate_limits` 会受近期是否产生新会话记录影响，导致官方界面已经恢复的当前额度无法及时显示。
+- 实现方式：升级远程核心包到 `@lifeinhand/codex-usage-core@0.2.0-dev.1`；主进程优先读取 `https://chatgpt.com/backend-api/wham/usage`，按 `limit_window_seconds / 60` 自适应识别 `300` 分钟 5H 与 `10080` 分钟周窗口；请求失败时继续使用本地 session 快照。访问令牌与账号 ID 只在主进程内存中用于官方鉴权，不持久化、不发送到 renderer、不记录日志。
+- 当前结果：官方返回 5H 后应用可在下一次刷新自动显示；官方缺少该窗口时继续明确显示未观测，不使用过期缓存或周窗口补位。当前实测官方 Usage 与 Codex 桌面端均只返回/显示周窗口，周额度为已用 `13%`、剩余 `87%`。
+- 验证方式：核心包 fixture 覆盖 `18000 秒 -> 300 分钟` 与 `604800 秒 -> 10080 分钟` 映射；使用本机 Codex 登录态只读请求官方 Usage 成功；执行 `npm run typecheck`、`npm run lint`、`npm run build` 与 `npm run verify:quota`。
+
 ## [2026-07-28] v0.4.5 docs(release): 记录正式资产验证
 
 - 开发原因：`v0.4.5` 的正式 CI、Windows Package、Release 发布和匿名下载检查已完成，需要把最终远端构建结果写回仓库。

@@ -27,9 +27,12 @@ import {
   createBankedResetCreditObservationFromSnapshot,
   DEFAULT_BANKED_RESET_CREDIT_PUBLIC_GRANT_SEEDS,
   readCodexAccountRateLimits,
+  readCodexUsageRateLimits,
   type BankedResetCreditInitialGrantSeed,
   type BankedResetCreditObservation as CoreBankedResetCreditObservation,
+  type CodexAccountRateLimitsSnapshot,
   type CodexRateLimitSnapshot,
+  type CodexRateLimitWindowSnapshot,
   type CodexQuotaWindowKind,
   type QuotaCycleObservation
 } from "@lifeinhand/codex-usage-core";
@@ -212,7 +215,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.4.5"
+      clientVersion: "0.4.6-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -469,6 +472,49 @@ type ObservableQuotaWindowKind = Exclude<CodexQuotaWindowKind, "unknown">;
 interface ObservedWindowSelection {
   windowKey: "primary" | "secondary";
   window: ObservedLimitWindow;
+}
+
+function normalizeOfficialUsageWindow(
+  window: CodexRateLimitWindowSnapshot | null
+): ObservedLimitWindow | null {
+  if (!window) {
+    return null;
+  }
+
+  return {
+    usedPercent: window.usedPercent,
+    windowMinutes: window.windowDurationMins,
+    resetsAt: window.resetsAt
+  };
+}
+
+function normalizeOfficialUsageSnapshot(
+  snapshot: CodexAccountRateLimitsSnapshot
+): LatestRateSnapshot {
+  return {
+    observedAt: snapshot.observedAt,
+    primary: normalizeOfficialUsageWindow(snapshot.rateLimits.primary),
+    secondary: normalizeOfficialUsageWindow(snapshot.rateLimits.secondary),
+    planType: snapshot.rateLimits.planType,
+    limitId: snapshot.rateLimits.limitId,
+    limitName: snapshot.rateLimits.limitName
+  };
+}
+
+async function collectOfficialUsageRateSnapshot(
+  codexHome: string
+): Promise<LatestRateSnapshot | null> {
+  try {
+    const snapshot = normalizeOfficialUsageSnapshot(
+      await readCodexUsageRateLimits({
+        codexHome,
+        clientVersion: "0.4.6-dev.1"
+      })
+    );
+    return snapshot.primary || snapshot.secondary ? snapshot : null;
+  } catch {
+    return null;
+  }
 }
 
 function getObservedWindowByKind(
@@ -1641,14 +1687,42 @@ async function collectDashboardSnapshot(
   const refreshStartedAt = new Date();
   const refreshStartedMs = Date.now();
   const codexStartedMs = Date.now();
-  const codex = await collectCodexData(now, {
+  const collectedCodex = await collectCodexData(now, {
     codexHome: preferences.codexHome,
     sessionCacheStore: options.codexSessionCacheStore
   });
   const codexDurationMs = Date.now() - codexStartedMs;
-  const bankedResetCredits = await collectBankedResetCreditsSummary(
-    options.previousBankedResetCredits ?? null
-  );
+  const [bankedResetCredits, officialUsageRateSnapshot] = await Promise.all([
+    collectBankedResetCreditsSummary(options.previousBankedResetCredits ?? null),
+    collectOfficialUsageRateSnapshot(collectedCodex.codexHome)
+  ]);
+  const codex: typeof collectedCodex = officialUsageRateSnapshot
+    ? {
+        ...collectedCodex,
+        latestRateSnapshot: officialUsageRateSnapshot,
+        quotaObservations: [
+          ...collectedCodex.quotaObservations,
+          {
+            timestamp: officialUsageRateSnapshot.observedAt,
+            sessionId: "codex-official-usage",
+            rateLimits: officialUsageRateSnapshot
+          }
+        ],
+        sourceStatus: "observed",
+        notes: [
+          ...collectedCodex.notes.filter(
+            (note) => !note.startsWith("当前未观测到可用的 rate_limits 快照")
+          ),
+          "当前额度窗口来自 Codex 官方 Usage 接口；本地 session 继续用于 Token 与历史 reset 证据。"
+        ]
+      }
+    : {
+        ...collectedCodex,
+        notes: [
+          ...collectedCodex.notes,
+          "Codex 官方 Usage 接口本次不可用，当前额度已回退到本地 rate_limits 快照。"
+        ]
+      };
   const fiveHourSelection = getObservedWindowByKind(codex.latestRateSnapshot, "five-hour");
   const weeklySelection = getObservedWindowByKind(codex.latestRateSnapshot, "weekly");
   const fiveHourQuotaUsage = buildQuotaWindowUsage({
