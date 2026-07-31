@@ -2,7 +2,37 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.5` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.6` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-07-31] v0.4.6 release: 接入官方 Usage 当前额度
+
+### Release 范围
+
+包含开发版本：
+
+- `v0.4.6-dev.1`
+
+### 主要变更
+
+- 当前额度优先读取 Codex 官方桌面端同源的 `https://chatgpt.com/backend-api/wham/usage`，不再依赖近期 session 是否产生新的 `rate_limits` 记录。
+- 升级远程核心包到 `@lifeinhand/codex-usage-core@0.2.0-dev.1`；按 `limit_window_seconds / 60` 自适应识别 `300` 分钟 5H 与 `10080` 分钟周窗口。
+- 官方 Usage 请求失败时回退本地 session；官方响应缺少某个窗口时保持“未观测”，不使用过期缓存或其他窗口补位。
+- 访问令牌与账号 ID 只在主进程内存中用于 Codex 官方鉴权，不写入设置、快照或日志，不传给 renderer。
+- 左侧状态文案更新为“本机数据 · 官方额度只读”，README、隐私说明、数据契约和组件映射同步新来源口径。
+
+### 验证结果
+
+- 核心包 fixture 覆盖 `18000 秒 -> 300 分钟` 与 `604800 秒 -> 10080 分钟`。
+- 本机只读请求官方 Usage 成功；发布前实测官方当前只返回周窗口，Codex 桌面端同样只显示周额度，5H 保持未观测符合官方当前数据。
+- `npm run build`、`npm run verify:quota`、`npm run verify:updater`、`npm run verify:notifications`、`npm run verify:signing-policy`、`npm audit --audit-level=low` 和 `git diff --check`：通过。
+- 使用 Node 22 对齐的 npm 10 lockfile 执行 `npm ci --dry-run` 通过，修复开发提交在 GitHub CI 中缺少 `@emnapi/core / @emnapi/runtime` 可选依赖条目的安装失败。
+- 本地正式安装包 `Codex.Companion.Setup.0.4.6.exe` 大小 `103151447` bytes，SHA256 `80A78B88CAAADE48B19640491B9EFC938986D45E4333B596B318460653817F70`，Authenticode 为 `NotSigned`；blockmap 大小 `108652` bytes，`latest.yml` 大小 `359` bytes且版本、路径、大小和 SHA512 完整。
+
+### 升级注意事项
+
+- 官方额度查询需要本机 Codex 保持有效 ChatGPT 登录状态；请求失败时应用自动回退本地 session 数据。
+- 安装包仍未签名，Windows SmartScreen 或企业策略可能拦截。
+- 普通退出不会安装；下载完成后仍需点击“重启并安装”。
 
 ## [2026-07-28] v0.4.5 release: 补强自动下载并精简更新界面
 

@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-31] v0.4.6 release: 发布官方 Usage 当前额度采集
+
+- 开发原因：`v0.4.6-dev.1` 已完成官方 Usage 当前额度、session 回退和自适应窗口接入，需要发布给现有 `v0.4.5` 用户；发布前 GitHub CI 暴露 npm 11 生成的 lockfile 缺少 npm 10 所需可选依赖条目。
+- 实现方式：应用版本与两个官方读取 clientVersion 从 `0.4.6-dev.1` 收敛为 `0.4.6`；README、Roadmap、自动升级规划、数据契约、组件映射和 Release notes 同步正式版口径；使用 npm `10.9.4` 重新生成 lockfile，补齐 `@emnapi/core / @emnapi/runtime`，保持远程核心包固定为 `v0.2.0-dev.1`。
+- 当前结果：正式版发布资料已收敛；当前额度继续执行官方 Usage 优先、本地 session 回退，官方缺少 5H 时保持未观测。本地安装包大小 `103151447` bytes，SHA256 `80A78B88CAAADE48B19640491B9EFC938986D45E4333B596B318460653817F70`，Authenticode 为 `NotSigned`；正式 tag 由 GitHub Actions 生成唯一 Release 资产。
+- 验证方式：执行 npm 10 `npm ci --dry-run`、`npm run build`、额度/更新器/通知/签名政策专项校验、`npm audit --audit-level=low`、`npm run package:win` 与 `git diff --check`；正式 CI、Windows Package、Release 资产和匿名下载结果在发布后记录。
+
 ## [2026-07-31] v0.4.6-dev.1 fix(usage): 接入官方 Usage 当前额度并保留本地回退
 
 - 开发原因：Codex 官方额度窗口会动态恢复或缺失；仅依赖 session JSONL 的 `rate_limits` 会受近期是否产生新会话记录影响，导致官方界面已经恢复的当前额度无法及时显示。
