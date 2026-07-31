@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-07-31] v0.4.6 docs(release): 记录正式资产验证
+
+- 开发原因：`v0.4.6` 的正式 CI、Windows Package、Release 发布和匿名下载检查已完成，需要把最终远端构建结果写回仓库。
+- 实现方式：记录 main CI run `30610372017`、Windows Package run `30610454292`、正式安装包和更新元数据；electron-builder 的草稿 Release 只上传 blockmap 与 SHA256，因此从同一成功 workflow 的 Actions artifact 取回安装包和 `latest.yml`，先确认 artifact blockmap、SHA256 文件与 Release digest 一致，再补齐缺失资产。
+- 当前结果：`v0.4.6` 已发布为 latest Release；正式安装包大小 `102962546` bytes，SHA256 `E78D86C7FD93BF16219494EC24E3E94E7E8F3F9160DBC8A07E6CC373EAD4658B`；blockmap 大小 `108357` bytes；`latest.yml` 大小 `359` bytes，版本、路径、大小和 SHA512 与安装包一致；`SHA256SUMS.txt` 大小 `99` bytes。
+- 验证方式：两个正式 GitHub Actions workflow 均成功；安装包实算 SHA256 与 GitHub asset digest、`SHA256SUMS.txt` 三方一致，SHA512 与 `latest.yml` 一致；Release 页面、安装包、blockmap、tag `latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名 HTTP 访问均返回 `200`。
+
 ## [2026-07-31] v0.4.6 release: 发布官方 Usage 当前额度采集
 
 - 开发原因：`v0.4.6-dev.1` 已完成官方 Usage 当前额度、session 回退和自适应窗口接入，需要发布给现有 `v0.4.5` 用户；发布前 GitHub CI 暴露 npm 11 生成的 lockfile 缺少 npm 10 所需可选依赖条目。

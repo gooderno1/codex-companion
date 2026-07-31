@@ -28,6 +28,14 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - 使用 Node 22 对齐的 npm 10 lockfile 执行 `npm ci --dry-run` 通过，修复开发提交在 GitHub CI 中缺少 `@emnapi/core / @emnapi/runtime` 可选依赖条目的安装失败。
 - 本地正式安装包 `Codex.Companion.Setup.0.4.6.exe` 大小 `103151447` bytes，SHA256 `80A78B88CAAADE48B19640491B9EFC938986D45E4333B596B318460653817F70`，Authenticode 为 `NotSigned`；blockmap 大小 `108652` bytes，`latest.yml` 大小 `359` bytes且版本、路径、大小和 SHA512 完整。
 
+### Release 资产校验
+
+- main CI run `30610372017` 与 Windows Package run `30610454292` 均成功。
+- 正式安装包 `Codex.Companion.Setup.0.4.6.exe` 大小 `102962546` bytes，SHA256 为 `E78D86C7FD93BF16219494EC24E3E94E7E8F3F9160DBC8A07E6CC373EAD4658B`；实算结果与 GitHub asset digest、`SHA256SUMS.txt` 一致。
+- blockmap 大小 `108357` bytes，SHA256 为 `B16C0EC484979744E59D64A733EF0306F3498F899A929FB636F3934C5F45BD62`；草稿 Release 初始缺少安装包和 `latest.yml`，发布流程从同一成功 Windows Package run 的 Actions artifact 取回，并先确认 artifact blockmap 与 Release blockmap digest 一致，没有混用本机构建产物。
+- `latest.yml` 大小 `359` bytes，`version=0.4.6`，安装包路径、大小和 SHA512 完整；`SHA256SUMS.txt` 大小 `99` bytes。
+- Release 页面、安装包、blockmap、tag `latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名访问均返回 HTTP `200`；匿名重新下载的安装包 SHA256 与正式 checksum 一致。
+
 ### 升级注意事项
 
 - 官方额度查询需要本机 Codex 保持有效 ChatGPT 登录状态；请求失败时应用自动回退本地 session 数据。
