@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-08-31] v0.5.0 docs(release): 记录正式资产验证
+
+- 开发原因：`v0.5.0` 的正式 CI、Windows Package、Release 发布和匿名下载检查已完成，需要把最终远端构建结果写回仓库。
+- 实现方式：记录 main CI run `33387216757`、Windows Package run `33387341753` 和四项正式资产；草稿 Release 初始只有 blockmap 与 SHA256 清单，因此从同一成功 workflow 的 Actions artifact 取回安装包和 `latest.yml`，先确认 artifact blockmap 与草稿 Release digest 一致，再补齐缺失资产并发布为 Latest。
+- 当前结果：`v0.5.0` 已发布为 latest Release；正式安装包大小 `102964293` bytes，SHA256 `794D1A47651937526D056EA9DEE68A1AB81F27018711C63AC21E9EC78E43CCFB`；blockmap 大小 `108549` bytes；`latest.yml` 大小 `359` bytes，版本、路径、大小和 SHA512 与安装包一致；`SHA256SUMS.txt` 大小 `99` bytes。
+- 验证方式：两个正式 GitHub Actions workflow 均成功；安装包实算 SHA256 与 GitHub asset digest、`SHA256SUMS.txt`、匿名重新下载结果四方一致；Release 页面、安装包、blockmap、tag `latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名 HTTP 访问均返回 `200`。
+
 ## [2026-08-31] v0.5.0 release: 发布可配置的 Windows 开机自启
 
 - 开发原因：`v0.5.0-dev.1` 已完成开机自启设置、Windows 登录启动项同步、旧配置迁移和设置页交互，需要发布给现有 `v0.4.6` 用户。

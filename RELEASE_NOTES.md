@@ -29,6 +29,14 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - Electron 设置页截图确认“应用启动”卡片的状态、不可用原因和开关布局无溢出。
 - 本地正式安装包 `Codex.Companion.Setup.0.5.0.exe` 大小 `103157875` bytes，SHA256 `72B9C231EB25F8C351C60711B66E903BD5C6D96187145492D190178B0C015201`，Authenticode 为 `NotSigned`；blockmap 大小 `108734` bytes，`latest.yml` 大小 `359` bytes且版本、路径、大小和 SHA512 完整；应用主程序与安装包的 `ProductName=Codex Companion`、`ProductVersion=0.5.0`。
 
+### Release 资产校验
+
+- main CI run `33387216757` 与 Windows Package run `33387341753` 均成功；CI 已包含开机自启专项门禁。
+- 正式安装包 `Codex.Companion.Setup.0.5.0.exe` 大小 `102964293` bytes，SHA256 为 `794D1A47651937526D056EA9DEE68A1AB81F27018711C63AC21E9EC78E43CCFB`；实算结果与 GitHub asset digest、`SHA256SUMS.txt` 和匿名重新下载结果一致，产品名与产品版本为 `Codex Companion / 0.5.0`，Authenticode 为 `NotSigned`。
+- blockmap 大小 `108549` bytes，SHA256 为 `A069658F3B74790ECE153214CC223970346E6D0202D18B3FC2CAF75506EF923B`；草稿 Release 初始缺少安装包和 `latest.yml`，发布流程从同一成功 Windows Package run 的 Actions artifact 取回，并先确认 artifact blockmap 与草稿 Release digest 一致，没有混用本机构建产物。
+- `latest.yml` 大小 `359` bytes，SHA256 为 `E320D5CA657E3208B562CA6C031E7ED64EFA5B378B18EA836297986AD542FBDF`，`version=0.5.0`，安装包路径、大小和 SHA512 完整；`SHA256SUMS.txt` 大小 `99` bytes，SHA256 为 `038EB97A823C3A827C0EEFAF97B84D3191B89F4FAD0C0CCD7C0651EBE0247E5E`。
+- Release 页面、安装包、blockmap、tag `latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名访问均返回 HTTP `200`。
+
 ### 升级注意事项
 
 - 从旧版本升级后默认保持不开机自启；如需启用，请在设置页手动打开“开机自启”。
