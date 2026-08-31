@@ -1848,6 +1848,10 @@ svg {
   font-size: 13px;
 }
 
+.startup-preference-toggle {
+  margin-top: 16px;
+}
+
 .update-progress-block {
   display: grid;
   gap: 8px;

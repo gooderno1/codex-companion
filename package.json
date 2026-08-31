@@ -1,6 +1,6 @@
 {
   "name": "codex-companion",
-  "version": "0.4.6",
+  "version": "0.5.0-dev.1",
   "private": true,
   "description": "非官方 Codex 额度、Token 与代码活动桌面伴侣",
   "license": "MIT",
@@ -41,6 +41,7 @@
     "verify:overview": "node scripts/verify-overview-readiness.mjs",
     "verify:quota": "node scripts/verify-quota-snapshot.mjs",
     "verify:signing-policy": "node scripts/verify-code-signing-policy.mjs",
+    "verify:startup": "npm run build:main && node scripts/verify-startup.mjs",
     "verify:updater": "node scripts/verify-updater.mjs",
     "package:win": "npm run generate:icon && npm run build && electron-builder --win nsis --publish never",
     "release:win": "npm run generate:icon && npm run build && electron-builder --win nsis --publish always"

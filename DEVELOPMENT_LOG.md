@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-08-31] v0.5.0-dev.1 feat(startup): 增加可配置的 Windows 开机自启
+
+- 开发原因：用户需要 Codex Companion 随 Windows 登录自动启动，并能在应用内自行启用或关闭。
+- 实现方式：在 `AppPreferences` 增加 `startup.launchAtLogin`，默认值为 `false`，旧版 `settings.json` 读取时自动补齐；主进程使用 Electron 登录启动项 API 即时注册或移除开机项，并在每次应用启动时按本地偏好校准；设置保存按“系统状态更新成功后再持久化”执行，本地写入失败时尝试回滚系统状态；仅 Windows 正式安装版开放，开发模式不注册 `electron.exe`；设置页新增“应用启动”卡片，分别展示偏好开关、系统实际状态和不可用原因。
+- 当前结果：用户可在设置页配置开机自启；默认不自启，启用后下次登录 Windows 自动启动，关闭后从登录启动项移除；该配置只保存在本机 `userData/settings.json` 和 Windows 登录启动项中，不引入新网络请求。
+- 验证方式：执行 `npm run verify:startup`，覆盖默认关闭、旧配置迁移、Windows 安装版启停和开发模式门禁；执行 `npm run verify:updater`、`npm run verify:notifications`、`npm run verify:design` 回归既有设置迁移、通知和设计 token；执行 `npm run build` 验证 lint、TypeScript、渲染端打包和主进程编译；生成并人工查看 `local_dev_work/settings-startup-v0.5.0-dev.1.png`，确认新卡片状态、文案和布局；执行 `git diff --check` 检查空白问题。
+
 ## [2026-07-31] v0.4.6 docs(release): 记录正式资产验证
 
 - 开发原因：`v0.4.6` 的正式 CI、Windows Package、Release 发布和匿名下载检查已完成，需要把最终远端构建结果写回仓库。

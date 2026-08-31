@@ -14,6 +14,9 @@ const api: CodexCompanionApi = {
   setUpdatePreferences: (patch) =>
     ipcRenderer.invoke("updates:set-preferences", patch),
   openUpdateRelease: () => ipcRenderer.invoke("updates:open-release"),
+  getStartupState: () => ipcRenderer.invoke("startup:get-state"),
+  setStartupPreferences: (patch) =>
+    ipcRenderer.invoke("startup:set-preferences", patch),
   getPreferences: () => ipcRenderer.invoke("preferences:get"),
   updatePreferences: (patch) => ipcRenderer.invoke("preferences:update", patch),
   refreshDashboard: () => ipcRenderer.invoke("dashboard:refresh"),

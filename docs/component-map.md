@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.4.6`
+- 当前适用版本：`v0.5.0-dev.1`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
 
 ## 总览页
@@ -48,6 +48,7 @@
 | 设置页壳层 | `SettingsPage` `page-stack settings-page` | 页面级 | 单列卡片流 | 本地路由 hash |
 | 新用户使用路径 | `SettingsPage` `onboarding-guide` | 页面级 | Codex 数据目录、按需启用 Git、保存并刷新三步说明 | 用户可见引导文案 |
 | 应用更新 | `UpdateSettingsCard` | 页面级 | 当前/可用版本、stable 通道、最近检查、自动检查、自动下载、进度、错误、手动重试、Release 入口 | `UpdateState`、`preferences.updates`、`updates:*` IPC |
+| 应用启动 | `SettingsPage` `startup-preference-toggle` | 页面级 | Windows 开机自启偏好、系统实际状态、支持门禁、保存中状态 | `preferences.startup.launchAtLogin`、`startup:get-state`、`startup:set-preferences`；仅 Windows 正式安装版写入登录启动项，开发模式禁用 |
 | Codex 数据目录 | `SettingsPage` `repo-root-editor` | 页面级 | 手动输入、选择目录、恢复默认、保存并刷新 | `preferences.codexHome`、`app:select-directory`、`preferences:update` |
 | 仓库根目录 | `SettingsPage` `repo-root-editor` | 页面级 | 手动输入、选择目录、移除、恢复默认、保存并刷新 | `preferences.repoRoots`、`app:select-directory`、`preferences:update` |
 | 计费口径 | `SettingsPage` `settings-form-row` | 页面级 | `billingMonthStartDay`、保存并刷新 | `preferences.billingMonthStartDay`、`preferences:update` |

@@ -215,7 +215,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.4.6"
+      clientVersion: "0.5.0-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -508,7 +508,7 @@ async function collectOfficialUsageRateSnapshot(
     const snapshot = normalizeOfficialUsageSnapshot(
       await readCodexUsageRateLimits({
         codexHome,
-        clientVersion: "0.4.6"
+        clientVersion: "0.5.0-dev.1"
       })
     );
     return snapshot.primary || snapshot.secondary ? snapshot : null;
@@ -2329,6 +2329,18 @@ export class DashboardService {
     }));
   }
 
+  public updateStartupPreferences(
+    patch: Partial<AppPreferences["startup"]>
+  ): Promise<AppPreferences> {
+    return this.settingsStore.update((current) => ({
+      ...current,
+      startup: {
+        ...current.startup,
+        ...patch
+      }
+    }));
+  }
+
   public updatePreferences(patch: Partial<AppPreferences>): Promise<AppPreferences> {
     return this.settingsStore.update((current) => ({
       ...current,
@@ -2344,6 +2356,10 @@ export class DashboardService {
       updates: {
         ...current.updates,
         ...patch.updates
+      },
+      startup: {
+        ...current.startup,
+        ...patch.startup
       }
     }));
   }

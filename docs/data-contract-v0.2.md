@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.4.6`
+- 对应版本：`v0.5.0-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -31,6 +31,7 @@
 - 配置的本地仓库根目录递归扫描
 - 仓库根目录可在设置页维护，也可通过 `CODEX_COMPANION_REPO_ROOTS` 作为首次默认候选；保存后写入 Electron `userData/settings.json`
 - 如果用户在设置页清空仓库根目录并保存，应用回退到默认自动发现路径；不会保存一个导致仓库扫描永久为空的配置
+- Windows 开机自启偏好写入 Electron `userData/settings.json` 的 `startup.launchAtLogin`，默认值为 `false`。仅 Windows 正式安装版调用 Electron 登录启动项 API；保存时先确认系统状态已更新，再持久化偏好，持久化失败时尝试回滚系统状态。应用每次启动会按本地偏好重新校准；开发模式和非 Windows 平台不注册启动项。
 - 设置页 `Git 与授权` 只读取本机 `git --version`、`git config --global user.name` 和 `git config --global user.email` 状态；当前版本不检测 GitHub 登录、不读取 GitHub 远端 API，也不保存 GitHub token；后续接入 GitHub 云端能力时再提供授权引导。本机未安装 Git 时，Codex 用量、额度、赠送重置和通知仍可用，代码仓库页、提交数、增删行和仓库归因降级为不可用，并在设置页和代码仓库页展示 Git for Windows 安装指引。
 - 重点命令：
   - `git rev-list --count --since=... HEAD`

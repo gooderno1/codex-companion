@@ -21,10 +21,16 @@ import type {
   DashboardNotificationEntry,
   DashboardSnapshot,
   RefreshTrigger,
+  StartupPreferences,
+  StartupState,
   UpdateState,
   WidgetPreferences
 } from "../shared/contracts";
 import { DashboardService } from "./collectors/dashboardCollector";
+import {
+  applyLaunchAtLoginPreference,
+  readLaunchAtLoginState
+} from "./launchAtLogin";
 import { CodexSessionCacheStore } from "./state/codexSessionCacheStore";
 import {
   DashboardNotificationService,
@@ -43,6 +49,7 @@ let dashboardService: DashboardService;
 let dashboardNotificationService: DashboardNotificationService | null = null;
 let updateService: UpdateService | null = null;
 let currentPreferences: AppPreferences | null = null;
+let startupState: StartupState | null = null;
 let latestSnapshot: DashboardSnapshot | null = null;
 let persistBoundsTimer: NodeJS.Timeout | null = null;
 const WIDGET_DISABLED = true;
@@ -88,6 +95,28 @@ function resolveRendererRoute(page: AppPage, notificationKey?: string): string {
       ? `?notification=${encodeURIComponent(notificationKey)}`
       : "";
   return `#/${page}${notificationQuery || overviewQuery}`;
+}
+
+function startupErrorState(error: unknown): StartupState {
+  const current = readLaunchAtLoginState(app);
+  return {
+    ...current,
+    message: `开机自启同步失败：${error instanceof Error ? error.message : String(error)}`
+  };
+}
+
+function syncLaunchAtLoginPreference(enabled: boolean): StartupState {
+  try {
+    return applyLaunchAtLoginPreference(app, enabled);
+  } catch (error) {
+    if (!app.isPackaged || process.platform !== "win32") {
+      return readLaunchAtLoginState(app);
+    }
+    console.error(
+      `开机自启同步失败：${error instanceof Error ? error.message : String(error)}`
+    );
+    return startupErrorState(error);
+  }
 }
 
 function resolveRendererUrl(page: AppPage, notificationKey?: string): string {
@@ -939,10 +968,47 @@ function registerIpcHandlers() {
     }
     await shell.openExternal(target);
   });
+  ipcMain.handle("startup:get-state", async () => {
+    startupState = readLaunchAtLoginState(app);
+    return startupState;
+  });
+  ipcMain.handle(
+    "startup:set-preferences",
+    async (_event, patch: Partial<StartupPreferences>) => {
+      if (typeof patch.launchAtLogin !== "boolean") {
+        throw new Error("开机自启设置必须是布尔值。");
+      }
+
+      const previousPreferences = await dashboardService.getPreferences();
+      const previousSystemState = readLaunchAtLoginState(app);
+      const nextState = applyLaunchAtLoginPreference(app, patch.launchAtLogin);
+      let next: AppPreferences;
+      try {
+        next = await dashboardService.updateStartupPreferences(patch);
+      } catch (error) {
+        try {
+          applyLaunchAtLoginPreference(app, previousSystemState.enabled);
+        } catch (rollbackError) {
+          console.error(
+            `开机自启回滚失败：${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`
+          );
+        }
+        currentPreferences = previousPreferences;
+        throw error;
+      }
+      currentPreferences = next;
+      startupState = nextState;
+      await broadcastPreferences(next);
+      return next;
+    }
+  );
   ipcMain.handle("preferences:get", async () => dashboardService.getPreferences());
   ipcMain.handle(
     "preferences:update",
     async (_event, patch: Partial<AppPreferences>) => {
+      if (patch.startup) {
+        throw new Error("请使用开机自启专用设置接口更新启动配置。");
+      }
       const next = await dashboardService.updatePreferences(patch);
       currentPreferences = next;
       updateService?.setPreferences(next.updates);
@@ -1014,6 +1080,9 @@ async function bootstrap() {
   );
   dashboardNotificationService = new DashboardNotificationService(userDataPath);
   currentPreferences = await dashboardService.getPreferences();
+  startupState = syncLaunchAtLoginPreference(
+    currentPreferences.startup.launchAtLogin
+  );
   updateService = new UpdateService({
     preferences: currentPreferences.updates,
     onStateChanged: broadcastUpdateState

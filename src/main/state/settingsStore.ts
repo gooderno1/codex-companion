@@ -5,6 +5,7 @@ import type {
   AppPreferences,
   NotificationDeliveryMode,
   NotificationPreferences,
+  StartupPreferences,
   UpdatePreferences,
   WidgetPreferences
 } from "../../shared/contracts";
@@ -154,6 +155,27 @@ function defaultUpdatePreferences(): UpdatePreferences {
   };
 }
 
+function defaultStartupPreferences(): StartupPreferences {
+  return {
+    launchAtLogin: false
+  };
+}
+
+function normalizeStartupPreferences(
+  value: unknown,
+  fallback: StartupPreferences
+): StartupPreferences {
+  const record = value && typeof value === "object"
+    ? value as Partial<Record<keyof StartupPreferences, unknown>>
+    : {};
+  return {
+    launchAtLogin:
+      typeof record.launchAtLogin === "boolean"
+        ? record.launchAtLogin
+        : fallback.launchAtLogin
+  };
+}
+
 function normalizeUpdatePreferences(
   value: unknown,
   fallback: UpdatePreferences
@@ -193,7 +215,8 @@ export class SettingsStore {
       billingMonthStartDay: DEFAULT_BILLING_MONTH_START_DAY,
       widget: defaultWidgetPreferences(),
       notifications: defaultNotificationPreferences(),
-      updates: defaultUpdatePreferences()
+      updates: defaultUpdatePreferences(),
+      startup: defaultStartupPreferences()
     };
 
     const stored = await readJsonFile<Partial<AppPreferences>>(this.settingsPath);
@@ -214,7 +237,8 @@ export class SettingsStore {
         stored.notifications,
         fallback.notifications
       ),
-      updates: normalizeUpdatePreferences(stored.updates, fallback.updates)
+      updates: normalizeUpdatePreferences(stored.updates, fallback.updates),
+      startup: normalizeStartupPreferences(stored.startup, fallback.startup)
     };
 
     await writeJsonFile(this.settingsPath, merged);
@@ -231,7 +255,8 @@ export class SettingsStore {
       billingMonthStartDay: DEFAULT_BILLING_MONTH_START_DAY,
       widget: defaultWidgetPreferences(),
       notifications: defaultNotificationPreferences(),
-      updates: defaultUpdatePreferences()
+      updates: defaultUpdatePreferences(),
+      startup: defaultStartupPreferences()
     };
     const next = updater(current);
     const normalized: AppPreferences = {
@@ -246,7 +271,8 @@ export class SettingsStore {
         next.notifications,
         current.notifications
       ),
-      updates: normalizeUpdatePreferences(next.updates, current.updates)
+      updates: normalizeUpdatePreferences(next.updates, current.updates),
+      startup: normalizeStartupPreferences(next.startup, current.startup)
     };
     await writeJsonFile(this.settingsPath, normalized);
     return normalized;

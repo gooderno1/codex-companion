@@ -504,6 +504,16 @@ export interface NotificationPreferences {
   deliveryMode: NotificationDeliveryMode;
 }
 
+export interface StartupPreferences {
+  launchAtLogin: boolean;
+}
+
+export interface StartupState {
+  supported: boolean;
+  enabled: boolean;
+  message: string;
+}
+
 export interface AppPreferences {
   codexHome: string;
   repoRoots: string[];
@@ -511,6 +521,7 @@ export interface AppPreferences {
   widget: WidgetPreferences;
   notifications: NotificationPreferences;
   updates: UpdatePreferences;
+  startup: StartupPreferences;
 }
 
 export interface DashboardNotificationEntry {
@@ -549,6 +560,10 @@ export interface CodexCompanionApi {
     patch: Partial<UpdatePreferences>
   ): Promise<AppPreferences>;
   openUpdateRelease(): Promise<void>;
+  getStartupState(): Promise<StartupState>;
+  setStartupPreferences(
+    patch: Partial<StartupPreferences>
+  ): Promise<AppPreferences>;
   getPreferences(): Promise<AppPreferences>;
   updatePreferences(patch: Partial<AppPreferences>): Promise<AppPreferences>;
   refreshDashboard(): Promise<DashboardSnapshot>;

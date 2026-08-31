@@ -25,6 +25,7 @@ import type {
   RefreshHistoryEntry,
   RefreshTrigger,
   SourceStatus,
+  StartupState,
   TokenBreakdown,
   UpdateState,
   WidgetMetric
@@ -73,7 +74,7 @@ const PAGE_META: Record<
   },
   settings: {
     title: "设置",
-    subtitle: "应用更新、数据源、计费口径、Git 与本机边界"
+    subtitle: "应用启动、更新、数据源、计费口径与本机边界"
   }
 };
 
@@ -1862,6 +1863,9 @@ function SettingsPage({
   onSaveBillingMonthStartDay,
   onSaveCodexHome,
   onSaveRepoRoots,
+  startupState,
+  startupBusy,
+  onSetLaunchAtLogin,
   updateState,
   updateActions,
   onShowUpdateDetails
@@ -1872,6 +1876,9 @@ function SettingsPage({
   onSaveBillingMonthStartDay: (day: number) => Promise<void>;
   onSaveCodexHome: (codexHome: string) => Promise<void>;
   onSaveRepoRoots: (roots: string[]) => Promise<void>;
+  startupState: StartupState | null;
+  startupBusy: boolean;
+  onSetLaunchAtLogin: (enabled: boolean) => Promise<void>;
   updateState: UpdateState | null;
   updateActions: React.ComponentProps<typeof UpdateSettingsCard>["actions"];
   onShowUpdateDetails: () => void;
@@ -1992,6 +1999,48 @@ function SettingsPage({
         actions={updateActions}
         onShowDetails={onShowUpdateDetails}
       />
+
+      <SectionCard className="settings-panel">
+        <div className="section-toolbar">
+          <div>
+            <h3>应用启动</h3>
+            <p>控制登录 Windows 后是否自动启动 Codex Companion。</p>
+          </div>
+          <span
+            className={`detection-pill ${
+              startupState?.supported
+                ? startupState.enabled
+                  ? "is-ok"
+                  : "is-pending"
+                : "is-missing"
+            }`}
+          >
+            {startupState?.supported
+              ? startupState.enabled
+                ? "已启用"
+                : "未启用"
+              : "当前不可用"}
+          </span>
+        </div>
+        <label
+          className={`update-toggle startup-preference-toggle${
+            startupState?.supported ? "" : " is-disabled"
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={preferences?.startup.launchAtLogin ?? false}
+            disabled={!preferences || startupBusy || !startupState?.supported}
+            onChange={(event) => void onSetLaunchAtLogin(event.target.checked)}
+          />
+          <span>
+            <strong>{startupBusy ? "正在更新" : "开机自启"}</strong>
+          </span>
+        </label>
+        <p className="settings-note">
+          {startupState?.message ?? "正在读取 Windows 登录启动项状态。"}
+        </p>
+      </SectionCard>
 
       <SectionCard className="settings-panel">
         <div className="section-toolbar">
@@ -3955,6 +4004,8 @@ export default function App() {
   const [gitStatus, setGitStatus] = useState<GitIntegrationStatus | null>(null);
   const [updateState, setUpdateState] = useState<UpdateState | null>(null);
   const [updateBusy, setUpdateBusy] = useState(false);
+  const [startupState, setStartupState] = useState<StartupState | null>(null);
+  const [startupBusy, setStartupBusy] = useState(false);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [overviewMode, setOverviewMode] = useState<OverviewMode>(resolveOverviewModeFromHash);
   const [error, setError] = useState<string | null>(null);
@@ -4025,6 +4076,10 @@ export default function App() {
     void window.codexCompanion.getUpdateState().then(setUpdateState);
     const unsubscribe = window.codexCompanion.onUpdateStateChanged(setUpdateState);
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    void window.codexCompanion.getStartupState().then(setStartupState);
   }, []);
 
   useEffect(() => {
@@ -4207,6 +4262,35 @@ export default function App() {
       }, true);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function setLaunchAtLogin(enabled: boolean) {
+    setStartupBusy(true);
+    try {
+      const nextPreferences = await window.codexCompanion.setStartupPreferences({
+        launchAtLogin: enabled
+      });
+      setPreferences(nextPreferences);
+      setStartupState(await window.codexCompanion.getStartupState());
+      setError(null);
+      showRefreshFeedback({
+        phase: "done",
+        title: enabled ? "已启用开机自启" : "已关闭开机自启",
+        detail: enabled
+          ? "下次登录 Windows 后将自动启动 Codex Companion"
+          : "已从 Windows 登录启动项中移除"
+      }, true);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "更新开机自启设置失败";
+      setError(message);
+      showRefreshFeedback({
+        phase: "error",
+        title: "更新开机自启失败",
+        detail: message
+      }, true);
+    } finally {
+      setStartupBusy(false);
     }
   }
 
@@ -4462,13 +4546,16 @@ export default function App() {
             ) : null}
             {currentPage === "settings" ? (
               <SettingsPage
-                key={`${preferences?.billingMonthStartDay ?? "settings"}:${preferences?.codexHome ?? ""}:${preferences?.repoRoots.join("|") ?? ""}:${preferences?.notifications.deliveryMode ?? ""}:${preferences?.updates.autoCheck ?? ""}:${preferences?.updates.autoDownload ?? ""}:${preferences?.updates.ignoredVersion ?? ""}`}
+                key={`${preferences?.billingMonthStartDay ?? "settings"}:${preferences?.codexHome ?? ""}:${preferences?.repoRoots.join("|") ?? ""}:${preferences?.notifications.deliveryMode ?? ""}:${preferences?.updates.autoCheck ?? ""}:${preferences?.updates.autoDownload ?? ""}:${preferences?.updates.ignoredVersion ?? ""}:${preferences?.startup.launchAtLogin ?? ""}`}
                 snapshot={snapshot}
                 preferences={preferences}
                 gitStatus={gitStatus}
                 onSaveBillingMonthStartDay={saveBillingMonthStartDay}
                 onSaveCodexHome={saveCodexHome}
                 onSaveRepoRoots={saveRepoRoots}
+                startupState={startupState}
+                startupBusy={startupBusy}
+                onSetLaunchAtLogin={setLaunchAtLogin}
                 updateState={updateState}
                 updateActions={updateActions}
                 onShowUpdateDetails={() => setUpdateDialogOpen(true)}
