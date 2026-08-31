@@ -2,7 +2,39 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.4.6` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.5.0` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-08-31] v0.5.0 release: 发布可配置的 Windows 开机自启
+
+### Release 范围
+
+包含开发版本：
+
+- `v0.5.0-dev.1`
+
+### 主要变更
+
+- 设置页新增“应用启动”卡片，用户可启用或关闭“开机自启”，并查看 Windows 登录启动项的实际状态。
+- 开机自启默认关闭；仅 Windows 正式安装版开放，源码开发模式和非 Windows 平台不会注册启动项。
+- 保存时先调用 Electron 登录启动项 API 并确认系统状态，再写入本机 `userData/settings.json`；配置写入失败时尝试回滚系统状态。
+- 应用每次启动都会按 `startup.launchAtLogin` 重新校准登录启动项；旧版设置文件自动补齐默认值 `false`。
+- CI 增加开机自启专项校验，覆盖默认关闭、旧配置迁移、正式安装版启停和开发模式门禁。
+- 发布前更新受安全公告影响的传递依赖：`brace-expansion 5.0.9`、`fast-uri 3.1.6`、`js-yaml 4.3.2`、`nanoid 3.3.18`、`undici 7.29.0`，并将审计恢复为零漏洞。
+
+### 验证结果
+
+- `npm run build`、`npm run verify:startup`、`npm run verify:updater`、`npm run verify:notifications`、`npm run verify:design`、`npm run verify:signing-policy` 和 `git diff --check`：通过。
+- `npm audit --audit-level=low`：通过，未发现已知漏洞。
+- 使用 Node 22 对齐的 npm `10.9.4` 执行 `npm ci --dry-run` 和干净安装均通过。
+- Electron 设置页截图确认“应用启动”卡片的状态、不可用原因和开关布局无溢出。
+- 本地正式安装包 `Codex.Companion.Setup.0.5.0.exe` 大小 `103157875` bytes，SHA256 `72B9C231EB25F8C351C60711B66E903BD5C6D96187145492D190178B0C015201`，Authenticode 为 `NotSigned`；blockmap 大小 `108734` bytes，`latest.yml` 大小 `359` bytes且版本、路径、大小和 SHA512 完整；应用主程序与安装包的 `ProductName=Codex Companion`、`ProductVersion=0.5.0`。
+
+### 升级注意事项
+
+- 从旧版本升级后默认保持不开机自启；如需启用，请在设置页手动打开“开机自启”。
+- 开机自启只在 Windows 正式安装版生效，源码开发模式显示“当前不可用”。
+- 安装包仍未签名，Windows SmartScreen 或企业策略可能拦截。
+- 普通退出不会安装更新；下载完成后仍需点击“重启并安装”。
 
 ## [2026-07-31] v0.4.6 release: 接入官方 Usage 当前额度
 

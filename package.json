@@ -1,6 +1,6 @@
 {
   "name": "codex-companion",
-  "version": "0.5.0-dev.1",
+  "version": "0.5.0",
   "private": true,
   "description": "非官方 Codex 额度、Token 与代码活动桌面伴侣",
   "license": "MIT",
@@ -121,7 +121,7 @@
     "wait-on": "^9.0.10"
   },
   "overrides": {
-    "brace-expansion": "5.0.8",
+    "brace-expansion": "5.0.9",
     "shell-quote": "1.10.0"
   }
 }

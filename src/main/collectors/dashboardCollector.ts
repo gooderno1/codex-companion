@@ -215,7 +215,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.5.0-dev.1"
+      clientVersion: "0.5.0"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -508,7 +508,7 @@ async function collectOfficialUsageRateSnapshot(
     const snapshot = normalizeOfficialUsageSnapshot(
       await readCodexUsageRateLimits({
         codexHome,
-        clientVersion: "0.5.0-dev.1"
+        clientVersion: "0.5.0"
       })
     );
     return snapshot.primary || snapshot.secondary ? snapshot : null;

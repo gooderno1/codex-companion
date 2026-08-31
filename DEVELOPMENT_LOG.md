@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-08-31] v0.5.0 release: 发布可配置的 Windows 开机自启
+
+- 开发原因：`v0.5.0-dev.1` 已完成开机自启设置、Windows 登录启动项同步、旧配置迁移和设置页交互，需要发布给现有 `v0.4.6` 用户。
+- 实现方式：应用版本与两个官方读取 `clientVersion` 从 `0.5.0-dev.1` 收敛为 `0.5.0`；README、Roadmap、自动升级规划、数据契约、组件映射和 Release notes 同步正式版口径；CI 增加 `npm run verify:startup`；发布前审计发现 5 类高危传递依赖公告后，将 `brace-expansion / fast-uri / js-yaml / nanoid / undici` 更新到修复版本并重新生成 npm 10 lockfile；正式 tag 继续由 GitHub Actions 生成唯一 Release 资产。
+- 当前结果：`v0.5.0` 正式资料已收敛；开机自启默认关闭，仅 Windows 正式安装版可配置，旧用户升级后不会被自动启用；稳定版更新源、自动下载、用户确认安装和未签名边界均未改变。本地安装包大小 `103157875` bytes，SHA256 `72B9C231EB25F8C351C60711B66E903BD5C6D96187145492D190178B0C015201`，Authenticode 为 `NotSigned`；应用主程序与安装包的产品名和产品版本均为 `Codex Companion / 0.5.0`。
+- 验证方式：执行 npm 10 `npm ci --dry-run`、全量构建、开机自启/更新器/通知/设计 token/签名政策专项、`npm audit --audit-level=low`、Windows NSIS 打包和 `git diff --check`；正式 CI、Windows Package、Release 资产和匿名下载结果在发布后记录。
+
 ## [2026-08-31] v0.5.0-dev.1 feat(startup): 增加可配置的 Windows 开机自启
 
 - 开发原因：用户需要 Codex Companion 随 Windows 登录自动启动，并能在应用内自行启用或关闭。
