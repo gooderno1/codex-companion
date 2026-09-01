@@ -67,7 +67,9 @@ const STATIC_TEXT_ASSERTIONS = [
       "estimatedValueBasisUsedPercent",
       "billingMonthStartDay",
       "limit_id=codex",
-      "较昨日",
+      "昨日同期",
+      "上周同期",
+      "上月同期",
       "60"
     ]
   },
@@ -81,6 +83,7 @@ const STATIC_TEXT_ASSERTIONS = [
       "const WIDGET_DISABLED = true",
       "CODEX_COMPANION_CAPTURE_PATH",
       "CODEX_COMPANION_OVERVIEW_MODE",
+      '`?overviewMode=${overviewMode}`',
       "DASHBOARD_REFRESH_INTERVAL_MS",
       '"dashboard:updated"',
       "broadcastDashboardSnapshot",
@@ -116,6 +119,8 @@ const STATIC_TEXT_ASSERTIONS = [
       "quotaEvidence",
       "isSameQuotaPool",
       'aggregateCodeFromRepos(git.items, "yesterday")',
+      "matchingPreviousPeriodEnd",
+      '"上个额度周同期"',
       "buildDisplayedQuotaWindow",
       "estimatedValueBasisUsedPercent",
       "primaryPeriod.quotaEvidence?.usedPercent",
@@ -126,7 +131,7 @@ const STATIC_TEXT_ASSERTIONS = [
     file: "src/main/collectors/gitCollector.ts",
     includes: [
       "startOfYesterday",
-      "collectCodeActivityRange(repoPath, startOfYesterday, startOfToday)",
+      "endOfYesterdayComparison",
       "yesterday: yesterday ?? emptyCodeActivity()"
     ]
   },
@@ -157,7 +162,12 @@ const STATIC_TEXT_ASSERTIONS = [
       "resolveOverviewModeFromHash",
       "onDashboardUpdated",
       "card.sourceStatus",
-      'sourceStatus: billingMonth ? globalSourceStatus : "unobserved"'
+      'sourceStatus: billingMonth ? globalSourceStatus : "unobserved"',
+      "昨日同期",
+      "上周同期",
+      "上月同期",
+      "上个额度周同期",
+      "上个计费月同期"
     ]
   },
   {
@@ -168,7 +178,7 @@ const STATIC_TEXT_ASSERTIONS = [
       '"billingMonth"',
       '"当前计费月"',
       '"previousBillingMonth"',
-      '"上个计费月"'
+      '"上个计费月同期"'
     ]
   },
   {

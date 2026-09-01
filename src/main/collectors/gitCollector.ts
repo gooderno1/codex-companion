@@ -262,6 +262,12 @@ export async function collectGitData({
   );
   const startOfYesterday = new Date(startOfToday);
   startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+  const endOfYesterdayComparison = new Date(
+    Math.min(
+      startOfYesterday.getTime() + (now.getTime() - startOfToday.getTime()),
+      startOfToday.getTime()
+    )
+  );
   const startOfSevenDays = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
   const startOfNaturalWeek = new Date(startOfToday);
   const weekday = startOfNaturalWeek.getDay();
@@ -308,7 +314,11 @@ export async function collectGitData({
         ),
         runGit(["branch", "--show-current"], repoPath),
         collectCodeActivitySince(repoPath, startOfToday),
-        collectCodeActivityRange(repoPath, startOfYesterday, startOfToday),
+        collectCodeActivityRange(
+          repoPath,
+          startOfYesterday,
+          endOfYesterdayComparison
+        ),
         collectCodeActivitySince(repoPath, startOfSevenDays),
         collectCodeActivitySince(repoPath, startOfNaturalWeek),
         collectCodeActivitySince(repoPath, startOfMonth),

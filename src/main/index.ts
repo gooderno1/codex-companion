@@ -89,7 +89,9 @@ function delay(ms: number) {
 function resolveRendererRoute(page: AppPage, notificationKey?: string): string {
   const overviewMode = process.env.CODEX_COMPANION_OVERVIEW_MODE;
   const overviewQuery =
-    page === "overview" && overviewMode === "billing" ? "?overviewMode=billing" : "";
+    page === "overview" && (overviewMode === "natural" || overviewMode === "billing")
+      ? `?overviewMode=${overviewMode}`
+      : "";
   const notificationQuery =
     page === "notifications" && notificationKey
       ? `?notification=${encodeURIComponent(notificationKey)}`

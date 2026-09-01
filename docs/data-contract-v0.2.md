@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.5.0`
+- 对应版本：`v0.5.1-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -24,6 +24,7 @@
   - `event_msg.payload.info.total_token_usage`
   - `event_msg.payload.info.last_token_usage`
   - `event_msg.payload.rate_limits`
+- 本地 session 兼容读取 `rate_limits.primary` 与 `rate_limits.secondary`；页面业务窗口按时长分类，不把槽位名当成永久业务语义。
 
 ### 1.2 Git
 
@@ -48,6 +49,9 @@
 - 如果当前记录没有 `total_token_usage`，才降级使用 `last_token_usage`
 - 会话总量为会话内真实增量累加，不直接累加所有 `total_token_usage`
 - 自然日、近 7 日、自然周、自然月均按事件时间戳落桶
+- 总览变化值统一使用上一周期同期：当前周期从起点累计到快照 `generatedAt`，上一周期从对应起点累计相同已过时长，且结束时间不超过上一周期边界。`overview.previous.yesterday / naturalWeek / month / fiveHour / weekLimit / billingMonth` 均遵循该语义，不再保存完整上一周期作为顶部卡片分母。
+- 用户可见对比标签固定为“昨日同期 / 上周同期 / 上月同期 / 上个额度周同期 / 上个计费月同期”，避免把同进度值误解为完整上一周期。
+- 跨月同期若上一月天数更少，上一周期结束时间封顶到上一月末。例如 `3 月 31 日 12:00` 的本月 Token 对比 `2 月 1 日 00:00 - 3 月 1 日 00:00`，不会越过 2 月边界。
 - 计费月 Token 默认按套餐信息中的每月 `1` 日 `00:00` 起算，因此当前默认与自然月一致；后续设置页可通过 `billingMonthStartDay` 选择每月第几天作为计费月起始日。
 - 计费月 Token 是时间口径，不等同于月额度。当前 Codex 原始 `rate_limits` 仍未暴露稳定月额度窗口，所以 `可观测月额度` 继续保持 `未观测`。
 
@@ -141,7 +145,7 @@
 - 通过会话 `cwd` 向上找到 Git 根目录
 - 若无法找到 Git 根目录，则该会话保留 `未归因`
 - 总览页项目概览保留所有已发现本地项目；当前周期无 Token、代码、提交和会话活动的项目显示 0 / `--`，不从表格中过滤。
-- 顶部 `今日代码改动` 使用自然日 Git `changedLines = additions + deletions`；次级说明 `较昨日` 使用昨日自然日同口径作为分母。昨日有 Git 数据时必须计算百分比，不能因为 token 昨日窗口为空而把昨日代码默认为 0。
+- 顶部 `今日代码改动` 使用自然日 Git `changedLines = additions + deletions`；次级说明 `较昨日同期` 使用昨日 `00:00` 到与当前相同时间进度的 Git 改动作为分母。例如今天 `15:30` 查看时，只统计昨天 `00:00 - 15:30`；不能拿完整昨日比较，也不能因为昨日 token 窗口为空而把昨日代码默认为 0。
 - 计费时间项目概览包含 `5H / 周额度 / 计费月` 三个周期；其中 `计费月` 的 Token、会话、成本和 Git 代码活动都使用 `billingMonthStartDay` 推导出的计费月起点，不能用自然月数据冒充。
 
 ### 2.5 刷新与增量采集

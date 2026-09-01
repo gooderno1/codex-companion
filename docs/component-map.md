@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.5.0`
+- 当前适用版本：`v0.5.1-dev.1`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
 
 ## 总览页
@@ -84,7 +84,8 @@
 - Codex 会话采集必须增量复用 `codex-session-cache.json`：文件签名未变化时复用解析结果，新增或变更文件才重新解析，反馈条展示本次新解析和复用数量。
 - 手动刷新必须有顶部临时反馈条，采集中禁用重复点击；完成后展示 `sourceHealth.refresh.durationMs / codexFilesParsed / codexFilesReused`，约 `5s` 后消失，长期记录进入设置页刷新历史。
 - 顶部 `sourceStatus` 表达本次 Codex 数据源是否成功观测；最近没有新 token 事件只通过 `lastObservedAt` 和刷新反馈说明，不能把一次成功刷新显示成 `数据过期`。
-- 顶部 `今日代码改动` 的 `detail` 使用 `snapshot.overview.previous.yesterday.code.changedLines` 与 `snapshot.overview.today.code.changedLines` 计算，昨日 Git 有数据时必须显示百分比。
+- 顶部四卡的 `detail` 使用上一周期同期值：`previous.yesterday / naturalWeek / month / weekLimit / billingMonth` 的结束时间等于上一周期起点加当前已过时长，并封顶到上一周期末；用户可见文案分别显示“较昨日同期 / 上周同期 / 上月同期 / 上个额度周同期 / 上个计费月同期”。
+- `今日代码改动` 使用 `snapshot.overview.previous.yesterday.code.changedLines` 与 `snapshot.overview.today.code.changedLines` 计算；昨日 Git 只采集到与当前相同时间进度，有数据时必须显示百分比。
 - 顶部计费时间 `本月 Token` 使用 `snapshot.overview.windowPeriods.billingMonth`；默认 `billingMonthStartDay=1`，因此当前默认与自然月一致，设置页可调整起始日并触发刷新。
 - `BankedResetCreditStrip` 固定放在顶部四卡和 `5H / 周额度窗口` 两张额度卡之间；普通态必须是一行状态，不占用顶部四卡；展开态只显示脱敏逐个明细，不展示 app-server 原始响应或余额字段。
 - 设置页 `Codex 数据目录` 支持手动输入、系统目录选择和恢复默认；保存后通过 `preferences:update` 写入本机配置并立即刷新，路径只用于读取本机 Codex sessions、archived_sessions 和 rate_limits。

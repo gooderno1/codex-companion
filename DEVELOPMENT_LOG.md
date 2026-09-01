@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-09-01] v0.5.1-dev.1 fix(overview): 将顶部变化值改为上一周期同期
+
+- 开发原因：总览页当前日、周和月只累计到快照时刻，却使用完整上一周期作为变化百分比分母，导致周期前半段大多数指标系统性显示下降，无法表达真实趋势。
+- 实现方式：新增同进度边界函数，以上一周期起点加当前周期已过时长计算比较终点，并封顶到上一周期末；`overview.previous.yesterday / naturalWeek / month / fiveHour / weekLimit / billingMonth` 改为同期 Token 区间；昨日 Git 改动只采集 `00:00` 到昨日同一时间进度；顶部文案改为“昨日同期 / 上周同期 / 上月同期 / 上个额度周同期 / 上个计费月同期”。
+- 实现方式：新增 `verify:comparisons`，覆盖日同期、周同期、短月封顶和负进度保护；CI 增加该门禁。人工截图时发现自然时间截图参数未显式写入路由，顺带修正 `CODEX_COMPANION_OVERVIEW_MODE=natural` 的截图入口，确保自然 / 计费四张证据不再重复截取计费视角。
+- 当前结果：例如周三 `10:15` 查看时，本周一至周三 `10:15` 只对比上周一至上周三 `10:15`；`3 月 31 日` 对比 2 月时会封顶到 2 月周期末。`2026-09-01T09:18Z` live 快照中，上周同期结束于 `2026-08-25T09:18Z`，上个额度周同期也结束于 `2026-08-25T09:18Z`，与当前时间进度一致。
+- 验证方式：执行 `npm run build`、`npm run verify:comparisons`、`npm run verify:overview`、`npm run verify:quota` 和 `npm run verify:ledger`；重新生成并人工检查自然 / 计费视角各 `1360×900`、`1080×720` 截图，确认“同期”文案无截断或重叠。Electron 截图期间仍有本机 GPU cache 权限告警，但四张目标文件均成功生成并通过页面验收。
+
 ## [2026-08-31] v0.5.0 docs(release): 记录正式资产验证
 
 - 开发原因：`v0.5.0` 的正式 CI、Windows Package、Release 发布和匿名下载检查已完成，需要把最终远端构建结果写回仓库。

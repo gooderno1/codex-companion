@@ -40,6 +40,7 @@ import { SnapshotStore } from "../state/snapshotStore";
 import { SettingsStore } from "../state/settingsStore";
 import {
   addMinutes,
+  matchingPreviousPeriodEnd,
   startOfBillingMonth,
   startOfDay,
   startOfMonth,
@@ -215,7 +216,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.5.0"
+      clientVersion: "0.5.1-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -508,7 +509,7 @@ async function collectOfficialUsageRateSnapshot(
     const snapshot = normalizeOfficialUsageSnapshot(
       await readCodexUsageRateLimits({
         codexHome,
-        clientVersion: "0.5.0"
+        clientVersion: "0.5.1-dev.1"
       })
     );
     return snapshot.primary || snapshot.secondary ? snapshot : null;
@@ -1840,20 +1841,32 @@ async function collectDashboardSnapshot(
     aggregateCodeFromRepos(git.items, "month")
   );
   const yesterdayStart = addMinutes(todayStart, -24 * 60);
+  const yesterdayComparisonEnd = matchingPreviousPeriodEnd(
+    todayStart,
+    now,
+    yesterdayStart,
+    todayStart
+  );
   const yesterdayPeriod = buildPeriodMetric(
     "yesterday",
-    "昨日",
+    "昨日同期",
     yesterdayStart,
-    todayStart,
+    yesterdayComparisonEnd,
     codex.events,
     aggregateCodeFromRepos(git.items, "yesterday")
   );
   const previousNaturalWeekStart = addMinutes(naturalWeekStart, -7 * 24 * 60);
+  const previousNaturalWeekEnd = matchingPreviousPeriodEnd(
+    naturalWeekStart,
+    now,
+    previousNaturalWeekStart,
+    naturalWeekStart
+  );
   const previousNaturalWeekPeriod = buildPeriodMetric(
     "previousNaturalWeek",
-    "上一个自然周",
+    "上周同期",
     previousNaturalWeekStart,
-    naturalWeekStart,
+    previousNaturalWeekEnd,
     codex.events
   );
   const previousMonthStart = new Date(
@@ -1867,9 +1880,14 @@ async function collectDashboardSnapshot(
   );
   const previousMonthPeriod = buildPeriodMetric(
     "previousMonth",
-    "上一个自然月",
+    "上月同期",
     previousMonthStart,
-    monthStart,
+    matchingPreviousPeriodEnd(
+      monthStart,
+      now,
+      previousMonthStart,
+      monthStart
+    ),
     codex.events
   );
 
@@ -1907,24 +1925,36 @@ async function collectDashboardSnapshot(
         [],
         emptyCodeActivity()
       );
+  const previousFiveHourCycle = fiveHourQuotaUsage.cycles.at(-2) ?? null;
   const previousFiveHourPeriod =
-    fiveHourQuotaUsage.cycles.length > 1
-      ? buildQuotaCyclePeriodMetric(
+    previousFiveHourCycle && fiveHourWindowRange
+      ? buildPeriodMetric(
           "previousFiveHour",
-          "上一 5 小时窗口",
-          fiveHourQuotaUsage.cycles.at(-2) ?? null,
-          fiveHourWindowRange?.start ?? todayStart,
-          fiveHourWindowRange?.end ?? now
+          "上个 5 小时窗口同期",
+          new Date(previousFiveHourCycle.startAt),
+          matchingPreviousPeriodEnd(
+            fiveHourWindowRange.start,
+            now,
+            new Date(previousFiveHourCycle.startAt),
+            new Date(previousFiveHourCycle.endAt)
+          ),
+          codex.events
         )
       : null;
+  const previousWeekLimitCycle = weeklyQuotaUsage.cycles.at(-2) ?? null;
   const previousWeekLimitPeriod =
-    weeklyQuotaUsage.cycles.length > 1
-      ? buildQuotaCyclePeriodMetric(
+    previousWeekLimitCycle && secondaryWindowRange
+      ? buildPeriodMetric(
           "previousWeekLimit",
-          "上一周额度窗口",
-          weeklyQuotaUsage.cycles.at(-2) ?? null,
-          secondaryWindowRange?.start ?? naturalWeekStart,
-          secondaryWindowRange?.end ?? now
+          "上个额度周同期",
+          new Date(previousWeekLimitCycle.startAt),
+          matchingPreviousPeriodEnd(
+            secondaryWindowRange.start,
+            now,
+            new Date(previousWeekLimitCycle.startAt),
+            new Date(previousWeekLimitCycle.endAt)
+          ),
+          codex.events
         )
       : null;
   const billingMonthPeriod = buildPeriodMetric(
@@ -1937,9 +1967,14 @@ async function collectDashboardSnapshot(
   );
   const previousBillingMonthPeriod = buildPeriodMetric(
     "previousBillingMonth",
-    "上个计费月",
+    "上个计费月同期",
     previousBillingMonthStart,
-    billingMonthStart,
+    matchingPreviousPeriodEnd(
+      billingMonthStart,
+      now,
+      previousBillingMonthStart,
+      billingMonthStart
+    ),
     codex.events
   );
 

@@ -35,6 +35,9 @@ jobs:
       - name: Verify notification navigation
         run: npm run verify:notifications
 
+      - name: Verify overview comparisons
+        run: npm run verify:comparisons
+
       - name: Verify startup settings
         run: npm run verify:startup
 

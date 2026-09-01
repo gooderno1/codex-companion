@@ -1,10 +1,10 @@
 # 总览页目标完成度审计（v0.1）
 
 - 创建时间：2026-06-04
-- 审计版本：`v0.2.2-dev.78`
+- 审计版本：`v0.5.1-dev.1`
 - 审计对象：总览页设计对照、图标资产、额度真实数据和交付验证
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev78.png`、`local_dev_work/overview-1080x720-dev78.png`、`local_dev_work/overview-billing-1360x900-dev78.png`、`local_dev_work/overview-billing-1080x720-dev78.png`
+- 实现截图：`local_dev_work/overview-1360x900-dev1.png`、`local_dev_work/overview-1080x720-dev1.png`、`local_dev_work/overview-billing-1360x900-dev1.png`、`local_dev_work/overview-billing-1080x720-dev1.png`
 - 比例测量：`docs/design-review/overview-visual-measurement-v0.1.md`
 - 设计 token：`docs/design-tokens-v0.1.md`、`src/renderer/design-tokens.ts`、`npm run verify:design`
 - 运行快照：`%APPDATA%\codex-companion\snapshot.json`
@@ -16,6 +16,8 @@
 ## 1. 审计结论
 
 当前总览页已经完成原目标中的主要可验证要求：
+
+- `v0.5.1-dev.1` 已把顶部日、周、月和计费周期变化值改为上一周期同期，并用专项边界测试覆盖日、周、短月封顶和异常负进度。
 
 - 已按左侧导航、顶部工具栏、顶部四卡、额度卡、项目概览和页脚拆分区块做设计对照。
 - 已补充设计稿与实现截图的区块比例测量，用于后续精修判断。

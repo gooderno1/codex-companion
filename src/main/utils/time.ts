@@ -64,6 +64,21 @@ export function addMinutes(value: Date, minutes: number): Date {
   return new Date(value.getTime() + minutes * 60_000);
 }
 
+export function matchingPreviousPeriodEnd(
+  currentStart: Date,
+  currentProgressEnd: Date,
+  previousStart: Date,
+  previousEnd: Date
+): Date {
+  const elapsedMs = Math.max(
+    0,
+    currentProgressEnd.getTime() - currentStart.getTime()
+  );
+  return new Date(
+    Math.min(previousStart.getTime() + elapsedMs, previousEnd.getTime())
+  );
+}
+
 export function subtractDays(value: Date, days: number): Date {
   return new Date(value.getTime() - days * 24 * 60 * 60_000);
 }

@@ -925,7 +925,7 @@ function buildOverviewCards(
         detail: describeDelta(
           snapshot.overview.today.tokens.total,
           snapshot.overview.previous.yesterday.tokens.total,
-          "昨日"
+          "昨日同期"
         ),
         icon: "token",
         tone: "blue",
@@ -938,7 +938,7 @@ function buildOverviewCards(
         detail: describeDelta(
           snapshot.overview.naturalWeek.tokens.total,
           snapshot.overview.previous.naturalWeek.tokens.total,
-          "上周"
+          "上周同期"
         ),
         icon: "calendar",
         tone: "teal",
@@ -951,7 +951,7 @@ function buildOverviewCards(
         detail: describeDelta(
           snapshot.overview.month.tokens.total,
           snapshot.overview.previous.month.tokens.total,
-          "上月"
+          "上月同期"
         ),
         icon: "month",
         tone: "amber",
@@ -964,7 +964,7 @@ function buildOverviewCards(
         detail: describeDelta(
           snapshot.overview.today.code.changedLines,
           snapshot.overview.previous.yesterday.code.changedLines,
-          "昨日"
+          "昨日同期"
         ),
         icon: "code",
         tone: "neutral",
@@ -981,7 +981,7 @@ function buildOverviewCards(
       detail: describeDelta(
         snapshot.overview.today.tokens.total,
         snapshot.overview.previous.yesterday.tokens.total,
-        "昨日"
+        "昨日同期"
       ),
       icon: "token",
       tone: "blue",
@@ -994,7 +994,7 @@ function buildOverviewCards(
       detail: describeDelta(
         snapshot.overview.windowPeriods.weekLimit.tokens.total,
         snapshot.overview.previous.weekLimit?.tokens.total ?? null,
-        "上个额度周"
+        "上个额度周同期"
       ),
       icon: "calendar",
       tone: "teal",
@@ -1008,7 +1008,7 @@ function buildOverviewCards(
         ? describeDelta(
             billingMonth.tokens.total,
             snapshot.overview.previous.billingMonth?.tokens.total ?? null,
-            "上个计费月"
+            "上个计费月同期"
           )
         : "计费月数据待补齐",
       icon: "month",
@@ -1022,7 +1022,7 @@ function buildOverviewCards(
       detail: describeDelta(
         snapshot.overview.today.code.changedLines,
         snapshot.overview.previous.yesterday.code.changedLines,
-        "昨日"
+        "昨日同期"
       ),
       icon: "code",
       tone: "neutral",
