@@ -2,7 +2,40 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.5.1` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.5.2` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-09-01] v0.5.2 release: 增加总览变化显示切换
+
+### Release 范围
+
+包含开发版本：
+
+- `v0.5.2-dev.1`
+
+未排除开发版本：无。
+
+### 主要变更
+
+- 百分比模式在上一周期同期为 `0` 时，仅把计算分母替换为 `1`，不再用“新增”隐藏具体变化；两期均为零显示 `0.0%`。
+- 超大百分比在卡片内紧凑显示为 `万% / 亿%`，悬停提示和无障碍标签保留完整百分比。
+- 顶栏中部新增“变化显示 百分比 / 数值”切换；数值模式使用真实 `current - previous`，Token 与代码分别追加 `tok / 行`。
+- 变化显示偏好保存在本机 `settings.json` 的 `overview.comparisonDisplay`；旧设置自动迁移为百分比，切换不触发 Codex / Git 数据刷新。
+- 总览截图验收扩展为自然 / 计费 × 百分比 / 数值 × 两种窗口尺寸共 8 种状态。
+
+### 验证结果
+
+- `npm run build`、`npm run verify:comparisons`、`npm run verify:overview`、`npm run verify:quota`、`npm run verify:ledger`、更新器/通知/开机自启/设计 token/签名政策专项和 `git diff --check`：通过。
+- `npm audit --audit-level=low`：通过，未发现已知漏洞。
+- 专项样例：`6,541 / 0` 显示 `+65.4万%` 或 `+6,541 行`；`125,778,327 / 0` 显示 `+125.8亿%` 或 `+1.3亿 tok`，完整提示保留未压缩值。
+- 人工检查 8 张真实 Electron 截图，顶部双控件在 `1360×900` 与 `1080×720` 下保持单行，变化文案、单位、卡片和项目区无截断。
+- 开发提交 CI run `33498506648` 成功，包含变化显示专项门禁。
+- 本地正式安装包 `Codex.Companion.Setup.0.5.2.exe` 大小 `103192340` bytes，SHA256 `BFFBA322C0EE552F328CDE6D16396DB9EA893795D74CC1FD5B6F36B2803C7E83`，Authenticode 为 `NotSigned`；blockmap 大小 `108681` bytes，`latest.yml` 大小 `359` bytes且版本、路径、大小和 SHA512 与安装包实算结果一致；应用主程序与安装包的 `ProductName=Codex Companion`、`ProductVersion=0.5.2`。
+
+### 升级注意事项
+
+- 本次只改变总览顶部四卡的变化说明和本机显示偏好，不改变当前值、同期边界、Codex Token 增量、额度余量、reset 识别或 `codex-usage-core` 版本。
+- 旧设置在首次读取时自动补为百分比，无需手动迁移；之后的选择会跨重启保留。
+- 安装包仍未签名，Windows SmartScreen 或企业策略可能拦截；普通退出不会安装更新，下载完成后仍需点击“重启并安装”。
 
 ## [2026-09-01] v0.5.1 release: 修正总览上一周期同期对比
 
