@@ -2,7 +2,38 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.5.0` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.5.1` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-09-01] v0.5.1 release: 修正总览上一周期同期对比
+
+### Release 范围
+
+包含开发版本：
+
+- `v0.5.1-dev.1`
+
+### 主要变更
+
+- 今日、自然周、自然月、额度周和计费月的变化百分比统一改为上一周期相同时间进度，不再用未结束的当前周期对比完整上一周期。
+- 上一周期比较终点按“上一周期起点 + 当前周期已过时长”计算，并封顶到上一周期末；月份天数不同时不会跨出上一月。
+- 今日代码改动改为对比昨日同一时刻的 Git `changedLines`，与 Token 卡保持相同口径。
+- 顶部四卡文案明确显示“昨日同期 / 上周同期 / 上月同期 / 上个额度周同期 / 上个计费月同期”。
+- 新增同期边界专项校验并接入 CI；修正自然时间截图入口，确保自然 / 计费视角验收证据互不混淆。
+
+### 验证结果
+
+- `npm run build`、`npm run verify:comparisons`、`npm run verify:overview`、`npm run verify:quota`、`npm run verify:ledger`、更新器/通知/开机自启/设计 token/签名政策专项和 `git diff --check`：通过。
+- `npm audit --audit-level=low`：通过，未发现已知漏洞。
+- `2026-09-01T09:18Z` live 快照确认：上周同期和上个额度周同期均结束于 `2026-08-25T09:18Z`，与当前周期时间进度一致。
+- 人工检查自然 / 计费视角各 `1360×900`、`1080×720` 截图，“同期”文案无截断、重叠或异常换行。
+- 开发提交 CI run `33491602236` 成功，包含同期边界专项门禁。
+- 本地正式安装包 `Codex.Companion.Setup.0.5.1.exe` 大小 `103165583` bytes，SHA256 `4736D7FCE4A218E5BF13AC73C9C446803E1FF3A04AE8BE5C143103264C774935`，Authenticode 为 `NotSigned`；blockmap 大小 `108748` bytes，`latest.yml` 大小 `359` bytes且版本、路径、大小和 SHA512 完整；应用主程序与安装包的 `ProductName=Codex Companion`、`ProductVersion=0.5.1`。
+
+### 升级注意事项
+
+- 本次只修正总览变化百分比的比较区间和文案，不改变当前周期 Token 总量、额度余量、reset 识别或 `codex-usage-core` 版本。
+- 安装包仍未签名，Windows SmartScreen 或企业策略可能拦截。
+- 普通退出不会安装更新；下载完成后仍需点击“重启并安装”。
 
 ## [2026-08-31] v0.5.0 release: 发布可配置的 Windows 开机自启
 
