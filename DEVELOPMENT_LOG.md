@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-09-01] v0.5.2 docs(release): 记录正式资产验证
+
+- 开发原因：`v0.5.2` 的正式 CI、Windows Package、Release 发布和匿名下载检查已完成，需要把最终远端构建结果写回仓库。
+- 实现方式：记录 main CI run `33499020307`、Windows Package run `33499229682` 和四项正式资产；草稿 Release 已包含安装包、`latest.yml` 和 SHA256 清单，缺少的 blockmap 从同一成功 workflow 的 Actions artifact 补齐，并发布为 Latest。
+- 当前结果：正式安装包大小 `102966419` bytes，SHA256 `ABE16CAE18D21B872403B0D77A3659DAB8095473A7F5C5FC2741CCE582D7C163`；blockmap 大小 `108399` bytes；`latest.yml` 大小 `359` bytes，版本、路径、大小和 SHA512 与安装包一致；`SHA256SUMS.txt` 大小 `99` bytes。
+- 验证方式：两个正式 GitHub Actions workflow 均成功；安装包实算 SHA256 与 GitHub asset digest、`SHA256SUMS.txt`、匿名重新下载结果四方一致；安装包产品名 / 版本为 `Codex Companion / 0.5.2` 且 Authenticode 为 `NotSigned`；Release 页面及 5 个公开资产 / 更新入口匿名 HTTP 访问均返回 `200`。
+
 ## [2026-09-01] v0.5.2 release: 发布总览变化显示切换
 
 - 开发原因：`v0.5.2-dev.1` 已完成零分母具体百分比、绝对变化量、顶部切换、本机偏好迁移和 8 状态视觉验收，需要按用户指令直接发布正式版。

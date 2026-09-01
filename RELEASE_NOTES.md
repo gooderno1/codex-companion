@@ -31,6 +31,14 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - 开发提交 CI run `33498506648` 成功，包含变化显示专项门禁。
 - 本地正式安装包 `Codex.Companion.Setup.0.5.2.exe` 大小 `103192340` bytes，SHA256 `BFFBA322C0EE552F328CDE6D16396DB9EA893795D74CC1FD5B6F36B2803C7E83`，Authenticode 为 `NotSigned`；blockmap 大小 `108681` bytes，`latest.yml` 大小 `359` bytes且版本、路径、大小和 SHA512 与安装包实算结果一致；应用主程序与安装包的 `ProductName=Codex Companion`、`ProductVersion=0.5.2`。
 
+### Release 资产校验
+
+- main CI run `33499020307` 与 Windows Package run `33499229682` 均成功；开发提交 CI run `33498506648` 也已通过变化显示专项门禁。
+- 正式安装包 `Codex.Companion.Setup.0.5.2.exe` 大小 `102966419` bytes，SHA256 为 `ABE16CAE18D21B872403B0D77A3659DAB8095473A7F5C5FC2741CCE582D7C163`；实算结果与 GitHub asset digest、`SHA256SUMS.txt` 和匿名重新下载结果一致，产品名与产品版本为 `Codex Companion / 0.5.2`，Authenticode 为 `NotSigned`。
+- blockmap 大小 `108399` bytes，SHA256 为 `20427827C6B524268CF7EB46546EF0AB8E0F7C136FB0EF9BCAA8D0719E6D253F`；草稿 Release 初始缺少 blockmap，因此从同一成功 Windows Package run 的 Actions artifact 补齐，没有混用本机构建产物。
+- `latest.yml` 大小 `359` bytes，SHA256 为 `4D9647AD5AECD111F84C48552ADAE5BAC3CCB7D8A6A97D4D5EE92D45D8078928`，`version=0.5.2`，安装包路径、大小和 SHA512 完整；`SHA256SUMS.txt` 大小 `99` bytes，SHA256 为 `CE04F135502A419000AC9BAF1421E03ABCE25164F934662BFDDC63F106453C9C`。
+- `v0.5.2` 已发布为 Latest；Release 页面、安装包、blockmap、tag `latest.yml`、`SHA256SUMS.txt` 和 `/releases/latest/download/latest.yml` 匿名访问均返回 HTTP `200`。
+
 ### 升级注意事项
 
 - 本次只改变总览顶部四卡的变化说明和本机显示偏好，不改变当前值、同期边界、Codex Token 增量、额度余量、reset 识别或 `codex-usage-core` 版本。
