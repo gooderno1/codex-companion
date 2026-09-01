@@ -31,6 +31,11 @@ import type {
   WidgetMetric
 } from "../shared/contracts";
 import {
+  describeOverviewComparison,
+  type OverviewComparisonDisplay,
+  type OverviewComparisonUnit
+} from "../shared/overviewComparison";
+import {
   UpdateBanner,
   UpdateDialog,
   UpdateSettingsCard
@@ -121,6 +126,7 @@ interface OverviewMetricCardData {
   label: string;
   value: string;
   detail: string;
+  detailTitle?: string;
   icon: IconName;
   tone: "blue" | "teal" | "amber" | "neutral" | "muted";
   sourceStatus: SourceStatus;
@@ -145,6 +151,12 @@ function resolveOverviewModeFromHash(): OverviewMode {
   const [, query = ""] = window.location.hash.split("?");
   const params = new URLSearchParams(query);
   return params.get("overviewMode") === "natural" ? "natural" : "billing";
+}
+
+function resolveComparisonDisplayFromHash(): OverviewComparisonDisplay | null {
+  const [, query = ""] = window.location.hash.split("?");
+  const value = new URLSearchParams(query).get("comparisonDisplay");
+  return value === "percentage" || value === "absolute" ? value : null;
 }
 
 function resolveNotificationKeyFromHash(): string | null {
@@ -191,29 +203,24 @@ function formatUsd(value: number | null) {
   return `$${value.toFixed(2)}`;
 }
 
-function formatSignedPercent(value: number) {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
-}
-
-function describeDelta(
+function comparisonDetail(
   current: number | null,
   previous: number | null,
-  compareLabel: string
+  compareLabel: string,
+  display: OverviewComparisonDisplay,
+  unit: OverviewComparisonUnit
 ) {
-  if (current === null || previous === null) {
-    return "数据待补齐";
-  }
-
-  if (previous === 0 && current === 0) {
-    return `较${compareLabel} 持平`;
-  }
-
-  if (previous === 0) {
-    return `较${compareLabel} 新增`;
-  }
-
-  const delta = ((current - previous) / Math.abs(previous)) * 100;
-  return `较${compareLabel} ${formatSignedPercent(delta)}`;
+  const description = describeOverviewComparison({
+    current,
+    previous,
+    compareLabel,
+    display,
+    unit
+  });
+  return {
+    detail: description.text,
+    detailTitle: description.fullText
+  };
 }
 
 function formatTime(iso: string | null) {
@@ -795,7 +802,13 @@ function MetricCard({
         <div className="metric-card-copy">
           <div className="metric-card-title">{card.label}</div>
           <div className="metric-card-value">{card.value}</div>
-          <div className={`metric-card-detail ${deltaToneClass(card.detail)}`}>{card.detail}</div>
+          <div
+            className={`metric-card-detail ${deltaToneClass(card.detail)}`}
+            title={card.detailTitle}
+            aria-label={card.detailTitle}
+          >
+            {card.detail}
+          </div>
         </div>
       </div>
       {shouldShowStatus ? (
@@ -911,7 +924,8 @@ function QuotaWindowCard({
 
 function buildOverviewCards(
   snapshot: DashboardSnapshot,
-  mode: OverviewMode
+  mode: OverviewMode,
+  comparisonDisplay: OverviewComparisonDisplay
 ): OverviewMetricCardData[] {
   const billingMonth = snapshot.overview.windowPeriods.billingMonth;
   const globalSourceStatus = snapshot.sourceHealth.sourceStatus;
@@ -922,10 +936,12 @@ function buildOverviewCards(
         key: "todayTokens",
         label: "今日 Token",
         value: formatCompactToken(snapshot.overview.today.tokens.total),
-        detail: describeDelta(
+        ...comparisonDetail(
           snapshot.overview.today.tokens.total,
           snapshot.overview.previous.yesterday.tokens.total,
-          "昨日同期"
+          "昨日同期",
+          comparisonDisplay,
+          "token"
         ),
         icon: "token",
         tone: "blue",
@@ -935,10 +951,12 @@ function buildOverviewCards(
         key: "weekTokens",
         label: "本周 Token",
         value: formatCompactToken(snapshot.overview.naturalWeek.tokens.total),
-        detail: describeDelta(
+        ...comparisonDetail(
           snapshot.overview.naturalWeek.tokens.total,
           snapshot.overview.previous.naturalWeek.tokens.total,
-          "上周同期"
+          "上周同期",
+          comparisonDisplay,
+          "token"
         ),
         icon: "calendar",
         tone: "teal",
@@ -948,10 +966,12 @@ function buildOverviewCards(
         key: "monthTokens",
         label: "本月 Token",
         value: formatCompactToken(snapshot.overview.month.tokens.total),
-        detail: describeDelta(
+        ...comparisonDetail(
           snapshot.overview.month.tokens.total,
           snapshot.overview.previous.month.tokens.total,
-          "上月同期"
+          "上月同期",
+          comparisonDisplay,
+          "token"
         ),
         icon: "month",
         tone: "amber",
@@ -961,10 +981,12 @@ function buildOverviewCards(
         key: "todayCode",
         label: "今日代码改动",
         value: `${formatNumber(snapshot.overview.today.code.changedLines)} 行`,
-        detail: describeDelta(
+        ...comparisonDetail(
           snapshot.overview.today.code.changedLines,
           snapshot.overview.previous.yesterday.code.changedLines,
-          "昨日同期"
+          "昨日同期",
+          comparisonDisplay,
+          "line"
         ),
         icon: "code",
         tone: "neutral",
@@ -978,10 +1000,12 @@ function buildOverviewCards(
       key: "todayTokens",
       label: "今日 Token",
       value: formatCompactToken(snapshot.overview.today.tokens.total),
-      detail: describeDelta(
+      ...comparisonDetail(
         snapshot.overview.today.tokens.total,
         snapshot.overview.previous.yesterday.tokens.total,
-        "昨日同期"
+        "昨日同期",
+        comparisonDisplay,
+        "token"
       ),
       icon: "token",
       tone: "blue",
@@ -991,10 +1015,12 @@ function buildOverviewCards(
       key: "weekTokens",
       label: "本周 Token",
       value: formatCompactToken(snapshot.overview.windowPeriods.weekLimit.tokens.total),
-      detail: describeDelta(
+      ...comparisonDetail(
         snapshot.overview.windowPeriods.weekLimit.tokens.total,
         snapshot.overview.previous.weekLimit?.tokens.total ?? null,
-        "上个额度周同期"
+        "上个额度周同期",
+        comparisonDisplay,
+        "token"
       ),
       icon: "calendar",
       tone: "teal",
@@ -1004,13 +1030,18 @@ function buildOverviewCards(
       key: "monthTokens",
       label: "本月 Token",
       value: billingMonth ? formatCompactToken(billingMonth.tokens.total) : "未观测",
-      detail: billingMonth
-        ? describeDelta(
+      ...(billingMonth
+        ? comparisonDetail(
             billingMonth.tokens.total,
             snapshot.overview.previous.billingMonth?.tokens.total ?? null,
-            "上个计费月同期"
+            "上个计费月同期",
+            comparisonDisplay,
+            "token"
           )
-        : "计费月数据待补齐",
+        : {
+            detail: "计费月数据待补齐",
+            detailTitle: "计费月数据待补齐"
+          }),
       icon: "month",
       tone: billingMonth ? "amber" : "muted",
       sourceStatus: billingMonth ? globalSourceStatus : "unobserved"
@@ -1019,10 +1050,12 @@ function buildOverviewCards(
       key: "todayCode",
       label: "今日代码改动",
       value: `${formatNumber(snapshot.overview.today.code.changedLines)} 行`,
-      detail: describeDelta(
+      ...comparisonDetail(
         snapshot.overview.today.code.changedLines,
         snapshot.overview.previous.yesterday.code.changedLines,
-        "昨日同期"
+        "昨日同期",
+        comparisonDisplay,
+        "line"
       ),
       icon: "code",
       tone: "neutral",
@@ -2289,10 +2322,12 @@ function SettingsPage({
 function OverviewPage({
   snapshot,
   mode,
+  comparisonDisplay,
   footer
 }: {
   snapshot: DashboardSnapshot;
   mode: OverviewMode;
+  comparisonDisplay: OverviewComparisonDisplay;
   footer: React.ReactNode;
 }) {
   const [sort, setSort] = useState<ProjectSortState>({
@@ -2302,7 +2337,10 @@ function OverviewPage({
   const [naturalPeriod, setNaturalPeriod] = useState<NaturalProjectPeriod>("week");
   const [billingPeriod, setBillingPeriod] = useState<BillingProjectPeriod>("weekLimit");
 
-  const cards = useMemo(() => buildOverviewCards(snapshot, mode), [snapshot, mode]);
+  const cards = useMemo(
+    () => buildOverviewCards(snapshot, mode, comparisonDisplay),
+    [comparisonDisplay, mode, snapshot]
+  );
 
   const rows = useMemo(() => {
     const sourceRows =
@@ -4013,6 +4051,10 @@ export default function App() {
   const [refreshFeedback, setRefreshFeedback] = useState<RefreshFeedback | null>(null);
   const refreshFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPending, startTransition] = useTransition();
+  const comparisonDisplay =
+    resolveComparisonDisplayFromHash() ??
+    preferences?.overview.comparisonDisplay ??
+    "percentage";
 
   function showRefreshFeedback(feedback: RefreshFeedback, autoHide = false) {
     if (refreshFeedbackTimerRef.current) {
@@ -4189,6 +4231,22 @@ export default function App() {
       }, true);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function saveOverviewComparisonDisplay(
+    nextDisplay: OverviewComparisonDisplay
+  ) {
+    try {
+      const nextPreferences = await window.codexCompanion.updatePreferences({
+        overview: {
+          comparisonDisplay: nextDisplay
+        }
+      });
+      setPreferences(nextPreferences);
+      setError(null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "保存变化显示方式失败");
     }
   }
 
@@ -4444,16 +4502,30 @@ export default function App() {
 
           {currentPage === "overview" ? (
             <div className="topbar-center">
-              <div className="topbar-mode-switch">
-                <span className="topbar-switch-label">时间视角</span>
-                <TextTabs
-                  items={[
-                    { value: "natural", label: "自然时间" },
-                    { value: "billing", label: "计费时间" }
-                  ]}
-                  value={overviewMode}
-                  onChange={setOverviewMode}
-                />
+              <div className="topbar-view-controls">
+                <div className="topbar-mode-switch">
+                  <span className="topbar-switch-label">时间视角</span>
+                  <TextTabs
+                    items={[
+                      { value: "natural", label: "自然时间" },
+                      { value: "billing", label: "计费时间" }
+                    ]}
+                    value={overviewMode}
+                    onChange={setOverviewMode}
+                  />
+                </div>
+                <span className="topbar-control-divider" aria-hidden="true" />
+                <div className="topbar-mode-switch">
+                  <span className="topbar-switch-label">变化显示</span>
+                  <TextTabs
+                    items={[
+                      { value: "percentage", label: "百分比" },
+                      { value: "absolute", label: "数值" }
+                    ]}
+                    value={comparisonDisplay}
+                    onChange={(value) => void saveOverviewComparisonDisplay(value)}
+                  />
+                </div>
               </div>
             </div>
           ) : (
@@ -4527,7 +4599,12 @@ export default function App() {
           {snapshot ? (
             <>
             {currentPage === "overview" ? (
-              <OverviewPage snapshot={snapshot} mode={overviewMode} footer={<FooterNote snapshot={snapshot} />} />
+              <OverviewPage
+                snapshot={snapshot}
+                mode={overviewMode}
+                comparisonDisplay={comparisonDisplay}
+                footer={<FooterNote snapshot={snapshot} />}
+              />
             ) : null}
             {currentPage === "ledger" ? <LedgerPage snapshot={snapshot} /> : null}
             {currentPage === "repositories" ? (

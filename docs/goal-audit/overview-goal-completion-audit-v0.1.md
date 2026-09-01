@@ -1,10 +1,10 @@
 # 总览页目标完成度审计（v0.1）
 
 - 创建时间：2026-06-04
-- 审计版本：`v0.5.1-dev.1`
+- 审计版本：`v0.5.2-dev.1`
 - 审计对象：总览页设计对照、图标资产、额度真实数据和交付验证
 - 设计基准：`docs/assets/design/v0.3.3/overview-natural-time.png`
-- 实现截图：`local_dev_work/overview-1360x900-dev1.png`、`local_dev_work/overview-1080x720-dev1.png`、`local_dev_work/overview-billing-1360x900-dev1.png`、`local_dev_work/overview-billing-1080x720-dev1.png`
+- 实现截图：`local_dev_work/overview-1360x900-dev1.png`、`local_dev_work/overview-1080x720-dev1.png`、`local_dev_work/overview-billing-1360x900-dev1.png`、`local_dev_work/overview-billing-1080x720-dev1.png`、`local_dev_work/overview-absolute-1360x900-dev1.png`、`local_dev_work/overview-absolute-1080x720-dev1.png`、`local_dev_work/overview-billing-absolute-1360x900-dev1.png`、`local_dev_work/overview-billing-absolute-1080x720-dev1.png`
 - 比例测量：`docs/design-review/overview-visual-measurement-v0.1.md`
 - 设计 token：`docs/design-tokens-v0.1.md`、`src/renderer/design-tokens.ts`、`npm run verify:design`
 - 运行快照：`%APPDATA%\codex-companion\snapshot.json`
@@ -18,6 +18,7 @@
 当前总览页已经完成原目标中的主要可验证要求：
 
 - `v0.5.1-dev.1` 已把顶部日、周、月和计费周期变化值改为上一周期同期，并用专项边界测试覆盖日、周、短月封顶和异常负进度。
+- `v0.5.2-dev.1` 已让零分母按 `1` 计算具体百分比，并增加百分比 / 数值切换、本机偏好迁移、完整悬停值和 8 状态截图门禁。
 
 - 已按左侧导航、顶部工具栏、顶部四卡、额度卡、项目概览和页脚拆分区块做设计对照。
 - 已补充设计稿与实现截图的区块比例测量，用于后续精修判断。
@@ -38,7 +39,7 @@
 - 页面级实现已按 `v0.2.2-dev.57` 隐藏顶部四卡正常 `已观测` 单卡标签，异常态仍保留；四卡图标放大到接近右侧三行文字高度，并收紧图标与文字间距。
 - 页面级实现已按 `v0.2.2-dev.61` 将计费月 Token 默认起始日设为每月 `1` 日，计费时间下 `本月 Token` 默认与自然月一致；月额度仍保持未观测，不用计费月 Token 伪装。
 - 页面级实现已按 `v0.2.2-dev.68` 将项目概览排序入口从右上角 chip 按钮改为表头点击排序，默认 `最近活动` 倒序，并支持每个表头字段正序 / 倒序切换。
-- 顶部四卡已区分“数据缺失”和“上一周期为 0 的新增场景”，不再把有数据的新增误显示为 `数据待补齐`。
+- 顶部四卡已区分“数据缺失”和“上一周期为 0 的可计算场景”；后者按分母 `1` 显示具体百分比，不再降级为“新增”或 `数据待补齐`。
 - 最新 `1360 x 900` 与 `1080 x 720` 截图均能完整显示总览页主要区块。
 - `npm run capture:overview` 已按当前开发版本生成真实 Electron 截图；`npm run verify:overview` 已绑定当前开发版本截图，并把挂件隐藏、真实 `rate_limits` 采集、连续 token 增量、额度周期证据、设计 token 和额度快照校验收敛为总览页级本地验收入口。
 

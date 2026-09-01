@@ -22,6 +22,7 @@ const STATIC_REQUIRED_FILES = [
   "src/main/collectors/dashboardCollector.ts",
   "src/main/collectors/gitCollector.ts",
   "src/shared/contracts.ts",
+  "src/shared/overviewComparison.ts",
   "src/renderer/App.tsx",
   "src/renderer/styles.css",
   "src/renderer/icons.tsx",
@@ -70,6 +71,8 @@ const STATIC_TEXT_ASSERTIONS = [
       "昨日同期",
       "上周同期",
       "上月同期",
+      "comparisonDisplay",
+      "分母",
       "60"
     ]
   },
@@ -83,7 +86,8 @@ const STATIC_TEXT_ASSERTIONS = [
       "const WIDGET_DISABLED = true",
       "CODEX_COMPANION_CAPTURE_PATH",
       "CODEX_COMPANION_OVERVIEW_MODE",
-      '`?overviewMode=${overviewMode}`',
+      "CODEX_COMPANION_COMPARISON_DISPLAY",
+      'overviewParams.set("comparisonDisplay", comparisonDisplay)',
       "DASHBOARD_REFRESH_INTERVAL_MS",
       '"dashboard:updated"',
       "broadcastDashboardSnapshot",
@@ -137,11 +141,30 @@ const STATIC_TEXT_ASSERTIONS = [
   },
   {
     file: "src/shared/contracts.ts",
-    includes: ["yesterday: CodeActivity", "billingMonthStartDay: number"]
+    includes: [
+      "yesterday: CodeActivity",
+      "billingMonthStartDay: number",
+      "OverviewPreferences",
+      'comparisonDisplay: "percentage" | "absolute"'
+    ]
+  },
+  {
+    file: "src/shared/overviewComparison.ts",
+    includes: [
+      "describeOverviewComparison",
+      "previous === 0 ? 1",
+      'display === "absolute"',
+      "fullText"
+    ]
   },
   {
     file: "src/main/state/settingsStore.ts",
-    includes: ["DEFAULT_BILLING_MONTH_START_DAY", "billingMonthStartDay"]
+    includes: [
+      "DEFAULT_BILLING_MONTH_START_DAY",
+      "billingMonthStartDay",
+      "defaultOverviewPreferences",
+      "normalizeOverviewPreferences"
+    ]
   },
   {
     file: "src/renderer/App.tsx",
@@ -167,7 +190,11 @@ const STATIC_TEXT_ASSERTIONS = [
       "上周同期",
       "上月同期",
       "上个额度周同期",
-      "上个计费月同期"
+      "上个计费月同期",
+      "变化显示",
+      "百分比",
+      "数值",
+      "saveOverviewComparisonDisplay"
     ]
   },
   {
@@ -188,6 +215,8 @@ const STATIC_TEXT_ASSERTIONS = [
       "position: absolute",
       "clamp(64px, 4.9vw, 72px)",
       "justify-self: center",
+      "topbar-view-controls",
+      "topbar-control-divider",
       "project-sort-heading",
       "sort-active"
     ]
@@ -262,7 +291,11 @@ async function main() {
     `local_dev_work/overview-1360x900-${screenshotSuffix}.png`,
     `local_dev_work/overview-1080x720-${screenshotSuffix}.png`,
     `local_dev_work/overview-billing-1360x900-${screenshotSuffix}.png`,
-    `local_dev_work/overview-billing-1080x720-${screenshotSuffix}.png`
+    `local_dev_work/overview-billing-1080x720-${screenshotSuffix}.png`,
+    `local_dev_work/overview-absolute-1360x900-${screenshotSuffix}.png`,
+    `local_dev_work/overview-absolute-1080x720-${screenshotSuffix}.png`,
+    `local_dev_work/overview-billing-absolute-1360x900-${screenshotSuffix}.png`,
+    `local_dev_work/overview-billing-absolute-1080x720-${screenshotSuffix}.png`
   ];
 
   const textAssertions = [
@@ -277,7 +310,11 @@ async function main() {
         `overview-1360x900-${screenshotSuffix}.png`,
         `overview-1080x720-${screenshotSuffix}.png`,
         `overview-billing-1360x900-${screenshotSuffix}.png`,
-        `overview-billing-1080x720-${screenshotSuffix}.png`
+        `overview-billing-1080x720-${screenshotSuffix}.png`,
+        `overview-absolute-1360x900-${screenshotSuffix}.png`,
+        `overview-absolute-1080x720-${screenshotSuffix}.png`,
+        `overview-billing-absolute-1360x900-${screenshotSuffix}.png`,
+        `overview-billing-absolute-1080x720-${screenshotSuffix}.png`
       ]
     },
     {
@@ -287,7 +324,11 @@ async function main() {
         `overview-1360x900-${screenshotSuffix}.png`,
         `overview-1080x720-${screenshotSuffix}.png`,
         `overview-billing-1360x900-${screenshotSuffix}.png`,
-        `overview-billing-1080x720-${screenshotSuffix}.png`
+        `overview-billing-1080x720-${screenshotSuffix}.png`,
+        `overview-absolute-1360x900-${screenshotSuffix}.png`,
+        `overview-absolute-1080x720-${screenshotSuffix}.png`,
+        `overview-billing-absolute-1360x900-${screenshotSuffix}.png`,
+        `overview-billing-absolute-1080x720-${screenshotSuffix}.png`
       ]
     }
   ];

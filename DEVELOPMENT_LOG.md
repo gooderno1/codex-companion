@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-09-01] v0.5.2-dev.1 feat(overview): 增加变化百分比与数值切换
+
+- 开发原因：上一周期同期为 `0` 时，顶部四卡只显示“新增”，无法看到用户要求的具体变化百分比；同时缺少绝对变化量观察方式。
+- 实现方式：新增共享变化格式模块；百分比使用 `(current - previous) / (previous === 0 ? 1 : abs(previous)) * 100`，大于等于 `10,000%` 时用 `万% / 亿%` 紧凑显示并在悬停提示保留完整值；绝对模式使用真实 `current - previous` 并按 Token / 代码追加 `tok / 行`。顶栏中部新增“变化显示 百分比 / 数值”切换，偏好保存到 `overview.comparisonDisplay`，旧设置默认迁移为 `percentage`，切换不触发数据采集。
+- 当前结果：自然时间与计费时间的顶部四卡均可切换显示方式；例如 `6,541 / 0` 显示 `+65.4万%` 或 `+6,541 行`，`125,778,327 / 0` 显示 `+125.8亿%` 或 `+1.3亿 tok`，两期均为零显示 `0.0%` 或“持平”。
+- 验证方式：`npm run build`、`npm run verify:comparisons`、`npm run verify:overview`、`npm run verify:quota`、`npm run verify:ledger`、`npm run verify:updater`、`npm run verify:notifications`、`npm run verify:startup`、`npm run verify:design`、`npm run verify:signing-policy`、`npm audit --audit-level=low`、`git diff --check` 全部通过；生成并人工检查自然 / 计费 × 百分比 / 数值 × `1360×900` / `1080×720` 共 8 张真实 Electron 截图，顶部双控件保持单行，变化文案和单位无截断。
+
 ## [2026-09-01] v0.5.2-dev.1 docs(plan): 规划变化百分比与绝对值切换
 
 - 开发原因：用户希望上一周期同期为 `0` 时按 `1` 计算具体百分比，并在顶部四卡中切换百分比与绝对变化量；当前阶段明确要求先讨论、不修改应用。

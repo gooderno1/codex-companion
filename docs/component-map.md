@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.5.1`
+- 当前适用版本：`v0.5.2-dev.1`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
 
 ## 总览页
@@ -11,7 +11,9 @@
 | 左侧导航 | `src/renderer/App.tsx` `sidebar-shell` | 全局复用 | `currentPage` | 本地路由 hash |
 | 顶部工具栏 | `src/renderer/App.tsx` `topbar` | 全局复用 | `currentPage`、`overviewMode`、`sourceStatus`、`generatedAt` | `snapshot.sourceHealth`、`snapshot.generatedAt` |
 | 时间视角切换 | `TextTabs` | 可复用 | `natural / billing` | 本地页面状态 |
+| 变化显示切换 | `TextTabs` / `saveOverviewComparisonDisplay` | 可复用 | `percentage / absolute` | `preferences.overview.comparisonDisplay`，本机持久化且不触发刷新 |
 | 顶部四卡 | `MetricCard` | 可复用 | `label`、`value`、`detail`、`icon`、`tone`、逐卡 `sourceStatus` | `snapshot.overview`、`snapshot.overview.previous`、`snapshot.sourceHealth` |
+| 变化说明格式 | `src/shared/overviewComparison.ts` `describeOverviewComparison` | 主进程测试 / 渲染端复用 | 当前值、上一周期同期、显示模式、`token / line` 单位 | 百分比零分母按 `1`；绝对值使用真实差值；紧凑文本与完整悬停文本同时返回 |
 | 赠送重置状态行 | `BankedResetCreditStrip` | 总览页模块 | `availableCount`、`activeCredits[]`、`sourceStatus`、`expiryBasis`、展开态原生 `details` | `snapshot.overview.bankedResetCredits`；官方明细可用时显示官方获取/到期时间，缺失部分回退到预计过期和建议使用时间；总数以 `availableCount` 为准 |
 | 5H 额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 当前快照优先取官方 Usage，按时长从 primary / secondary 中选择 `300` 分钟窗口；不存在时标记未观测，不复用缓存或 7 天窗口 |
 | 周额度卡 | `QuotaWindowCard` | 可复用 | `windowData`、`period`、`models`、`period.quotaEvidence` | 当前快照优先取官方 Usage，按时长选择 `10080` 分钟窗口；官方请求失败回退本地 `rate_limits`；reset 检测来自 `@lifeinhand/codex-usage-core@0.2.0-dev.1` |

@@ -514,6 +514,10 @@ export interface StartupState {
   message: string;
 }
 
+export interface OverviewPreferences {
+  comparisonDisplay: "percentage" | "absolute";
+}
+
 export interface AppPreferences {
   codexHome: string;
   repoRoots: string[];
@@ -522,6 +526,7 @@ export interface AppPreferences {
   notifications: NotificationPreferences;
   updates: UpdatePreferences;
   startup: StartupPreferences;
+  overview: OverviewPreferences;
 }
 
 export interface DashboardNotificationEntry {

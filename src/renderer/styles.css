@@ -376,6 +376,21 @@ svg {
   flex-wrap: nowrap;
 }
 
+.topbar-view-controls {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+.topbar-control-divider {
+  align-self: center;
+  width: 1px;
+  height: 18px;
+  background: var(--line-soft);
+}
+
 .notification-center {
   position: relative;
   flex: 0 0 auto;
@@ -3973,6 +3988,11 @@ svg {
   .topbar-center,
   .project-toolbar {
     justify-items: start;
+  }
+
+  .topbar-view-controls {
+    flex-wrap: wrap;
+    min-width: 0;
   }
 
   .quota-grid,

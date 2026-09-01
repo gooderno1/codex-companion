@@ -5,6 +5,7 @@ import type {
   AppPreferences,
   NotificationDeliveryMode,
   NotificationPreferences,
+  OverviewPreferences,
   StartupPreferences,
   UpdatePreferences,
   WidgetPreferences
@@ -161,6 +162,28 @@ function defaultStartupPreferences(): StartupPreferences {
   };
 }
 
+function defaultOverviewPreferences(): OverviewPreferences {
+  return {
+    comparisonDisplay: "percentage"
+  };
+}
+
+function normalizeOverviewPreferences(
+  value: unknown,
+  fallback: OverviewPreferences
+): OverviewPreferences {
+  const record = value && typeof value === "object"
+    ? value as Partial<Record<keyof OverviewPreferences, unknown>>
+    : {};
+  return {
+    comparisonDisplay:
+      record.comparisonDisplay === "absolute" ||
+      record.comparisonDisplay === "percentage"
+        ? record.comparisonDisplay
+        : fallback.comparisonDisplay
+  };
+}
+
 function normalizeStartupPreferences(
   value: unknown,
   fallback: StartupPreferences
@@ -216,7 +239,8 @@ export class SettingsStore {
       widget: defaultWidgetPreferences(),
       notifications: defaultNotificationPreferences(),
       updates: defaultUpdatePreferences(),
-      startup: defaultStartupPreferences()
+      startup: defaultStartupPreferences(),
+      overview: defaultOverviewPreferences()
     };
 
     const stored = await readJsonFile<Partial<AppPreferences>>(this.settingsPath);
@@ -238,7 +262,8 @@ export class SettingsStore {
         fallback.notifications
       ),
       updates: normalizeUpdatePreferences(stored.updates, fallback.updates),
-      startup: normalizeStartupPreferences(stored.startup, fallback.startup)
+      startup: normalizeStartupPreferences(stored.startup, fallback.startup),
+      overview: normalizeOverviewPreferences(stored.overview, fallback.overview)
     };
 
     await writeJsonFile(this.settingsPath, merged);
@@ -256,7 +281,8 @@ export class SettingsStore {
       widget: defaultWidgetPreferences(),
       notifications: defaultNotificationPreferences(),
       updates: defaultUpdatePreferences(),
-      startup: defaultStartupPreferences()
+      startup: defaultStartupPreferences(),
+      overview: defaultOverviewPreferences()
     };
     const next = updater(current);
     const normalized: AppPreferences = {
@@ -272,7 +298,8 @@ export class SettingsStore {
         current.notifications
       ),
       updates: normalizeUpdatePreferences(next.updates, current.updates),
-      startup: normalizeStartupPreferences(next.startup, current.startup)
+      startup: normalizeStartupPreferences(next.startup, current.startup),
+      overview: normalizeOverviewPreferences(next.overview, current.overview)
     };
     await writeJsonFile(this.settingsPath, normalized);
     return normalized;

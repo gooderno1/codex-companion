@@ -88,10 +88,18 @@ function delay(ms: number) {
 
 function resolveRendererRoute(page: AppPage, notificationKey?: string): string {
   const overviewMode = process.env.CODEX_COMPANION_OVERVIEW_MODE;
-  const overviewQuery =
-    page === "overview" && (overviewMode === "natural" || overviewMode === "billing")
-      ? `?overviewMode=${overviewMode}`
-      : "";
+  const comparisonDisplay = process.env.CODEX_COMPANION_COMPARISON_DISPLAY;
+  const overviewParams = new URLSearchParams();
+  if (page === "overview" && (overviewMode === "natural" || overviewMode === "billing")) {
+    overviewParams.set("overviewMode", overviewMode);
+  }
+  if (
+    page === "overview" &&
+    (comparisonDisplay === "percentage" || comparisonDisplay === "absolute")
+  ) {
+    overviewParams.set("comparisonDisplay", comparisonDisplay);
+  }
+  const overviewQuery = overviewParams.size > 0 ? `?${overviewParams.toString()}` : "";
   const notificationQuery =
     page === "notifications" && notificationKey
       ? `?notification=${encodeURIComponent(notificationKey)}`

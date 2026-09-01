@@ -12,8 +12,10 @@ const VIEWPORTS = [
   { width: 1080, height: 720 }
 ];
 const CAPTURE_STATES = [
-  { mode: "natural", filePrefix: "overview" },
-  { mode: "billing", filePrefix: "overview-billing" }
+  { mode: "natural", comparisonDisplay: "percentage", filePrefix: "overview" },
+  { mode: "billing", comparisonDisplay: "percentage", filePrefix: "overview-billing" },
+  { mode: "natural", comparisonDisplay: "absolute", filePrefix: "overview-absolute" },
+  { mode: "billing", comparisonDisplay: "absolute", filePrefix: "overview-billing-absolute" }
 ];
 
 async function readPackageVersion() {
@@ -62,7 +64,8 @@ async function captureViewport(electronCli, viewport, state, outputPath) {
         CODEX_COMPANION_CAPTURE_DELAY_MS: CAPTURE_DELAY_MS,
         CODEX_COMPANION_WINDOW_WIDTH: String(viewport.width),
         CODEX_COMPANION_WINDOW_HEIGHT: String(viewport.height),
-        CODEX_COMPANION_OVERVIEW_MODE: state.mode
+        CODEX_COMPANION_OVERVIEW_MODE: state.mode,
+        CODEX_COMPANION_COMPARISON_DISPLAY: state.comparisonDisplay
       },
       encoding: "utf8",
       stdio: "inherit",
