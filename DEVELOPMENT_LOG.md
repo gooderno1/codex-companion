@@ -16,6 +16,7 @@
 - 验证方式：dev-ledger 完成真实数据构建；升级最终核心后，在脱敏会话和隔离目录执行 `npm run verify`，通过采集、构建、Electron 挂件、Agent / Master 汇总及本地 HTTP 上报。
 - 验证方式：Windows 安装包产品版本 `0.5.3-dev.2`，大小 `103292453` bytes，SHA256 `74ED2667E200D0EC72B37B7F710F0FE2D811D14370B7EC44992B951B6A439465`。根因与验收详见 `docs/data-audit/weekly-quota-root-cause-2026-09-17.md`。
 - 安装验证：本机原 `v0.5.2` 已原位升级至 `v0.5.3-dev.2`，安装器退出码 `0`，主程序产品版本核对一致。
+- 运行验证：安装后重新启动，实际用户目录 `2026-09-17T05:42:51.781Z` 快照为 `live / quotaDisplayVersion=2`，周额度 `used=56 / remaining=44 / quotaSource=official-usage`，当前周 API 等价成本 `$187.559968`；旧 `2%` 未继续显示。
 - 遗留边界：所有当前来源不可用时显示未观测；证据缺失时不虚构历史 reset。此开发版未发布为正式 Release。
 
 ## [2026-09-17] v0.5.3-dev.1 fix(usage): 修复重置后周余量与 GPT-6 等价成本

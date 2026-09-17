@@ -43,4 +43,5 @@
 - 核心包 `npm test`、Companion `npm run build` 与 `npm run verify:usage` 通过；快照、同期、通知、账本专项通过。真实页面显示官方来源及随使用变化的余量。
 - dev-ledger 真实数据构建通过；最终核心依赖的脱敏隔离 `npm run verify` 通过构建、挂件、Agent / Master 和本地 HTTP 全流程。
 - 最终 Windows 安装包为 `Codex.Companion.Setup.0.5.3-dev.2.exe`，`103292453` bytes，SHA256 `74ED2667E200D0EC72B37B7F710F0FE2D811D14370B7EC44992B951B6A439465`；已原位替换本机 `0.5.2`，安装器退出码 `0`，安装后产品版本为 `0.5.3-dev.2`。
+- 安装后实际运行快照：`2026-09-17T05:42:51.781Z`，`live / quotaDisplayVersion=2`；周余量 `44%`、已用 `56%`、来源 `official-usage`、周 API 等价成本 `$187.559968`，旧 `2%` 显示已消失。
 - 当前来源全部不可用时显示未观测；无法从缺失数据证明用户刚发生的历史 reset，不伪造事件数量。官方接口变化仍需按真实契约维护。
