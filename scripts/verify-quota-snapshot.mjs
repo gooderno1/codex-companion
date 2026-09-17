@@ -56,14 +56,6 @@ function closeTo(left, right, tolerance = 0.01) {
   return Math.abs(left - right) <= tolerance;
 }
 
-function clampPercent(value) {
-  if (!isNumber(value)) {
-    return null;
-  }
-
-  return Math.min(100, Math.max(0, value));
-}
-
 function formatPercent(value) {
   return isNumber(value) ? `${value.toFixed(2).replace(/\.00$/, "")}%` : "--";
 }
@@ -202,22 +194,9 @@ function verifyWindow({
     }
 
     if (isNumber(evidence.usedPercent)) {
-      const expectedDisplayedUsedPercent = clampPercent(evidence.usedPercent);
-      const expectedDisplayedRemainingPercent =
-        evidence.remainingPercent === null
-          ? Math.max(0, 100 - evidence.usedPercent)
-          : evidence.remainingPercent;
-
       report.assert(
-        isNumber(window.usedPercent) &&
-          expectedDisplayedUsedPercent !== null &&
-          closeTo(window.usedPercent, expectedDisplayedUsedPercent),
-        `${label}: limitWindow.usedPercent 必须使用当前周期 quotaEvidence.usedPercent 的显示口径。`
-      );
-      report.assert(
-        isNumber(window.remainingPercent) &&
-          closeTo(window.remainingPercent, expectedDisplayedRemainingPercent),
-        `${label}: 圆环余量必须使用当前周期 quotaEvidence.remainingPercent。`
+        window.quotaSource === "official-usage" || window.quotaSource === "local-session",
+        `${label}: 当前额度必须标明官方或本地有效窗口来源，不能从历史累计推算。`
       );
       report.assert(
         isNumber(window.estimatedValueBasisUsedPercent) &&
@@ -303,12 +282,18 @@ async function main() {
         period: snapshot.overview?.windowPeriods?.fiveHour
       });
 
-  const weeklySummary = verifyWindow({
+  const weeklyWindow = snapshot.overview?.limitWindows?.[1];
+  if (weeklyWindow?.windowMinutes === null) {
+    report.assert(weeklyWindow.usedPercent === null && weeklyWindow.remainingPercent === null, "周额度未观测时不得用历史值补位。");
+    report.assert(weeklyWindow.sourceStatus !== "observed", "周额度未观测时不得标记已观测。");
+    report.assert(!snapshot.overview?.windowPeriods?.weekLimit?.quotaEvidence, "周额度未观测时不得伪造当前周期证据。");
+  }
+  const weeklySummary = weeklyWindow?.windowMinutes === null ? null : verifyWindow({
     report,
     label: "周额度",
     expectedKey: "weekLimit",
     expectedWindowMinutes: WEEKLY_WINDOW_MINUTES,
-    window: snapshot.overview?.limitWindows?.[1],
+    window: weeklyWindow,
     period: snapshot.overview?.windowPeriods?.weekLimit
   });
 

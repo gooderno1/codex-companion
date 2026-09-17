@@ -100,7 +100,7 @@ export interface QuotaResetEvent {
   };
   confirmation?: {
     status: "confirmed" | "rejected";
-    reason: string;
+    reason: "stable-window-boundary" | "invalid-boundary" | "missing-stable-window-confirmation" | "window-boundary-drifted";
     checkedObservationCount?: number;
     stableObservationCount?: number;
     firstStableObservedAt?: string;
@@ -152,6 +152,7 @@ export interface PeriodMetric {
 }
 
 export interface LimitWindow {
+  quotaSource?: "official-usage" | "local-session" | null;
   key: string;
   label: string;
   sourceSlot?: "primary" | "secondary" | null;
@@ -391,6 +392,7 @@ export interface RefreshHistoryEntry {
 }
 
 export interface DashboardSnapshot {
+  quotaDisplayVersion?: number;
   generatedAt: string;
   generatedFrom: "live" | "cache" | "pending";
   sourceHealth: {

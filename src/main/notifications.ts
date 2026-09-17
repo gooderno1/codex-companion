@@ -289,8 +289,8 @@ function formatNotificationPercent(value: number): string {
   return `${Math.max(0, Math.min(100, value)).toFixed(0)}%`;
 }
 
-function quotaRemainingPercent(windowData: LimitWindow, period: PeriodMetric): number | null {
-  const value = period.quotaEvidence?.remainingPercent ?? windowData.remainingPercent;
+function quotaRemainingPercent(windowData: LimitWindow): number | null {
+  const value = windowData.remainingPercent;
   if (value === null || !Number.isFinite(value)) {
     return null;
   }
@@ -324,7 +324,7 @@ function buildLowQuotaNotifications(snapshot: DashboardSnapshot): DashboardNotif
       return [];
     }
 
-    const remainingPercent = quotaRemainingPercent(windowData, period);
+    const remainingPercent = quotaRemainingPercent(windowData);
     if (remainingPercent === null || remainingPercent > LOW_QUOTA_WARNING_THRESHOLD) {
       return [];
     }
@@ -344,7 +344,7 @@ function buildLowQuotaNotifications(snapshot: DashboardSnapshot): DashboardNotif
         title: `${label}剩余不足 ${threshold}%`,
         body: `当前剩余 ${formatNotificationPercent(
           remainingPercent
-        )}，周期 ${cycleLabel}。数据来自本机 rate_limits 快照。`,
+        )}，周期 ${cycleLabel}。来源：${windowData.quotaSource === "official-usage" ? "官方当前额度" : "本地最新有效额度观测"}。`,
         page: "overview" as AppPage,
         category: "quota",
         tone: tier === "danger" ? "danger" : "warning"

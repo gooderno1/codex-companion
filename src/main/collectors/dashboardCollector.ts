@@ -22,12 +22,15 @@ import {
   analyzeQuotaObservations,
   analyzeBankedResetCreditObservations,
   classifyCodexQuotaWindowDuration,
-  CODEX_FIVE_HOUR_WINDOW_MINUTES,
-  CODEX_WEEKLY_WINDOW_MINUTES,
   createBankedResetCreditObservationFromSnapshot,
   DEFAULT_BANKED_RESET_CREDIT_PUBLIC_GRANT_SEEDS,
   readCodexAccountRateLimits,
   readCodexUsageRateLimits,
+  quotaObservationCycleTimestamp,
+  quotaObservationMatchesWindow,
+  resolveCurrentQuotaWindow,
+  selectLatestQuotaObservation,
+  anchorQuotaCycleBounds,
   type BankedResetCreditInitialGrantSeed,
   type BankedResetCreditObservation as CoreBankedResetCreditObservation,
   type CodexAccountRateLimitsSnapshot,
@@ -216,7 +219,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.5.3-dev.1"
+      clientVersion: "0.5.3-dev.2"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -476,26 +479,29 @@ interface ObservedWindowSelection {
 }
 
 function normalizeOfficialUsageWindow(
-  window: CodexRateLimitWindowSnapshot | null
+  window: CodexRateLimitWindowSnapshot | null,
+  observedAt: string
 ): ObservedLimitWindow | null {
   if (!window) {
     return null;
   }
 
+  if (!resolveCurrentQuotaWindow({ observedAt, usedPercent: window.usedPercent, resetsAt: window.resetsAt, windowMinutes: window.windowDurationMins }, observedAt)) return null;
   return {
     usedPercent: window.usedPercent,
     windowMinutes: window.windowDurationMins,
-    resetsAt: window.resetsAt
+    resetsAt: window.resetsAt,
+    observedAt
   };
 }
 
-function normalizeOfficialUsageSnapshot(
+export function normalizeOfficialUsageSnapshot(
   snapshot: CodexAccountRateLimitsSnapshot
 ): LatestRateSnapshot {
   return {
     observedAt: snapshot.observedAt,
-    primary: normalizeOfficialUsageWindow(snapshot.rateLimits.primary),
-    secondary: normalizeOfficialUsageWindow(snapshot.rateLimits.secondary),
+    primary: normalizeOfficialUsageWindow(snapshot.rateLimits.primary, snapshot.observedAt),
+    secondary: normalizeOfficialUsageWindow(snapshot.rateLimits.secondary, snapshot.observedAt),
     planType: snapshot.rateLimits.planType,
     limitId: snapshot.rateLimits.limitId,
     limitName: snapshot.rateLimits.limitName
@@ -509,13 +515,43 @@ async function collectOfficialUsageRateSnapshot(
     const snapshot = normalizeOfficialUsageSnapshot(
       await readCodexUsageRateLimits({
         codexHome,
-        clientVersion: "0.5.3-dev.1"
+        clientVersion: "0.5.3-dev.2"
       })
     );
-    return snapshot.primary || snapshot.secondary ? snapshot : null;
+    // 成功响应缺少窗口时保持未观测，不能回填历史窗口。
+    return snapshot;
   } catch {
     return null;
   }
+}
+
+export function resolveLocalRateSnapshot(
+  snapshot: LatestRateSnapshot | null,
+  observations: QuotaObservation[],
+  now: Date
+): LatestRateSnapshot | null {
+  if (!snapshot) return null;
+  const resolveSlot = (slot: "primary" | "secondary"): ObservedLimitWindow | null => {
+    const window = snapshot[slot];
+    const kind = classifyCodexQuotaWindowDuration(window?.windowMinutes ?? null);
+    if (!window || kind === "unknown") return null;
+    const candidates = observations.flatMap(item => {
+      if (!isSameQuotaPool(item.rateLimits, snapshot)) return [];
+      const match = getObservedWindowByKind(item.rateLimits, kind)?.window;
+      return match?.usedPercent === null || !match ? [] : [{
+        observedAt: item.timestamp, usedPercent: match.usedPercent,
+        resetsAt: match.resetsAt, windowMinutes: match.windowMinutes, sourceId: item.sessionId
+      }];
+    });
+    const latest = selectLatestQuotaObservation(candidates, now.toISOString());
+    return latest ? {
+      usedPercent: latest.usedPercent, resetsAt: latest.resetsAt,
+      windowMinutes: latest.windowMinutes, observedAt: latest.observedAt
+    } : null;
+  };
+  const primary = resolveSlot("primary"), secondary = resolveSlot("secondary");
+  if (!primary && !secondary) return null;
+  return { ...snapshot, primary, secondary };
 }
 
 function getObservedWindowByKind(
@@ -817,12 +853,18 @@ export function buildQuotaWindowUsage(args: {
   const buckets = new Map<string, QuotaCycleBucket>();
 
   const getBucket = (timestamp: string) => {
-    const bounds = args.resetAwareTimeline
+    const historicalBounds = args.resetAwareTimeline
       ? resolveResetAwareQuotaCycleBounds(timestamp, usableWindow, boundaryResetEvents)
       : (() => {
           const plainBounds = resolveQuotaCycleBounds(timestamp, anchorEndAt, windowMinutes);
           return plainBounds ? { ...plainBounds, closingResetEvent: null } : null;
         })();
+    const bounds: QuotaCycleBounds | null = args.resetAwareTimeline
+      ? anchorQuotaCycleBounds(timestamp, {
+          observedAt: args.latestRateSnapshot!.observedAt, usedPercent: usableWindow.usedPercent ?? 0,
+          resetsAt: usableWindow.resetsAt, windowMinutes: usableWindow.windowMinutes
+        }, historicalBounds)
+      : historicalBounds;
     if (!bounds) {
       return null;
     }
@@ -863,24 +905,7 @@ export function buildQuotaWindowUsage(args: {
   }
 
   for (const observation of quotaObservationEntries) {
-    // 核心包已确认的 reset 可能早于首条新窗口记录。旧窗口的延迟观测
-    // 仍归属于 reset 前的周期，不能仅按写入时间污染新周期的高水位。
-    const observedMs = new Date(observation.observedAt).getTime();
-    const observedEndMs = new Date(observation.resetsAt ?? "").getTime();
-    const closingReset = boundaryResetEvents.find((event) => {
-      const beforeDistance = Math.abs(
-        observedEndMs - new Date(event.beforeWindowResetsAt ?? "").getTime()
-      );
-      const afterDistance = Math.abs(
-        observedEndMs - new Date(event.afterCycleEndAt).getTime()
-      );
-      return observedMs >= new Date(event.boundaryAt).getTime() &&
-        beforeDistance <= QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS &&
-        beforeDistance < afterDistance;
-    });
-    const bucket = getBucket(closingReset
-      ? new Date(new Date(closingReset.boundaryAt).getTime() - 1).toISOString()
-      : observation.observedAt);
+    const bucket = getBucket(quotaObservationCycleTimestamp(observation, boundaryResetEvents));
     if (!bucket) {
       continue;
     }
@@ -925,14 +950,23 @@ export function buildQuotaWindowUsage(args: {
   const cycles = [...buckets.values()]
     .sort((left, right) => new Date(left.startAt).getTime() - new Date(right.startAt).getTime())
     .map((bucket): QuotaCycleMetric => {
-      const analysis = analyzeQuotaObservations(bucket.observations);
+      // 当前周周期只接受本窗口身份，保护 reset 尚未确认或历史证据不足的阶段。
+      const observations = args.resetAwareTimeline && bucket.cycleKey === currentCycleKey
+        ? bucket.observations.filter(item => quotaObservationMatchesWindow(item, {
+            observedAt: args.latestRateSnapshot!.observedAt,
+            usedPercent: usableWindow.usedPercent ?? 0,
+            resetsAt: usableWindow.resetsAt, windowMinutes: usableWindow.windowMinutes
+          }))
+        : bucket.observations;
+      const analysis = analyzeQuotaObservations(observations);
+      const maxObservedUsedPercent = observations.length > 0
+        ? Math.max(...observations.map(item => item.usedPercent)) : null;
       const resetEvents = args.resetAwareTimeline
         ? bucket.boundaryResetEvents
         : analysis.resetEvents;
       const usedPercent =
         (args.resetAwareTimeline ? null : analysis.cumulativeUsedPercent) ??
-        bucket.maxObservedUsedPercent ??
-        bucket.lastObservedUsedPercent;
+        maxObservedUsedPercent;
 
       return {
         cycleKey: bucket.cycleKey,
@@ -945,10 +979,10 @@ export function buildQuotaWindowUsage(args: {
         usedPercent,
         remainingPercent:
           usedPercent === null ? null : clampPercentage(100 - usedPercent),
-        maxObservedUsedPercent: bucket.maxObservedUsedPercent,
+        maxObservedUsedPercent,
         lastObservedAt: bucket.lastObservedAt,
         resetCount: resetEvents.length,
-        observations: bucket.observations.length,
+        observations: observations.length,
         resetEvents,
         usageSegments: analysis.usageSegments
       };
@@ -1110,7 +1144,7 @@ function buildLimitWindow(
   };
 }
 
-function buildDisplayedQuotaWindow(
+export function buildDisplayedQuotaWindow(
   rawWindow:
     | {
         usedPercent: number | null;
@@ -1119,27 +1153,42 @@ function buildDisplayedQuotaWindow(
         observedAt: string | null;
         windowMinutes: number | null;
       }
-    | undefined,
-  period: PeriodMetric
+    | undefined
 ) {
   if (!rawWindow) {
     return undefined;
   }
 
-  const cycleUsedPercent = period.quotaEvidence?.usedPercent ?? null;
-  const displayedUsedPercent = cycleUsedPercent ?? rawWindow.usedPercent;
-  const displayedRemainingPercent =
-    cycleUsedPercent === null
-      ? rawWindow.remainingPercent
-      : Math.max(0, 100 - cycleUsedPercent);
-  const displayedResetsAt = period.quotaEvidence ? period.endAt : rawWindow.resetsAt;
-
   return {
     ...rawWindow,
-    resetsAt: displayedResetsAt,
-    usedPercent: displayedUsedPercent,
-    remainingPercent: displayedRemainingPercent
+    usedPercent: clampPercentage(rawWindow.usedPercent),
+    remainingPercent: rawWindow.usedPercent === null ? null : clampPercentage(100 - rawWindow.usedPercent)
   };
+}
+
+export function clearCachedCurrentQuota(snapshot: DashboardSnapshot): DashboardSnapshot {
+  const clear = (windows: LimitWindow[]) => windows.map(window => ({
+    ...window, sourceStatus: "stale" as const, quotaSource: null,
+    usedPercent: null, remainingPercent: null, resetsAt: null,
+    note: "当前额度不可用，历史统计仅供参考；刷新成功后恢复。"
+  }));
+  return {
+    ...snapshot,
+    quotaDisplayVersion: 2,
+    sourceHealth: { ...snapshot.sourceHealth, sourceStatus: "stale" },
+    overview: { ...snapshot.overview, limitWindows: clear(snapshot.overview.limitWindows) },
+    ledger: { ...snapshot.ledger, limitWindows: clear(snapshot.ledger.limitWindows) },
+    widget: { ...snapshot.widget, statusLabel: "数据过期", metrics: snapshot.widget.metrics.map(metric =>
+      metric.key === "planRemaining" ? { ...metric, value: "未观测", hint: "等待当前额度刷新", tone: "neutral" as const } : metric
+    ) }
+  };
+}
+
+export function canUseCurrentQuotaCache(snapshot: DashboardSnapshot, now = new Date()): boolean {
+  const age = now.getTime() - Date.parse(snapshot.generatedAt);
+  return snapshot.quotaDisplayVersion === 2 && Number.isFinite(age) && age >= 0 && age <= 60_000 &&
+    snapshot.overview.limitWindows.every(window => window.sourceStatus !== "observed" ||
+      (window.resetsAt !== null && Number.isFinite(Date.parse(window.resetsAt)) && Date.parse(window.resetsAt) > now.getTime()));
 }
 
 function toneFromRemaining(remainingPercent: number | null): WidgetMetric["tone"] {
@@ -1582,6 +1631,7 @@ function buildPendingDashboardSnapshot(
   return {
     generatedAt: now.toISOString(),
     generatedFrom: "pending",
+    quotaDisplayVersion: 2,
     sourceHealth: {
       codexHome: preferences.codexHome,
       repoRoots: preferences.repoRoots,
@@ -1736,9 +1786,10 @@ async function collectDashboardSnapshot(
       }
     : {
         ...collectedCodex,
+        latestRateSnapshot: resolveLocalRateSnapshot(collectedCodex.latestRateSnapshot, collectedCodex.quotaObservations, now),
         notes: [
           ...collectedCodex.notes,
-          "Codex 官方 Usage 接口本次不可用，当前额度已回退到本地 rate_limits 快照。"
+          "Codex 官方 Usage 接口本次不可用，仅使用本地最新有效窗口；无有效窗口时保持未观测。"
         ]
       };
   const fiveHourSelection = getObservedWindowByKind(codex.latestRateSnapshot, "five-hour");
@@ -2011,14 +2062,13 @@ async function collectDashboardSnapshot(
               fiveHourSelection.window.usedPercent === null
                 ? null
                 : 100 - fiveHourSelection.window.usedPercent,
-            observedAt: codex.latestRateSnapshot?.observedAt ?? null
+            observedAt: fiveHourSelection.window.observedAt ?? codex.latestRateSnapshot?.observedAt ?? null
           }
-        : undefined,
-      primaryPeriod
+        : undefined
     ),
     primaryPeriod.apiCostUsd,
     fiveHourSelection
-      ? `数据来自 rate_limits.${fiveHourSelection.windowKey} 的 ${CODEX_FIVE_HOUR_WINDOW_MINUTES} 分钟窗口。`
+      ? `余量=${officialUsageRateSnapshot ? "官方当前值" : "本地最新有效值"}；右侧=当前周期累计。`
       : "当前 Codex 额度契约未提供 5 小时窗口。",
     primaryPeriod.quotaEvidence?.usedPercent ?? null,
     fiveHourSelection?.windowKey ?? null
@@ -2039,14 +2089,13 @@ async function collectDashboardSnapshot(
               weeklySelection.window.usedPercent === null
                 ? null
                 : 100 - weeklySelection.window.usedPercent,
-            observedAt: codex.latestRateSnapshot?.observedAt ?? null
+            observedAt: weeklySelection.window.observedAt ?? codex.latestRateSnapshot?.observedAt ?? null
           }
-        : undefined,
-      weeklyLimitPeriod
+        : undefined
     ),
     weeklyLimitPeriod.apiCostUsd,
     weeklySelection
-      ? `数据来自 rate_limits.${weeklySelection.windowKey} 的 ${CODEX_WEEKLY_WINDOW_MINUTES} 分钟窗口。`
+      ? `余量=${officialUsageRateSnapshot ? "官方当前值" : "本地最新有效值"}；右侧=当前周期累计。`
       : "当前 Codex 额度契约未提供周额度窗口。",
     weeklyLimitPeriod.quotaEvidence?.usedPercent ?? null,
     weeklySelection?.windowKey ?? null
@@ -2059,6 +2108,8 @@ async function collectDashboardSnapshot(
     null,
     "当前本地 Codex 快照未暴露月额度字段，首版仅展示自然月使用量。"
   );
+  primaryWindow.quotaSource = fiveHourSelection ? (officialUsageRateSnapshot ? "official-usage" : "local-session") : null;
+  weeklyWindow.quotaSource = weeklySelection ? (officialUsageRateSnapshot ? "official-usage" : "local-session") : null;
 
   const widgetMetrics: WidgetMetric[] = [
     {
@@ -2220,6 +2271,7 @@ async function collectDashboardSnapshot(
   return {
     generatedAt: now.toISOString(),
     generatedFrom: "live",
+    quotaDisplayVersion: 2,
     sourceHealth: {
       codexHome: codex.codexHome,
       repoRoots: git.roots,
@@ -2427,7 +2479,7 @@ export class DashboardService {
     if (
       !force &&
       this.cachedSnapshot &&
-      Date.now() - this.cachedAt < 60_000
+      Date.now() - this.cachedAt < 60_000 && canUseCurrentQuotaCache(this.cachedSnapshot)
     ) {
       return this.cachedSnapshot;
     }
@@ -2452,12 +2504,8 @@ export class DashboardService {
   }
 
   public async getCachedSnapshot(): Promise<DashboardSnapshot | null> {
-    if (this.cachedSnapshot) {
-      return this.cachedSnapshot;
-    }
-
-    const cached = await this.snapshotStore.read();
-    if (!cached) {
+    const cached = this.cachedSnapshot ?? await this.snapshotStore.read();
+    if (!cached || !canUseCurrentQuotaCache(cached)) {
       return null;
     }
 
@@ -2522,11 +2570,12 @@ export class DashboardService {
 
       const message =
         error instanceof Error ? error.message : "未知采集异常";
-      const normalized = ensureRefreshTelemetry(cached);
+      const normalized = clearCachedCurrentQuota(ensureRefreshTelemetry(cached));
       const completedAt = new Date();
       const fallback: DashboardSnapshot = {
         ...normalized,
-        generatedAt: completedAt.toISOString(),
+        // 保留原始采集时间，失败的刷新不能把历史数据变成新数据。
+        generatedAt: normalized.generatedAt,
         generatedFrom: "cache",
         sourceHealth: {
           ...normalized.sourceHealth,

@@ -1,7 +1,7 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.5.3-dev.1`
+- 对应版本：`v0.5.3-dev.2`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
@@ -58,7 +58,7 @@
 
 ### 2.2 额度
 
-- Codex 用量、额度周期、reset 检测、官方 Usage 读取和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.2.0-dev.1`，固定到 `gooderno1/codex-usage-core#v0.2.0-dev.1`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。赠送重置优先使用 `rateLimitResetCredits.credits[]` 的官方 `grantedAt / expiresAt`；明细缺失或被截断时继续使用估算，权威总数始终取 `availableCount`。
+- Codex 用量、额度周期、reset 检测、官方 Usage 读取和 banked reset credit 观测共享逻辑来自远程 Git 依赖 `@lifeinhand/codex-usage-core@0.2.0-dev.3`，固定到 `gooderno1/codex-usage-core#v0.2.0-dev.3`；本项目负责把核心包输出映射为 `DashboardSnapshot`、总览页和账本页字段。赠送重置优先使用 `rateLimitResetCredits.credits[]` 的官方 `grantedAt / expiresAt`；明细缺失或被截断时继续使用估算，权威总数始终取 `availableCount`。
 - 当前额度来源优先级为：官方 Usage 当前快照；请求失败时回退本地 session `rate_limits`。本地观测继续承担 token 增量、历史周期和 reset 证据，不因当前快照接入而删除。
 - 官方 Usage 按 `limit_window_seconds / 60` 自适应映射窗口；响应新增 `300` 分钟窗口后无需更新槽位代码即可显示 5H。响应缺少某个窗口时保持未观测，不用缓存或历史窗口伪造当前值。
 - `5 小时额度` 使用时长分类为 `five-hour` 的 `300` 分钟窗口；该窗口可位于 `primary` 或 `secondary`，不存在时 `limitWindows[0]` 输出 `key=fiveHour / sourceStatus=unobserved / sourceSlot=null`。
@@ -68,10 +68,11 @@
 - 周额度观测映射到页面周期时，若共享核心包已确认 reset，且观测写入时间不早于归一化 reset 边界、其 `resetsAt` 与 `beforeWindowResetsAt` 相差不超过既有边界校准容差 `5min` 并且更接近旧窗口截止时间，该观测仍归属 reset 前的周期。距离相等或更接近新窗口时不重分配，避免新旧边界相距小于 `5min` 时误归属。只调整观测的周期映射，不改观测原始时间，也不改同条记录的 Token 时间归属。
 - 例如新周期从 `2026-09-16T08:07:10Z` 起算，`08:07:20.955Z` 写入的 `98% / resetsAt=2026-09-19T10:58:40Z` 是旧窗口；确认 reset 后应保留在旧周期。新窗口 `resetsAt=2026-09-23T08:07:10Z` 的高水位为 `51%` 时，当前余量为 `49%`。同一窗口的普通低水位回落、未确认 reset 和 5H 不触发这项映射修复。
 - `可观测月额度` 仅在本地快照存在月级字段时展示；当前版本若无字段则明确标记 `未观测`
-- 额度圆环的剩余百分比优先使用当前额度周期的累计口径：
-  - `usedPercent = PeriodMetric.quotaEvidence.usedPercent`
-  - `remainingPercent = PeriodMetric.quotaEvidence.remainingPercent`
-  - 如果当前周期尚无 `quotaEvidence`，才降级为最近一次原始 `rate_limits` 的 `100 - used_percent`
+- 额度圆环、挂件和低额度提醒使用当前值：官方 Usage 成功时取官方 `usedPercent`；请求失败时取同池同类窗口的本地最新有效观测；`remainingPercent = 100 - usedPercent`。
+- `quotaSource` 标明 `official-usage / local-session`；当前值不依赖 reset 是否确认，也不允许被 `quotaEvidence` 高水位覆盖。
+- 本地回退排除过期、无效时间、非有限或越界百分比、非正时长，以及窗口起点比观测时间晚超过 `5min` 的未来样本。优先选择最新有效截止时间所标识的窗口，再在该截止时间前 `60s` 的时钟容差内取最新记录；不依赖用量下降或历史 reset 确认，迟到记录不得倒退当前窗口。
+- 当前周历史证据按相同 `resetsAt` 和匹配时长筛选；确认前也不得混入旧窗口。同窗口高水位仍保留在 `quotaEvidence` 用于历史分析和价值估算。
+- 官方成功响应缺少窗口时维持未观测；本地也没有有效窗口时不推算当前余量。
 - 额度卡右侧 Token、成本、会话数、模型占比使用当前额度周期内的 token 增量：
   - 周期结束时间：`PeriodMetric.endAt`，未发生稳定边界校准时等于最近一次 `rate_limits.<primary|secondary>.resets_at`
   - 周期长度：`rate_limits.<primary|secondary>.window_minutes`
@@ -94,7 +95,9 @@
   - 候选产生后至少等待 `30min` 再确认。
   - 候选后 `6h` 内必须出现同一新窗口边界的稳定观测，边界误差不超过 `5min`。
   - 如果同一确认窗口内出现新窗口边界漂移超过 `15min` 的观测，则判定为低用量滚动恢复，不作为重置事件。
+  - 已识别旧窗口的迟到记录不属于新边界漂移；按时长隔离确认样本。后续独立 reset 已确认时，以它的观测时间截止前一个确认区间。
   - 同一新窗口起点在 `15min` 容差内只保留最早确认事件，避免相邻候选和回看候选重复计数。
+  - 不同窗口不再因为 `12h` 内用量相似被合并。
 - 重置排除条件：
   - 缺少可解析 `used_percent / resets_at / window_minutes` 的观测。
   - 下降不足 `5` 个百分点。
@@ -113,9 +116,11 @@
   - `maxObservedUsedPercent`：周期内原始观测最高已用百分比
   - `usedPercent / remainingPercent`：考虑重置段后的周期累计已用百分比和余量百分比
   - `lastObservedAt`：周期内最近一次额度观测时间
-- 总览页额度卡圆环中心和弧线都显示当前额度周期累计余量；圆环下方将重置时间和当前额度周期起止合并为一行，用于解释右侧 token / 成本为什么可能小于自然日累计；底部短注记只说明 `圆环=周期累计余量；右侧=当前周期累计`，并以 `观测 N 次 · 重置 N 次` 展示 `observations / resetCount`，不在总览页展开历史重置明细。
-- `LimitWindow.usedPercent / remainingPercent` 是页面显示字段，必须优先使用当前额度周期的累计已用百分比和余量百分比；最近一次原始 `rate_limits.used_percent` 只作为缺少周期证据时的降级来源。原因是最近一次百分比可能在同周期内回落到低水位，不能代表本周期已消耗额度。
-- `LimitWindow.resetsAt` 是页面显示字段，必须与当前 `PeriodMetric.endAt` 保持一致；最近一次原始 `rate_limits.resets_at` 只作为缺少周期证据时的降级来源，避免低用量滑动窗口漂移导致“重置时间”和“周期范围”不一致。
+- 总览页额度卡圆环中心和弧线显示当前余量，注记为 `余量=官方当前值（或本地最新有效值）；右侧=当前周期累计`；历史 `observations / resetCount` 保留为独立证据。
+- `LimitWindow.usedPercent / remainingPercent / resetsAt / observedAt` 来自同一个当前观测；历史高水位、历史截止时间不得覆盖它们。
+- 当前周周期起止由当前窗口的 `resetsAt - windowMinutes` 与 `resetsAt` 锚定；历史 reset 尚未确认时也不能把当前 Token 归到旧周期。历史周期仍保留已确认 reset 证据。
+- 快照 `quotaDisplayVersion=2` 标记当前值语义。旧语义、超过 `60s` 或额度窗口已到期的磁盘/进程内快照不得作为当前额度缓存返回；原快照仍可供历史 reset credit 分析。
+- 采集异常回退时清空总览、账本额度与挂件的当前余量，标记数据过期；保留历史 Token 与证据，且保留原始 `generatedAt`，不得把失败刷新时间伪装成采集时间。
 - `LimitWindow.estimatedFullValueUsd / estimatedRemainingValueUsd` 是套餐价值折算字段，也必须使用当前额度周期的累计已用百分比作为分母，优先取 `PeriodMetric.quotaEvidence.usedPercent`，不能使用最近一次原始 `rate_limits.used_percent`。
 - 为了支持前几周计费周对比，Codex session 采集窗口至少覆盖最近 `60` 天；该口径对齐 `dev-ledger` 已验证的周周期历史记录，避免只扫描当前月/周导致上一计费周样本缺失。
 - `DashboardSnapshot.overview.bankedResetCredits` 独立于普通额度窗口 reset，来自 Codex app-server 只读方法 `account/rateLimits/read` 的 `rateLimitResetCredits.availableCount`：
@@ -243,8 +248,8 @@ npm run verify:quota
 
 - `5H` 与 `周额度` 窗口必须来自主额度池 `limit_id=codex`；没有 `limit_id=codex` 时才允许降级到可解析的最新额度池。业务语义按时长识别，不按槽位名识别。
 - 已观测窗口长度必须分别为 `300` 与 `10080` 分钟；当前契约没有 `300` 分钟窗口时，5H 卡必须明确输出未观测状态，周额度仍需从 `10080` 分钟 primary 正常生成。
-- 圆环余量必须等于当前周期 `quotaEvidence.remainingPercent`；缺少周期证据时才允许降级为 `100 - 最近 usedPercent`。
-- 当前 `5H` 与当前周额度 `LimitWindow.resetsAt` 必须等于对应 `PeriodMetric.endAt`；周额度周期允许由已确认 reset 边界校准，不能强制回退到最新原始 `rate_limits.resets_at`。
+- 圆环余量必须等于 `100 - 当前有效 usedPercent`，来源必须为官方 Usage 或本地最新有效窗口；历史 `quotaEvidence.remainingPercent` 可以不同，不能覆盖当前值。
+- 当前 `5H` 与当前周额度 `LimitWindow.resetsAt` 必须等于对应 `PeriodMetric.endAt`，当前周期由当前有效窗口锚定；历史周期仍允许已确认 reset 边界校准，不得覆盖当前截止时间。
 - 当前周期必须包含 `quotaEvidence` 观测证据。
 - 如快照内存在 `resetEvents[]`，每个事件必须包含 `evidence` 和 `confirmation.status=confirmed`，且确认原因必须为 `stable-window-boundary`；事件证据必须至少具备高水位、边界贴近或稳定边界回看中的一种。
 - `estimatedValueBasisUsedPercent` 必须使用周期累计 `quotaEvidence.usedPercent`，不得回退到最近一次原始 `usedPercent`。

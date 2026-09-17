@@ -16,6 +16,7 @@ const PRIMARY_CODEX_LIMIT_ID = "codex";
 const CODEX_SESSION_CACHE_VERSION = 2;
 
 export interface ObservedLimitWindow {
+  observedAt?: string;
   usedPercent: number | null;
   windowMinutes: number | null;
   resetsAt: string | null;

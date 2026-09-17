@@ -340,11 +340,11 @@ Token 数字自动单位：
 
 数据口径：
 
-- 圆环中心 `剩余百分比` 优先来自当前额度周期的累计口径：`PeriodMetric.quotaEvidence.remainingPercent`。
+- 圆环中心 `剩余百分比` 来自 `LimitWindow.remainingPercent`：官方当前余量优先，失败时取本地最新有效窗口；不得被历史累计 `quotaEvidence` 覆盖。
 - 如果当前周期暂时缺少 `quotaEvidence`，圆环才降级使用最近一次 Codex 原始 `rate_limits.<primary|secondary>.used_percent`，计算为 `100 - used_percent`。
 - 圆环弧线也必须使用同一个 `剩余百分比`，不能使用已用百分比；否则会出现中心显示 `94% 剩余` 但弧线只有已用部分的反向表达。
 - 右侧 `Token 用量 / API 等价成本 / 会话数 / Top 3 模型占比` 来自当前额度周期内的真实 token 增量。
-- 当前 `5H` 与当前周额度周期边界使用 `PeriodMetric.startAt / endAt`；`LimitWindow.resetsAt` 必须等于当前 `PeriodMetric.endAt`。缺少周期证据时才降级使用最近一次 `rate_limits.<primary|secondary>.resets_at` 与 `window_minutes` 反推；周额度周期允许由已确认 reset 边界校准。
+- 当前周期边界使用当前窗口的截止时间和时长；`LimitWindow.resetsAt` 与当前 `PeriodMetric.endAt` 对齐。历史 reset 尚未确认不能改变当前周期起止；已确认 reset 继续用于历史周期分析。
 - 如果本机同时存在多个 `rate_limits` 池，可见 `5H / 周额度` 优先使用主额度池 `limit_id=codex`；模型或实验额度池不能因为记录时间更新而覆盖主额度显示。
 - 当前周期的额度观测证据必须只聚合同一 `limit_id / limit_name` 的样本，不能混合不同额度池。
 - token 增量优先使用同一 session 内 `total_token_usage` 累计快照差值，不直接把所有 `total_token_usage` 相加。
@@ -366,7 +366,7 @@ Token 数字自动单位：
 - 剩余 Token
 - 预计可用时长
 
-- 口径说明 `圆环=周期累计余量；右侧=当前周期累计。` 保留在数据层和文档中，不在总览页额度卡内作为独立行展示；额度类型已经由卡片标题表达，页面不再重复 `5H`、`周额度` 或 `额度窗口` 字样。
+- 卡片注记显示 `余量=官方当前值（或本地最新有效值）；右侧=当前周期累计。`，区分当前来源与历史累计；无有效额度时明确显示未观测。
 - 证据文案只写 `观测 N 次 · 重置 N 次`，不再额外重复 `额度观测`，且必须与 `Top 3 模型占比` 保持同一行。
 - 由于顶部四卡使用自然日 / 自然周 / 自然月，额度卡使用真实额度周期，额度卡必须展示周期起止，避免用户把自然日累计和当前 5H 周期累计误认为同一口径；周期起止必须与重置文案合并展示，不新增独立行高。
 - 圆环内文字顺序为上方小字 `剩余量`、中间大数字百分比；百分比必须处于圆环中心视觉位置。
