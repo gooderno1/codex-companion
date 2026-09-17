@@ -5,8 +5,11 @@
 - 开发原因：用户要求将已验证的名称、单位和排序改动发布为正式 Release，供升级测试。
 - 发布范围：包含 `v0.6.2-dev.1` 与 `v0.6.2-dev.2`，无排除版本；核心包保持 `@lifeinhand/codex-usage-core@0.2.0-dev.3`。
 - 实现方式：统一应用 / clientVersion 为 `0.6.2`，同步 README、数据契约、组件映射和 Release notes；由正式 tag 工作流生成安装包、blockmap、latest.yml 和 SHA256 清单。
-- 当前结果：准备发布已通过真实界面与开发 CI 验证的改动，不修改用量核心和数据库统计口径。
-- 验证方式：正式版完整构建、`verify:activity`、`verify:updater`、`verify:signing-policy` 与 `git diff --check` 通过；更新器辅助进程测试在支持 wscript 的非隔离环境补验通过。远端工作流与资产校验结果在发布后回写。
+- 当前结果：`v0.6.2` 已公开为 stable Latest，包含会话名称、Token 自动单位和全量结果表头排序；不修改用量核心和数据库统计口径。
+- 验证方式：正式版完整构建、`verify:activity`、`verify:updater`、`verify:signing-policy` 与 `git diff --check` 通过；更新器辅助进程测试在支持 wscript 的非隔离环境补验通过。正式提交 `2466f87` 的 CI run `35224191078` 与 Windows Package run `35224195497` 均成功。
+- 资产验证：四项产物均来自同一次 tag 构建；合并并清理此次重复草稿。安装包 `102986627` bytes，SHA256 `21d6aae083677d70feea1a341a8acccd16a19c03d2e862dadb16941461588a91`，产品版本 `0.6.2`，签名状态 `NotSigned`。
+- 发布验证：四项公开资产匿名重新下载后哈希一致，latest.yml 的安装包大小 / SHA512 匹配，公开页面及 stable 更新入口通过；初次 Node 下载连接重置，系统 curl 重试成功。
+
 
 ## [2026-09-17] v0.6.2-dev.2 feat(activity): 表头双向排序与完整结果排序
 
