@@ -41,6 +41,9 @@ jobs:
       - name: Verify usage and pricing regressions
         run: npm run verify:usage
 
+      - name: Verify activity details
+        run: npm run verify:activity
+
       - name: Verify startup settings
         run: npm run verify:startup
 

@@ -37,6 +37,7 @@ import {
   SYSTEM_NOTIFICATION_CLICK_PAGE
 } from "./notifications";
 import { SettingsStore } from "./state/settingsStore";
+import { ActivityDetailsService } from "./activityDetailsService";
 import { SnapshotStore } from "./state/snapshotStore";
 import { UpdateService } from "./updateService";
 import { readGitIntegrationStatus } from "./utils/git";
@@ -46,6 +47,7 @@ let widgetWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 let dashboardService: DashboardService;
+let activityDetailsService: ActivityDetailsService;
 let dashboardNotificationService: DashboardNotificationService | null = null;
 let updateService: UpdateService | null = null;
 let currentPreferences: AppPreferences | null = null;
@@ -1013,6 +1015,7 @@ function registerIpcHandlers() {
     }
   );
   ipcMain.handle("preferences:get", async () => dashboardService.getPreferences());
+  ipcMain.handle("activity:details", (_event, request) => activityDetailsService.query(request));
   ipcMain.handle(
     "preferences:update",
     async (_event, patch: Partial<AppPreferences>) => {
@@ -1083,6 +1086,7 @@ async function bootstrap() {
   const settingsStore = new SettingsStore(userDataPath);
   const snapshotStore = new SnapshotStore(userDataPath);
   const codexSessionCacheStore = new CodexSessionCacheStore(userDataPath);
+  activityDetailsService = new ActivityDetailsService(settingsStore, codexSessionCacheStore);
   dashboardService = new DashboardService(
     settingsStore,
     snapshotStore,

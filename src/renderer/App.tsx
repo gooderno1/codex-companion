@@ -41,6 +41,7 @@ import {
   UpdateSettingsCard
 } from "./components/update/UpdateExperience";
 import { BrandMark, Glyph, type IconName } from "./icons";
+import { ActivityDetails } from "./components/ActivityDetails";
 
 const NAV_ITEMS: Array<{
   page: Extract<AppPage, "overview" | "ledger" | "repositories" | "notifications">;
@@ -2336,6 +2337,10 @@ function OverviewPage({
   });
   const [naturalPeriod, setNaturalPeriod] = useState<NaturalProjectPeriod>("week");
   const [billingPeriod, setBillingPeriod] = useState<BillingProjectPeriod>("weekLimit");
+  const [projectDetails, setProjectDetails] = useState<{ id?: string } | null>(null);
+  const detailPeriod = mode === "natural"
+    ? snapshot.overview[naturalPeriod === "day" ? "today" : naturalPeriod === "week" ? "naturalWeek" : "month"]
+    : billingPeriod === "fiveHour" && snapshot.overview.limitWindows[0].sourceStatus !== "observed" ? null : snapshot.overview.windowPeriods[billingPeriod];
 
   const cards = useMemo(
     () => buildOverviewCards(snapshot, mode, comparisonDisplay),
@@ -2410,6 +2415,7 @@ function OverviewPage({
               }
             />
           </div>
+          <button className="text-button" onClick={() => setProjectDetails({})}>查看详情 →</button>
         </div>
 
         <div className="project-table-wrap">
@@ -2434,7 +2440,7 @@ function OverviewPage({
                         <span className={`project-row-icon project-icon-${projectIconTone(row.name)}`}>
                           <Glyph name="repo" />
                         </span>
-                        <span>{row.name}</span>
+                        <button className="activity-entry" onClick={() => setProjectDetails({ id: row.id })}>{row.name}</button>
                       </span>
                     </td>
                     <td>{formatCompactToken(row.tokenTotal)}</td>
@@ -2458,6 +2464,7 @@ function OverviewPage({
 
         {footer}
       </SectionCard>
+      {projectDetails && <ActivityDetails initialView="projects" initialId={projectDetails.id} initialPeriod={detailPeriod} onClose={() => setProjectDetails(null)} />}
     </div>
   );
 }
@@ -3521,10 +3528,12 @@ function ModelContributionCard({
 }
 
 function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["ledger"]["sessions"] }) {
+  const [details, setDetails] = useState<{ id?: string } | null>(null);
   return (
     <SectionCard className="ledger-session-card">
       <div className="ledger-card-head">
         <h3>会话归因</h3>
+        <button className="text-button" onClick={() => setDetails({})}>查看详情 →</button>
       </div>
       <div className="table-shell">
         <table className="project-table session-table">
@@ -3542,7 +3551,7 @@ function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["led
             {sessions.slice(0, 8).map((session) => (
               <tr key={session.sessionId}>
                 <td>{formatShortDate(session.lastEventAt)}</td>
-                <td title={session.sessionId}>{formatSessionCode(session.sessionId)}</td>
+                <td title={session.sessionId}><button className="activity-entry" onClick={() => setDetails({ id: session.sessionId })}>{formatSessionCode(session.sessionId)}</button></td>
                 <td title={session.cwd ?? undefined}>{session.repoId ?? session.cwd ?? "未归因"}</td>
                 <td>{session.dominantModel}</td>
                 <td>{formatCompactToken(session.tokens.total)}</td>
@@ -3559,6 +3568,7 @@ function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["led
           </tbody>
         </table>
       </div>
+      {details && <ActivityDetails initialView="sessions" initialId={details.id} onClose={() => setDetails(null)} />}
     </SectionCard>
   );
 }

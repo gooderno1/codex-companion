@@ -1,0 +1,66 @@
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
+const require = createRequire(import.meta.url);
+const { aggregateActivityDetails, validateActivityRange, readActivityCode } = require("../dist-electron/main/activityDetailsService.js");
+const { collectCodexData } = require("../dist-electron/main/collectors/codexCollector.js");
+const now = new Date("2026-09-17T12:00:00Z");
+const range = { startAt: "2026-09-01T00:00:00Z", endAt: "2026-09-02T00:00:00Z" };
+for (const bad of [null, {}, { startAt: "bad", endAt: range.endAt }, { startAt: range.endAt, endAt: range.startAt }, { startAt: "2027-01-01", endAt: "2027-02-01" }]) assert.throws(() => validateActivityRange(bad, now));
+assert.equal(validateActivityRange({ startAt: null, endAt: "2027-01-01" }, now).endAt, now.toISOString());
+const tokens = value => ({ input: value, cachedInput: value / 2, output: 10, reasoningOutput: 4, total: value + 10 });
+const event = (timestamp, value, sessionId = "cross-day", model = "gpt-6-astra") => ({ timestamp, sessionId, model, cwd: null, tokens: tokens(value), apiCostUsd: value / 1000, creditsEstimate: 0 });
+const codex = { events: [event("2026-08-31T23:59:59Z", 999), event(range.startAt, 100), event("2026-09-01T12:00:00Z", 200), event(range.endAt, 999), event("2026-09-01T14:00:00Z", 50, "unknown", "unknown-model")], sessions: [{ sessionId: "cross-day", startedAt: "2026-08-30T00:00:00Z", cwd: "fixture" }], sessionFilesScanned: 1, archivedFilesScanned: 1 };
+const git = { items: [{ id: "repo", name: "示例项目", path: "fixture" }], sessionRepoMap: new Map([["cross-day", "repo"]]) };
+const result = aggregateActivityDetails(codex, git, range, now.toISOString());
+assert.equal(result.sessions[0].tokens.total, 320, "跨日会话只统计范围内事件，含左边界、排除右边界");
+assert.equal(result.sessions[0].events, 2);
+assert.equal(result.sessions[0].tokens.cachedInput, 150);
+assert.equal(result.sessions[0].tokens.reasoningOutput, 8);
+assert.equal(result.sessions[0].startedAt, "2026-08-30T00:00:00Z");
+assert.equal(result.projects.find(row => row.id === "repo").tokens.total, 320);
+assert.equal(result.projects.find(row => row.id === "__unattributed__").tokens.total, 60);
+assert.equal(result.sessions.find(row => row.sessionId === "unknown").models[0].priced, false);
+assert.equal(result.sessions.reduce((sum, row) => sum + row.tokens.total, 0), result.projects.reduce((sum, row) => sum + row.tokens.total, 0));
+assert.equal(result.sessions[0].days.reduce((sum, row) => sum + row.tokens.total, 0), 320);
+assert.equal(result.coverage.firstEventAt, "2026-08-31T23:59:59Z");
+assert.equal(aggregateActivityDetails(codex, git, { startAt: "2026-09-10", endAt: "2026-09-11" }, now.toISOString()).sessions.length, 0);
+assert.equal(await readActivityCode(path.join(os.tmpdir(), "nonexistent-activity-repository"), range), null, "Git 读取失败不能冒充零活动");
+
+const fixtureHome = await mkdtemp(path.join(os.tmpdir(), "companion-activity-"));
+try {
+  await mkdir(path.join(fixtureHome, "sessions"));
+  await mkdir(path.join(fixtureHome, "archived_sessions"));
+  const stamp = "2026-01-01T00:00:00Z";
+  const records = [{ type: "session_meta", payload: { id: "old-session", timestamp: stamp } }, { type: "turn_context", payload: { model: "gpt-6-astra" } }, { type: "event_msg", timestamp: stamp, payload: { type: "token_count", info: { total_token_usage: { input_tokens: 100, cached_input_tokens: 50, output_tokens: 10, total_tokens: 110 } } } }];
+  await writeFile(path.join(fixtureHome, "archived_sessions", "rollout-2026-01-01T00-00-00-old.jsonl"), records.map(JSON.stringify).join("\n"));
+  const regular = await collectCodexData(now, { codexHome: fixtureHome });
+  let detailCache = null;
+  const cacheStore = { read: async () => detailCache, write: async value => { detailCache = value; } };
+  const details = await collectCodexData(now, { codexHome: fixtureHome, allHistory: true, sessionCacheStore: cacheStore });
+  assert.equal(regular.events.length, 0, "默认快速扫描保持 60 天");
+  assert.equal(details.events.length, 1, "详情确实读取超过 60 天的归档文件");
+  assert.equal(details.events[0].tokens.total, 110);
+  const reused = await collectCodexData(now, { codexHome: fixtureHome, allHistory: true, sessionCacheStore: cacheStore });
+  assert.equal(reused.cacheStats.parsedFiles, 0);
+  assert.equal(reused.cacheStats.reusedFiles, 1);
+  const repo = path.join(fixtureHome, "repo");
+  await mkdir(repo);
+  const run = (args, env = {}) => execFileSync("git", args, { cwd: repo, env: { ...process.env, ...env }, windowsHide: true, stdio: "pipe" });
+  run(["init"]);
+  run(["config", "user.name", "Regression Fixture"]);
+  run(["config", "user.email", "fixture@example.invalid"]);
+  for (const [index, stamp] of ["2026-08-31T12:00:00Z", "2026-09-01T12:00:00Z", range.endAt].entries()) {
+    await writeFile(path.join(repo, "sample.txt"), "row\n".repeat(index + 1));
+    run(["add", "sample.txt"]);
+    run(["commit", "-m", "fixture"], { GIT_AUTHOR_DATE: stamp, GIT_COMMITTER_DATE: stamp });
+  }
+  const code = await readActivityCode(repo, range);
+  assert.equal(code.commits, 1, "Git 查询排除右边界提交");
+  assert.equal(code.additions, 1);
+  assert.equal(code.deletions, 0);
+} finally { await rm(fixtureHome, { recursive: true, force: true }); }
+console.log("活动详情验证通过：跨日事件边界、归因守恒、Token 拆分、模型价格、空范围、Git 失败和超过 60 天的归档缓存复用。");

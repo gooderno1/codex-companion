@@ -555,6 +555,7 @@ export interface GitIntegrationStatus {
 }
 
 export interface CodexCompanionApi {
+  getActivityDetails(request: import("./activityDetails").ActivityDetailsRequest): Promise<import("./activityDetails").ActivityDetailsResponse>;
   getDashboard(force?: boolean): Promise<DashboardSnapshot>;
   getNotifications(): Promise<DashboardNotificationEntry[]>;
   markNotificationsRead(keys?: string[]): Promise<DashboardNotificationEntry[]>;

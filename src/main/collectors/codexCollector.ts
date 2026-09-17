@@ -103,6 +103,8 @@ export interface CodexCollectionCacheStats {
 }
 
 interface CollectCodexDataOptions {
+  /** 详情按需查询本地全部文件；不改变默认仪表盘扫描范围。 */
+  allHistory?: boolean;
   sessionCacheStore?: CodexSessionCacheStoreLike;
   codexHome?: string;
 }
@@ -505,7 +507,7 @@ export async function collectCodexData(
   const codexHome = resolveCodexHome(options.codexHome);
   const sessionsRoot = path.join(codexHome, "sessions");
   const archivedRoot = path.join(codexHome, "archived_sessions");
-  const cutoff = subtractDays(now, CODEX_HISTORY_LOOKBACK_DAYS);
+  const cutoff = options.allHistory ? new Date(0) : subtractDays(now, CODEX_HISTORY_LOOKBACK_DAYS);
   const ignoreDirectories = new Set<string>([
     ".git",
     "node_modules",

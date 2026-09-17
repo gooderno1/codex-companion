@@ -1,10 +1,22 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.5.3-dev.2`
+- 对应版本：`v0.6.0-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
+
+### 项目与会话按需详情（v0.6.0-dev.1）
+
+- `activity:details` 接收 `startAt: ISO | null / endAt: ISO / force?: boolean`；`null` 表示全部本地保留记录，时间边界为左闭右开，未来终点截到请求时间。
+- `ActivityDetailsService` 按需扫描全部 sessions 与 archived_sessions；主快照仍采用原 60 天快速扫描，详情不写入 `DashboardSnapshot`。
+- 使用独立内存解析缓存，初次可读常规缓存复用；不写回或驱逐常规缓存。五分钟内复用已采集数据，结果显示原采集时间；重新读取检查文件变化，同配置并发请求合并。
+- 返回 `projects / sessions / coverage / range / generatedAt`，仅含统计、路径、ID 和时间；不含原始对话、工具命令或凭据。
+- 按事件时间重算范围 Token、成本、模型与本地日期日用量；会话创建时间是元数据，不用于把整条会话用量归入某一天。输入含缓存、输出含推理，不重复相加。
+- 项目继续使用已有 session cwd 到 Git 根目录映射；`__unattributed__` 保留未归因用量，项目与会话 Token 总量守恒。
+- Git 行数和提交按当前 HEAD 可达历史查询，使用提交时间；二进制不计行数，不含未提交修改；读取失败为 `null`，不视为零，不将仓库活动强行归因到单个会话。
+- 模型 `priced=false` 时显示未定价，汇总成本仅包含已知价格。覆盖起止来自有效本地事件，全部记录不代表被删除或仅云端的历史。
+- 设计与验证见 `docs/activity-details-design-2026-09-17.md` 和 `npm run verify:activity`。
 
 ### 1.1 Codex
 
