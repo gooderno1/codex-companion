@@ -30,7 +30,16 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - 开发版完整构建、详情 / 用量 / 同期 / 账本专项通过，开发提交 `2188127` 的 CI run `35202062493` 成功。
 - 真实 Electron 验证两个入口、对象直达、搜索分页、自定义旧日期、关联会话、关闭与焦点恢复，以及 `1360×900 / 1080×720` 布局。
 - 本机历史详情读到 525 个文件、492 条会话，最早记录为 2026 年 1 月；首次查询约 20 秒。
-- 正式版按 tag 在 GitHub Actions 构建，并在发布前核对安装包、blockmap、latest.yml 和 SHA256 清单。
+- 正式发布提交 `4df3796` 的 CI run `35205778399` 与 Windows Package run `35205782744` 均成功；正式版完整构建和详情、用量、同期、账本、通知、更新器、开机自启、签名政策专项通过。
+
+### Release 资产校验
+
+- 四项正式资产来自同一次 tag 构建；草稿缺少的 blockmap 已从该工作流 artifact 补齐，没有混用本机构建产物。
+- 安装包 `Codex.Companion.Setup.0.6.0.exe`：`102977525` bytes，SHA256 `5E7B4F4D6106381AB7425A9EBA07D3A1B378F7BC07E5201850719587C916EFD1`；与 GitHub digest、SHA256 清单、匿名重新下载结果一致。产品名 / 版本为 `Codex Companion / 0.6.0`，Authenticode 为 `NotSigned`。
+- blockmap：`108483` bytes，SHA256 `21BB8D1C7B128679743B41E4EE8EB1E3846FE2EAFA41138E5B5C7C53CBC885F2`。
+- latest.yml：`359` bytes，SHA256 `1041AA59EBE76EC2628A3082AB72BFF21C3A181F27C892D6321BD16D832CD761`；版本、路径、大小、SHA512 均与安装包一致。
+- SHA256SUMS.txt：`99` bytes，SHA256 `BC16127DC5D12D346D55B534EE9C9B56C760CDDFEDAF940C3D60CD4B9B4822F8`。
+- `v0.6.0` 已公开发布为 Latest；Release 页面、blockmap、清单和稳定更新入口匿名访问均返回 `200`，公开 latest.yml 与构建产物相同。
 
 ### 升级注意事项
 
