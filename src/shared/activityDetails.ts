@@ -31,6 +31,7 @@ export interface ActivityProject extends ActivityTotals {
   id: string;
   name: string;
   path: string | null;
+  rootPaths: string[];
   sessions: number;
   code: CodeActivity | null;
 }
@@ -38,8 +39,12 @@ export interface ActivityDetailsResponse {
   generatedAt: string;
   range: { startAt: string | null; endAt: string };
   coverage: { firstEventAt: string | null; lastEventAt: string | null; files: number };
+  warnings?: string[];
+  performance?: { parsedFiles: number; reusedFiles: number; indexMs: number; queryMs: number };
   projects: ActivityProject[];
   sessions: ActivitySession[];
 }
 
 export const UNATTRIBUTED_PROJECT = "__unattributed__";
+
+export interface ActivityCodeResponse { repositories: Array<{ path: string; code: CodeActivity | null }> }

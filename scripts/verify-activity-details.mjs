@@ -14,7 +14,7 @@ assert.equal(validateActivityRange({ startAt: null, endAt: "2027-01-01" }, now).
 const tokens = value => ({ input: value, cachedInput: value / 2, output: 10, reasoningOutput: 4, total: value + 10 });
 const event = (timestamp, value, sessionId = "cross-day", model = "gpt-6-astra") => ({ timestamp, sessionId, model, cwd: null, tokens: tokens(value), apiCostUsd: value / 1000, creditsEstimate: 0 });
 const codex = { events: [event("2026-08-31T23:59:59Z", 999), event(range.startAt, 100), event("2026-09-01T12:00:00Z", 200), event(range.endAt, 999), event("2026-09-01T14:00:00Z", 50, "unknown", "unknown-model")], sessions: [{ sessionId: "cross-day", startedAt: "2026-08-30T00:00:00Z", cwd: "fixture" }], sessionFilesScanned: 1, archivedFilesScanned: 1 };
-const git = { items: [{ id: "repo", name: "示例项目", path: "fixture" }], sessionRepoMap: new Map([["cross-day", "repo"]]) };
+const git = { projects: [{ id: "repo", name: "示例项目", rootPaths: ["fixture"] }], assignments: new Map([["cross-day", "repo"]]), projectless: new Set(), hints: new Map() };
 const result = aggregateActivityDetails(codex, git, range, now.toISOString());
 assert.equal(result.sessions[0].tokens.total, 320, "跨日会话只统计范围内事件，含左边界、排除右边界");
 assert.equal(result.sessions[0].events, 2);

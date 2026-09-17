@@ -8,8 +8,8 @@ const CODEX_SESSION_CACHE_FILE_NAME = "codex-session-cache.json";
 export class CodexSessionCacheStore {
   private readonly cachePath: string;
 
-  public constructor(userDataPath: string) {
-    this.cachePath = path.join(userDataPath, CODEX_SESSION_CACHE_FILE_NAME);
+  public constructor(public readonly storageDirectory: string) {
+    this.cachePath = path.join(storageDirectory, CODEX_SESSION_CACHE_FILE_NAME);
   }
 
   public read(): Promise<CodexSessionCache | null> {

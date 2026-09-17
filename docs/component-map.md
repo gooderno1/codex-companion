@@ -69,7 +69,7 @@
 | 模型贡献 | `ModelContributionCard` | 账本页模块 | `modelPeriod`、`modelSort` | `snapshot.ledger.analysis.*.models` |
 | 模型表头排序 | `ModelSortHeader` | 账本页模块 | `model / share / token / cost / events`、`asc / desc` | 本地页面状态 |
 | 会话归因 | `SessionAttributionCard` | 账本页模块 | 最近 8 条会话、查看详情、会话 ID 直达 | `snapshot.ledger.sessions` |
-| 项目 / 会话详情 | `ActivityDetails` | 模态详情页 | 时间范围、搜索、排序、每页 25 项、对象选择、关联会话、模型与日用量 | `activity:details` / `ActivityDetailsService`，独立按需查询 |
+| 项目 / 会话详情 | `ActivityDetails` | 模态详情页 | 时间范围、搜索、排序、每页 25 项、对象选择、关联会话、模型与日用量 | `activity:details` / `ActivityDetailsService` / `ActivityIndex`，Codex 项目映射与 SQLite 时间索引；`activity:code` 单独按需读取 Git |
 | 账本页一致性校验 | `scripts/verify-ledger-page.mjs` | 工程校验 | `npm run verify:ledger` | 设计图、UI Contract、数据合同、采集器和渲染层 |
 
 ## 当前约束
@@ -92,7 +92,7 @@
 - 顶部计费时间 `本月 Token` 使用 `snapshot.overview.windowPeriods.billingMonth`；默认 `billingMonthStartDay=1`，因此当前默认与自然月一致，设置页可调整起始日并触发刷新。
 - `BankedResetCreditStrip` 固定放在顶部四卡和 `5H / 周额度窗口` 两张额度卡之间；普通态必须是一行状态，不占用顶部四卡；展开态只显示脱敏逐个明细，不展示 app-server 原始响应或余额字段。
 - 设置页 `Codex 数据目录` 支持手动输入、系统目录选择和恢复默认；保存后通过 `preferences:update` 写入本机配置并立即刷新，路径只用于读取本机 Codex sessions、archived_sessions 和 rate_limits。
-- 设置页 `仓库根目录` 支持手动输入、系统目录选择、移除和恢复默认；保存后通过 `preferences:update` 写入本机配置并立即刷新，路径只用于本地 Git 仓库扫描和 Codex 会话归因。
+- 设置页 `仓库根目录` 支持手动输入、系统目录选择、移除和恢复默认；保存后通过 `preferences:update` 写入本机配置并立即刷新，路径只用于本地 Git 仓库扫描；项目与会话归属读取 Codex 保存的项目元数据。
 - 应用更新由主进程 `UpdateService` 维护唯一状态；启动检查延迟约 `15s`，周期检查间隔 `6h`，不复用 5 分钟仪表板刷新；临时未签名 Windows NSIS 构建允许自动下载和用户确认安装，但 `canInstallOnQuit=false`。renderer 保留版本、状态、进度、错误和操作，不再重复展示解释性小字；未签名边界写入 README、Release notes 和公开签名政策。确认后由 `windowsUpdateInstaller` 校验缓存路径和版本文件名，通过当前用户的临时 Windows 计划任务启动隐藏 helper，观察到 helper 状态后退出，helper 安装结束时自删除任务。
 - 左侧品牌图标使用 `src/renderer/icons.tsx` 中的 `BrandMark` SVG，必须保持非官方自定义资产，不使用 OpenAI / Codex 官方 logo。
 - Windows 应用图标使用 `build/app-icon.ico`，打包前由 `scripts/generate-app-icon.mjs` 生成；主窗口和托盘优先读取同一图标资产，缺失时才用主进程品牌 PNG 兜底；图标必须保持非官方自定义蓝青图形。

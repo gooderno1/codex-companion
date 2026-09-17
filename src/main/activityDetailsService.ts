@@ -1,13 +1,13 @@
 import type { ActivityDetailsRequest, ActivityDetailsResponse, ActivityProject, ActivitySession, ActivitySlice, ActivityTotals } from "../shared/activityDetails";
-import { UNATTRIBUTED_PROJECT } from "../shared/activityDetails";
 import type { CodeActivity } from "../shared/contracts";
-import { collectCodexData, type CodexSessionCache, type CodexTokenEvent, type CollectedCodexData } from "./collectors/codexCollector";
-import { collectGitData, type CollectedGitData } from "./collectors/gitCollector";
+import { type CodexTokenEvent, type CollectedCodexData } from "./collectors/codexCollector";
+import { readCodexProjects, projectForSession, type CodexProjectCatalog } from "./codexProjects";
+import { ActivityIndex } from "./state/activityIndex";
 import { emptyTokens, sumTokens } from "./collectors/metrics";
 import { resolvePricingRate } from "./collectors/pricing";
 import { SettingsStore } from "./state/settingsStore";
 import { CodexSessionCacheStore } from "./state/codexSessionCacheStore";
-import { runGit } from "./utils/git";
+import { findGitRoot, runGit } from "./utils/git";
 
 export function validateActivityRange(request: ActivityDetailsRequest, now = new Date()) {
   if (!request || (request.startAt !== null && typeof request.startAt !== "string") || typeof request.endAt !== "string") throw new Error("时间范围格式无效。");
@@ -42,10 +42,11 @@ function addEvent(target: ActivityTotals, event: CodexTokenEvent) {
 }
 
 /** 仅输出结构化统计字段，按事件范围重新计量，不使用会话全量合计。 */
-export function aggregateActivityDetails(codex: CollectedCodexData, git: CollectedGitData, range: ActivityDetailsResponse["range"], generatedAt: string): ActivityDetailsResponse {
-  const projects = new Map<string, ActivityProject>(git.items.map(repo => [repo.id, { ...totals(), id: repo.id, name: repo.name, path: repo.path, sessions: 0, code: null }]));
+export function aggregateActivityDetails(codex: Pick<CollectedCodexData, "events" | "sessions" | "sessionFilesScanned" | "archivedFilesScanned">, catalog: CodexProjectCatalog, range: ActivityDetailsResponse["range"], generatedAt: string): ActivityDetailsResponse {
+  const projects = new Map<string, ActivityProject>(catalog.projects.map(project => [project.id, { ...totals(), id: project.id, name: project.name, path: project.rootPaths[0] ?? null, rootPaths: project.rootPaths, sessions: 0, code: null }]));
   const sessions = new Map<string, ActivitySession>();
   const metadata = new Map(codex.sessions.map(session => [session.sessionId, session]));
+  const assignments = new Map(codex.sessions.map(session => [session.sessionId, projectForSession(catalog, session)]));
   const start = range.startAt ? Date.parse(range.startAt) : 0, end = Date.parse(range.endAt);
   let firstEventAt: string | null = null, lastEventAt: string | null = null;
   for (const event of codex.events) {
@@ -54,8 +55,9 @@ export function aggregateActivityDetails(codex: CollectedCodexData, git: Collect
     if (!firstEventAt || at < Date.parse(firstEventAt)) firstEventAt = event.timestamp;
     if (!lastEventAt || at > Date.parse(lastEventAt)) lastEventAt = event.timestamp;
     if (at < start || at >= end) continue;
-    const projectId = git.sessionRepoMap.get(event.sessionId) ?? UNATTRIBUTED_PROJECT;
-    if (!projects.has(projectId)) projects.set(projectId, { ...totals(), id: projectId, name: "未归因", path: null, sessions: 0, code: null });
+    let projectId = assignments.get(event.sessionId);
+    if (!projectId) { projectId = projectForSession(catalog, event); assignments.set(event.sessionId, projectId); }
+    if (!projects.has(projectId)) projects.set(projectId, { ...totals(), id: projectId, name: "无项目 / 未匹配", path: null, rootPaths: [], sessions: 0, code: null });
     const project = projects.get(projectId)!;
     let session = sessions.get(event.sessionId);
     if (!session) {
@@ -90,36 +92,39 @@ export async function readActivityCode(repoPath: string, range: ActivityDetailsR
 }
 
 export class ActivityDetailsService {
-  private parsedCache: CodexSessionCache | null = null;
-  private pending: Promise<{ codex: CollectedCodexData; git: CollectedGitData; generatedAt: string }> | null = null;
-  private loading = false;
-  private loadedAt = 0;
-  private settingsKey = "";
-  constructor(private settings: SettingsStore, private standardCache: CodexSessionCacheStore) {}
-
+  private indexes = new Map<string, ActivityIndex>();
+  private codeCache = new Map<string, { at: number; result: import("../shared/activityDetails").ActivityCodeResponse }>();
+  constructor(private settings: SettingsStore, private standardCache: CodexSessionCacheStore, private directory = standardCache.storageDirectory) {}
   async query(request: ActivityDetailsRequest): Promise<ActivityDetailsResponse> {
+    const started = performance.now();
     const range = validateActivityRange(request);
     const preferences = await this.settings.read();
-    const key = JSON.stringify([preferences.codexHome, preferences.repoRoots]);
-    if (!this.pending || key !== this.settingsKey || (!this.loading && (request.force || Date.now() - this.loadedAt > 5 * 60_000))) {
-      this.settingsKey = key;
-      this.loadedAt = Date.now();
-      this.loading = true;
-      const generatedAt = new Date(this.loadedAt).toISOString();
-      const task = (async () => {
-        const cache = this.parsedCache ?? await this.standardCache.read();
-        const codex = await collectCodexData(new Date(generatedAt), {
-          codexHome: preferences.codexHome, allHistory: true,
-          sessionCacheStore: { read: async () => cache, write: async value => { this.parsedCache = value; } }
-        });
-        return { codex, git: await collectGitData({ repoRoots: preferences.repoRoots, sessions: codex.sessions }), generatedAt };
-      })();
-      this.pending = task;
-      void task.then(() => { if (this.pending === task) this.loading = false; }, () => { if (this.pending === task) { this.pending = null; this.loading = false; } });
-    }
-    const { codex, git, generatedAt } = await this.pending;
-    const result = aggregateActivityDetails(codex, git, range, generatedAt);
-    await Promise.all(result.projects.map(async project => { if (project.path) project.code = await readActivityCode(project.path, range); }));
+    let index = this.indexes.get(preferences.codexHome);
+    if (!index) { index = new ActivityIndex(this.directory, preferences.codexHome, this.standardCache); this.indexes.set(preferences.codexHome, index); }
+    const [stats, catalog] = await Promise.all([index.refresh(), readCodexProjects(preferences.codexHome)]);
+    const indexedAt = performance.now();
+    const codex = await index.query(range);
+    const result = aggregateActivityDetails(codex, catalog, range, new Date().toISOString());
+    result.coverage = codex.coverage;
+    result.warnings = catalog.warnings;
+    result.performance = { ...stats, indexMs: Math.round(indexedAt - started), queryMs: Math.round(performance.now() - indexedAt) };
     return result;
   }
+  async queryCode(request: ActivityDetailsRequest & { projectId: string }): Promise<import("../shared/activityDetails").ActivityCodeResponse> {
+    const range = validateActivityRange(request);
+    const preferences = await this.settings.read();
+    const catalog = await readCodexProjects(preferences.codexHome);
+    const project = catalog.projects.find(item => item.id === request.projectId);
+    if (!project) throw new Error("Codex 项目不存在，请重新读取项目清单。");
+    const key = JSON.stringify([preferences.codexHome, project, range]);
+    const cached = this.codeCache.get(key);
+    if (!request.force && cached && Date.now() - cached.at < 60_000) return cached.result;
+    const roots = [...new Set((await Promise.all(project.rootPaths.map(root => findGitRoot(root)))).filter((root): root is string => Boolean(root)))];
+    const repositories = await Promise.all(roots.map(async root => ({ path: root, code: await readActivityCode(root, range) })));
+    const result = { repositories };
+    if (this.codeCache.size > 100) this.codeCache.clear();
+    this.codeCache.set(key, { at: Date.now(), result });
+    return result;
+  }
+  close() { for (const index of this.indexes.values()) index.close(); this.indexes.clear(); }
 }

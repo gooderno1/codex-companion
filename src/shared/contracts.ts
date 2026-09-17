@@ -271,6 +271,8 @@ export interface ModelMetric {
 }
 
 export interface SessionAttribution {
+  projectId?: string;
+  projectName?: string;
   sessionId: string;
   cwd: string | null;
   repoId: string | null;
@@ -344,6 +346,7 @@ export interface RepoMetric {
 }
 
 export interface OverviewProjectItem {
+  codeAvailable?: boolean;
   id: string;
   name: string;
   tokenTotal: number;
@@ -393,6 +396,7 @@ export interface RefreshHistoryEntry {
 
 export interface DashboardSnapshot {
   quotaDisplayVersion?: number;
+  projectAttributionVersion?: number;
   generatedAt: string;
   generatedFrom: "live" | "cache" | "pending";
   sourceHealth: {
@@ -555,6 +559,7 @@ export interface GitIntegrationStatus {
 }
 
 export interface CodexCompanionApi {
+  getActivityCode(request: import("./activityDetails").ActivityDetailsRequest & { projectId: string }): Promise<import("./activityDetails").ActivityCodeResponse>;
   getActivityDetails(request: import("./activityDetails").ActivityDetailsRequest): Promise<import("./activityDetails").ActivityDetailsResponse>;
   getDashboard(force?: boolean): Promise<DashboardSnapshot>;
   getNotifications(): Promise<DashboardNotificationEntry[]>;

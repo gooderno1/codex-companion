@@ -1015,6 +1015,7 @@ function registerIpcHandlers() {
     }
   );
   ipcMain.handle("preferences:get", async () => dashboardService.getPreferences());
+  ipcMain.handle("activity:code", (_event, request) => activityDetailsService.queryCode(request));
   ipcMain.handle("activity:details", (_event, request) => activityDetailsService.query(request));
   ipcMain.handle(
     "preferences:update",

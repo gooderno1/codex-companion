@@ -7,6 +7,7 @@
 - `~/.codex/sessions` 与 `~/.codex/archived_sessions` 中的 JSONL 会话记录
 - `token_count`、`turn_context.model`、`cwd`、`rate_limits` 等统计相关字段
 - `~/.codex/auth.json` 中的访问令牌与账号 ID；仅在主进程内存中用于官方 Usage 请求鉴权
+- Codex 保存的本地项目名称、根目录、项目迁移 ID 和会话项目归属；只读 state SQLite 的项目表及归属字段，和桌面状态文件的项目相关字段
 - 本地 Git 仓库的提交历史、增删行统计、远端地址与默认分支
 
 ## 本地存储的内容
@@ -14,6 +15,7 @@
 - 应用配置：Codex 数据目录、仓库根目录、计费月起始日、挂件预设、透明度、点击穿透、隐私模式、挂件位置
 - 聚合快照：最近一次成功采集得到的仪表板数据
 - 刷新历史：最近若干次手动、自动或启动刷新结果，只包含触发来源、耗时、快照来源和聚合文件数量
+- 历史详情索引：Companion 用户数据目录中的 `activity-index-*.sqlite`（及 SQLite 临时 WAL / SHM 文件），保存文件签名、会话统计、Token 事件及模型成本，不保存原始对话；首次生成后跨重启复用，版本变化自动重建。
 - 增量缓存：每个 Codex JSONL 文件的路径、`size`、`mtimeMs` 与解析后的统计结果，用于避免重复解析；不保存原始 JSONL 行、用户输入正文或模型输出正文
 - 通知状态：`notification-state.json` 保存提醒 key、标题、正文、类别、级别、触发时间、系统通知时间和已读时间，用于应用内提醒中心展示详情，并避免自动刷新时重复提醒
 - 更新设置：`settings.json` 保存是否自动检查、是否自动下载、忽略版本和退出安装选择；不保存 GitHub token、下载请求头或安装包本机路径
@@ -49,7 +51,7 @@
 - 设置页中的 `Codex 数据目录` 和 `仓库根目录` 只调用本机系统目录选择器。
 - 选择结果只写入 Electron `userData/settings.json`。
 - Codex 数据目录用于读取本机 `sessions`、`archived_sessions`、`rate_limits` 和官方 Usage 鉴权所需的 `auth.json`。
-- 仓库根目录用于扫描本机 Git 仓库、代码仓库页和 Codex 会话归因。
+- 仓库根目录用于扫描本机 Git 仓库和代码仓库页。项目概览与会话归因以 Codex 保存的项目清单为准，非 Git 项目同样显示。
 - 不会把 Codex 数据目录、仓库根目录、仓库名、远端地址或扫描结果上传到云端。
 
 ## 价格与价值估算

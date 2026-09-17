@@ -1,20 +1,20 @@
 # Codex Companion 数据契约（v0.2）
 
 - 文档创建时间：2026-06-02
-- 对应版本：`v0.6.0`
+- 对应版本：`v0.6.1-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
 ## 1. 原始数据来源
 
-### 项目与会话按需详情（v0.6.0-dev.1）
+### 项目与会话按需详情（v0.6.1-dev.1）
 
 - `activity:details` 接收 `startAt: ISO | null / endAt: ISO / force?: boolean`；`null` 表示全部本地保留记录，时间边界为左闭右开，未来终点截到请求时间。
 - `ActivityDetailsService` 按需扫描全部 sessions 与 archived_sessions；主快照仍采用原 60 天快速扫描，详情不写入 `DashboardSnapshot`。
-- 使用独立内存解析缓存，初次可读常规缓存复用；不写回或驱逐常规缓存。五分钟内复用已采集数据，结果显示原采集时间；重新读取检查文件变化，同配置并发请求合并。
+- 使用独立 SQLite 增量索引，初次可读常规缓存复用，不写回或驱逐常规缓存；每次查询检查文件变化，同目录并发索引刷新合并，跨重启复用。
 - 返回 `projects / sessions / coverage / range / generatedAt`，仅含统计、路径、ID 和时间；不含原始对话、工具命令或凭据。
 - 按事件时间重算范围 Token、成本、模型与本地日期日用量；会话创建时间是元数据，不用于把整条会话用量归入某一天。输入含缓存、输出含推理，不重复相加。
-- 项目继续使用已有 session cwd 到 Git 根目录映射；`__unattributed__` 保留未归因用量，项目与会话 Token 总量守恒。
-- Git 行数和提交按当前 HEAD 可达历史查询，使用提交时间；二进制不计行数，不含未提交修改；读取失败为 `null`，不视为零，不将仓库活动强行归因到单个会话。
+- 项目对应 Codex 项目身份，Git 为可选关联；`__unattributed__` 保留无项目 / 未匹配用量，项目与会话 Token 总量守恒。
+- Git 通过独立 `activity:code` 按需查询，不阻塞列表。Git 行数和提交按当前 HEAD 可达历史查询，使用提交时间；二进制不计行数，不含未提交修改；读取失败为 `null`，不视为零，不将仓库活动强行归因到单个会话。
 - 模型 `priced=false` 时显示未定价，汇总成本仅包含已知价格。覆盖起止来自有效本地事件，全部记录不代表被删除或仅云端的历史。
 - 设计与验证见 `docs/activity-details-design-2026-09-17.md` 和 `npm run verify:activity`。
 
@@ -167,8 +167,10 @@
 
 ### 2.4 仓库归因
 
-- 通过会话 `cwd` 向上找到 Git 根目录
-- 若无法找到 Git 根目录，则该会话保留 `未归因`
+- 总览和会话归因以 Codex 的 `projects / project_roots / threads.project_id` 为主，数据库只读；兼容桌面 `local-projects`、迁移 ID 映射、旧版保存根目录及会话归属。
+- 顺序：数据库显式归属 > 桌面显式归属 > 明确无项目 > 旧版 root hint > cwd 最长根路径匹配。相同根目录多个项目、显式已删除项目或无法匹配时，保留「无项目 / 未匹配」，不能用 Git 仓库替代项目。
+- `SessionAttribution.projectId / projectName` 是 Codex 项目身份；原 `repoId` 仅保留用于独立仓库统计。项目无需 Git；关联仓库未知时 `codeAvailable=false`，代码行数和提交显示「—」。
+- `projectAttributionVersion=1` 标记新快照口径；旧版仓库分组缓存不得重新作为项目表显示，失败回退也须清除旧项目分组。
 - 总览页项目概览保留所有已发现本地项目；当前周期无 Token、代码、提交和会话活动的项目显示 0 / `--`，不从表格中过滤。
 - 顶部 `今日代码改动` 使用自然日 Git `changedLines = additions + deletions`；次级说明 `较昨日同期` 使用昨日 `00:00` 到与当前相同时间进度的 Git 改动作为分母。例如今天 `15:30` 查看时，只统计昨天 `00:00 - 15:30`；不能拿完整昨日比较，也不能因为昨日 token 窗口为空而把昨日代码默认为 0。
 - 计费时间项目概览包含 `5H / 周额度 / 计费月` 三个周期；其中 `计费月` 的 Token、会话、成本和 Git 代码活动都使用 `billingMonthStartDay` 推导出的计费月起点，不能用自然月数据冒充。
@@ -266,3 +268,13 @@ npm run verify:quota
 - 如快照内存在 `resetEvents[]`，每个事件必须包含 `evidence` 和 `confirmation.status=confirmed`，且确认原因必须为 `stable-window-boundary`；事件证据必须至少具备高水位、边界贴近或稳定边界回看中的一种。
 - `estimatedValueBasisUsedPercent` 必须使用周期累计 `quotaEvidence.usedPercent`，不得回退到最近一次原始 `usedPercent`。
 - `estimatedFullValueUsd` 必须按 `estimatedSpentUsd / 周期累计已用百分比` 计算。
+
+## 历史详情持久化查询（v0.6.1-dev.1）
+
+- Companion 用户数据目录保存 `activity-index-<Codex目录摘要>.sqlite`，使用 WAL、文件主键及 `events_at` 时间索引；不写入 Codex 的 state 数据库。
+- `files` 仅含路径、size、mtime 和结构化会话统计；`events` 仅含所属文件、序号、事件时间和结构化 Token / 模型 / 成本数据，不保存 JSONL 原文或对话内容。
+- 文件签名不变时复用；变化时事务替换全部该文件事件，避免累计增量被重复叠加；归档移动、截断、删除均更新。读取期间变化的文件标记待重读。
+- 每次查询按 `at >= start AND at < end` 使用时间索引，首次须建立全历史索引；首末覆盖时间使用全索引，范围外事件不进入统计。
+- 索引版本关联 `CODEX_SESSION_CACHE_VERSION`；解析规则或价格变化提升版本后自动重建。首次可复用相同版本且签名一致的普通缓存，不改写普通缓存。
+- 同一目录并发索引刷新合并；目录不同使用不同数据库。Git 通过 `activity:code` 按项目 ID 查询，不接受任意路径；按项目 / 根目录 / 时间范围缓存 60 秒，强制读取跳过缓存。
+- 详情显示全部 Codex 项目，包括当前范围零用量项目；无项目的用量另列保留。共享同一 Git 仓库的项目独立统计 Token，仓库提交不可直接跨项目相加。

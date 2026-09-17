@@ -2445,8 +2445,8 @@ function OverviewPage({
                     </td>
                     <td>{formatCompactToken(row.tokenTotal)}</td>
                     <td>{formatUsd(row.apiCostUsd)}</td>
-                    <td>{formatNumber(row.codeChangedLines)} 行</td>
-                    <td>{row.commits}</td>
+                    <td>{row.codeAvailable === false ? "—" : `${formatNumber(row.codeChangedLines)} 行`}</td>
+                    <td>{row.codeAvailable === false ? "—" : row.commits}</td>
                     <td>{row.sessions}</td>
                     <td>{formatShortDate(row.recentActivityAt)}</td>
                   </tr>
@@ -3552,7 +3552,7 @@ function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["led
               <tr key={session.sessionId}>
                 <td>{formatShortDate(session.lastEventAt)}</td>
                 <td title={session.sessionId}><button className="activity-entry" onClick={() => setDetails({ id: session.sessionId })}>{formatSessionCode(session.sessionId)}</button></td>
-                <td title={session.cwd ?? undefined}>{session.repoId ?? session.cwd ?? "未归因"}</td>
+                <td title={session.cwd ?? undefined}>{session.projectName ?? "等待项目归属刷新"}</td>
                 <td>{session.dominantModel}</td>
                 <td>{formatCompactToken(session.tokens.total)}</td>
                 <td>{formatUsd(session.apiCostUsd)}</td>

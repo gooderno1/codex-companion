@@ -13,7 +13,7 @@ import { emptyTokens, roundTo, sumTokens } from "./metrics";
 const CODEX_HISTORY_LOOKBACK_DAYS = 60;
 const PRIMARY_CODEX_LIMIT_ID = "codex";
 // 缓存包含派生成本；更新定价或成本公式时必须使旧缓存失效。
-const CODEX_SESSION_CACHE_VERSION = 2;
+export const CODEX_SESSION_CACHE_VERSION = 2;
 
 export interface ObservedLimitWindow {
   observedAt?: string;
@@ -324,7 +324,7 @@ function normalizeRateSnapshot(
   };
 }
 
-async function parseSessionFile(filePath: string): Promise<SessionParseResult> {
+export async function parseSessionFile(filePath: string): Promise<SessionParseResult> {
   const fileName = path.basename(filePath, ".jsonl");
   const events: CodexTokenEvent[] = [];
   const quotaObservations: QuotaObservation[] = [];

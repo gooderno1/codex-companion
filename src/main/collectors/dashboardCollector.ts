@@ -1,3 +1,5 @@
+import { readCodexProjects, projectForSession, containsProjectPath, type CodexProjectCatalog } from "../codexProjects";
+import { UNATTRIBUTED_PROJECT } from "../../shared/activityDetails";
 import type {
   AppPreferences,
   BankedResetCreditObservation,
@@ -219,7 +221,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.6.0"
+      clientVersion: "0.6.1-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -515,7 +517,7 @@ async function collectOfficialUsageRateSnapshot(
     const snapshot = normalizeOfficialUsageSnapshot(
       await readCodexUsageRateLimits({
         codexHome,
-        clientVersion: "0.6.0"
+        clientVersion: "0.6.1-dev.1"
       })
     );
     // 成功响应缺少窗口时保持未观测，不能回填历史窗口。
@@ -1456,91 +1458,42 @@ function latestIsoValue(left: string | null, right: string | null) {
   return new Date(left).getTime() >= new Date(right).getTime() ? left : right;
 }
 
-function buildProjectOverviewPeriod(args: {
+export function buildProjectOverviewPeriod(args: {
   repoItems: Awaited<ReturnType<typeof collectGitData>>["items"];
+  catalog: CodexProjectCatalog;
   events: CodexTokenEvent[];
-  sessionRepoMap: Map<string, string>;
+  sessionProjectMap: Map<string, string>;
   startAt: Date;
   endAt: Date;
-  activityField:
-    | "today"
-    | "naturalWeek"
-    | "month"
-    | "fiveHour"
-    | "weekLimit"
-    | "billingMonth";
+  activityField: "today" | "naturalWeek" | "month" | "fiveHour" | "weekLimit" | "billingMonth";
 }): OverviewProjectItem[] {
-  const aggregateMap = new Map<
-    string,
-    {
-      tokenTotal: number;
-      apiCostUsd: number;
-      sessionIds: Set<string>;
-      latestTokenAt: string | null;
-    }
-  >();
-
+  const aggregates = new Map<string, { tokenTotal: number; apiCostUsd: number; sessions: Set<string>; latest: string | null }>();
   for (const event of args.events) {
-    const timestamp = new Date(event.timestamp);
-    if (timestamp < args.startAt || timestamp > args.endAt) {
-      continue;
-    }
-
-    const repoId = args.sessionRepoMap.get(event.sessionId);
-    if (!repoId) {
-      continue;
-    }
-
-    const current = aggregateMap.get(repoId) ?? {
-      tokenTotal: 0,
-      apiCostUsd: 0,
-      sessionIds: new Set<string>(),
-      latestTokenAt: null
-    };
-
-    current.tokenTotal += event.tokens.total;
-    current.apiCostUsd += event.apiCostUsd;
-    current.sessionIds.add(event.sessionId);
-    current.latestTokenAt = latestIsoValue(current.latestTokenAt, event.timestamp);
-    aggregateMap.set(repoId, current);
+    const at = new Date(event.timestamp);
+    if (at < args.startAt || at >= args.endAt) continue;
+    const id = args.sessionProjectMap.get(event.sessionId) ?? projectForSession(args.catalog, event);
+    const item = aggregates.get(id) ?? { tokenTotal: 0, apiCostUsd: 0, sessions: new Set<string>(), latest: null };
+    item.tokenTotal += event.tokens.total; item.apiCostUsd += event.apiCostUsd; item.sessions.add(event.sessionId);
+    item.latest = latestIsoValue(item.latest, event.timestamp); aggregates.set(id, item);
   }
-
-  return args.repoItems
-    .map((repo) => {
-      const aggregate = aggregateMap.get(repo.id);
-      const activity = repo.activity[args.activityField] ?? emptyCodeActivity();
-      const recentCommitAt =
-        repo.recentCommits.find((commit) => {
-          const authoredAt = new Date(commit.authoredAt);
-          return authoredAt >= args.startAt && authoredAt <= args.endAt;
-        })?.authoredAt ?? null;
-      const recentActivityAt = latestIsoValue(
-        aggregate?.latestTokenAt ?? null,
-        recentCommitAt
-      );
-
-      return {
-        id: repo.id,
-        name: repo.name,
-        tokenTotal: roundTo(aggregate?.tokenTotal ?? 0, 2),
-        apiCostUsd: roundTo(aggregate?.apiCostUsd ?? 0, 6),
-        codeChangedLines: activity.changedLines,
-        commits: activity.commits,
-        sessions: aggregate?.sessionIds.size ?? 0,
-        recentActivityAt
-      };
-    })
-    .sort((left, right) => {
-      if (right.tokenTotal !== left.tokenTotal) {
-        return right.tokenTotal - left.tokenTotal;
-      }
-
-      if (right.codeChangedLines !== left.codeChangedLines) {
-        return right.codeChangedLines - left.codeChangedLines;
-      }
-
-      return (right.recentActivityAt ?? "").localeCompare(left.recentActivityAt ?? "");
-    });
+  const projects = [...args.catalog.projects];
+  if (aggregates.has(UNATTRIBUTED_PROJECT)) projects.push({ id: UNATTRIBUTED_PROJECT, name: "无项目 / 未匹配", rootPaths: [] });
+  return projects.map(project => {
+    const item = aggregates.get(project.id);
+    // Git 仅补充项目关联仓库的活动；同一仓库中的多个 Codex 项目保持独立。
+    const repos = [...new Set(project.rootPaths.map(root => args.repoItems.filter(repo => containsProjectPath(repo.path, root)).sort((a, b) => b.path.length - a.path.length)[0]).filter(repo => repo !== undefined))];
+    const recentCommitAt = repos.flatMap(repo => repo.recentCommits).filter(commit => {
+      const at = new Date(commit.authoredAt);
+      return at >= args.startAt && at < args.endAt;
+    }).reduce<string | null>((latest, commit) => latestIsoValue(latest, commit.authoredAt), null);
+    return {
+      id: project.id, name: project.name, tokenTotal: roundTo(item?.tokenTotal ?? 0, 2), apiCostUsd: roundTo(item?.apiCostUsd ?? 0, 6),
+      codeAvailable: repos.length > 0,
+      codeChangedLines: repos.reduce((sum, repo) => sum + (repo.activity[args.activityField]?.changedLines ?? 0), 0),
+      commits: repos.reduce((sum, repo) => sum + (repo.activity[args.activityField]?.commits ?? 0), 0),
+      sessions: item?.sessions.size ?? 0, recentActivityAt: latestIsoValue(item?.latest ?? null, recentCommitAt)
+    };
+  }).sort((a, b) => b.tokenTotal - a.tokenTotal || (b.recentActivityAt ?? "").localeCompare(a.recentActivityAt ?? ""));
 }
 
 function buildPendingDashboardSnapshot(
@@ -1632,6 +1585,7 @@ function buildPendingDashboardSnapshot(
     generatedAt: now.toISOString(),
     generatedFrom: "pending",
     quotaDisplayVersion: 2,
+    projectAttributionVersion: 1,
     sourceHealth: {
       codexHome: preferences.codexHome,
       repoRoots: preferences.repoRoots,
@@ -2148,7 +2102,12 @@ async function collectDashboardSnapshot(
     }
   ];
 
-  const sessions = serializeSessions(codex.sessions, git.sessionRepoMap);
+  const projectCatalog = await readCodexProjects(codex.codexHome);
+  const sessionProjectMap = new Map(codex.sessions.map(session => [session.sessionId, projectForSession(projectCatalog, session)]));
+  const sessions = serializeSessions(codex.sessions, git.sessionRepoMap).map(session => {
+    const projectId = sessionProjectMap.get(session.sessionId) ?? UNATTRIBUTED_PROJECT;
+    return { ...session, projectId, projectName: projectCatalog.projects.find(project => project.id === projectId)?.name ?? "无项目 / 未匹配" };
+  });
   const modelMetrics = buildModelMetrics(codex.events, monthPeriod);
   const fiveHourModels = buildModelMetrics(codex.events, primaryPeriod).slice(0, 3);
   const weekLimitModels = buildModelMetrics(codex.events, weeklyLimitPeriod).slice(0, 3);
@@ -2216,24 +2175,27 @@ async function collectDashboardSnapshot(
       : [weeklyLimitPeriod];
   const naturalProjectDay = buildProjectOverviewPeriod({
     repoItems: git.items,
+    catalog: projectCatalog,
     events: codex.events,
-    sessionRepoMap: git.sessionRepoMap,
+    sessionProjectMap,
     startAt: todayStart,
     endAt: now,
     activityField: "today"
   });
   const naturalProjectWeek = buildProjectOverviewPeriod({
     repoItems: git.items,
+    catalog: projectCatalog,
     events: codex.events,
-    sessionRepoMap: git.sessionRepoMap,
+    sessionProjectMap,
     startAt: naturalWeekStart,
     endAt: now,
     activityField: "naturalWeek"
   });
   const naturalProjectMonth = buildProjectOverviewPeriod({
     repoItems: git.items,
+    catalog: projectCatalog,
     events: codex.events,
-    sessionRepoMap: git.sessionRepoMap,
+    sessionProjectMap,
     startAt: monthStart,
     endAt: now,
     activityField: "month"
@@ -2241,8 +2203,9 @@ async function collectDashboardSnapshot(
   const billingProjectFiveHour = fiveHourWindowRange
     ? buildProjectOverviewPeriod({
         repoItems: git.items,
+        catalog: projectCatalog,
         events: codex.events,
-        sessionRepoMap: git.sessionRepoMap,
+        sessionProjectMap,
         startAt: fiveHourWindowRange.start,
         endAt: fiveHourWindowRange.end,
         activityField: "fiveHour"
@@ -2251,8 +2214,9 @@ async function collectDashboardSnapshot(
   const billingProjectWeekLimit = secondaryWindowRange
     ? buildProjectOverviewPeriod({
         repoItems: git.items,
+        catalog: projectCatalog,
         events: codex.events,
-        sessionRepoMap: git.sessionRepoMap,
+        sessionProjectMap,
         startAt: secondaryWindowRange.start,
         endAt: secondaryWindowRange.end,
         activityField: "weekLimit"
@@ -2260,8 +2224,9 @@ async function collectDashboardSnapshot(
     : [];
   const billingProjectMonth = buildProjectOverviewPeriod({
     repoItems: git.items,
+    catalog: projectCatalog,
     events: codex.events,
-    sessionRepoMap: git.sessionRepoMap,
+    sessionProjectMap,
     startAt: billingMonthStart,
     endAt: now,
     activityField: "billingMonth"
@@ -2272,6 +2237,7 @@ async function collectDashboardSnapshot(
     generatedAt: now.toISOString(),
     generatedFrom: "live",
     quotaDisplayVersion: 2,
+    projectAttributionVersion: 1,
     sourceHealth: {
       codexHome: codex.codexHome,
       repoRoots: git.roots,
@@ -2479,7 +2445,7 @@ export class DashboardService {
     if (
       !force &&
       this.cachedSnapshot &&
-      Date.now() - this.cachedAt < 60_000 && canUseCurrentQuotaCache(this.cachedSnapshot)
+      Date.now() - this.cachedAt < 60_000 && this.cachedSnapshot.projectAttributionVersion === 1 && canUseCurrentQuotaCache(this.cachedSnapshot)
     ) {
       return this.cachedSnapshot;
     }
@@ -2505,7 +2471,7 @@ export class DashboardService {
 
   public async getCachedSnapshot(): Promise<DashboardSnapshot | null> {
     const cached = this.cachedSnapshot ?? await this.snapshotStore.read();
-    if (!cached || !canUseCurrentQuotaCache(cached)) {
+    if (!cached || cached.projectAttributionVersion !== 1 || !canUseCurrentQuotaCache(cached)) {
       return null;
     }
 
@@ -2571,6 +2537,10 @@ export class DashboardService {
       const message =
         error instanceof Error ? error.message : "未知采集异常";
       const normalized = clearCachedCurrentQuota(ensureRefreshTelemetry(cached));
+      if (normalized.projectAttributionVersion !== 1) {
+        normalized.overview = { ...normalized.overview, projectOverview: { natural: { day: [], week: [], month: [] }, billing: { fiveHour: [], weekLimit: [], billingMonth: [] } } };
+        normalized.ledger = { ...normalized.ledger, sessions: normalized.ledger.sessions.map(session => ({ ...session, projectId: undefined, projectName: "等待项目归属刷新" })) };
+      }
       const completedAt = new Date();
       const fallback: DashboardSnapshot = {
         ...normalized,
