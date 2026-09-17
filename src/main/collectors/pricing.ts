@@ -10,6 +10,14 @@ export interface PricingRate {
 }
 
 const RATE_TABLE: Record<string, PricingRate> = {
+  "gpt-6-astra": {
+    inputUsdPerMillion: 10,
+    cachedInputUsdPerMillion: 1,
+    outputUsdPerMillion: 50,
+    inputCreditsPerMillion: null,
+    cachedInputCreditsPerMillion: null,
+    outputCreditsPerMillion: null
+  },
   "gpt-5.5": {
     inputUsdPerMillion: 5,
     cachedInputUsdPerMillion: 0.5,
@@ -77,41 +85,23 @@ const RATE_TABLE: Record<string, PricingRate> = {
 };
 
 export const API_RATE_SOURCE =
-  "OpenAI API Pricing（openai.com/api/pricing，核对日期 2026-06-02）";
+  "OpenAI API 标准价估算（GPT-6 Astra：developers.openai.com/api/docs/models/gpt-6-astra，核对日期 2026-09-17；其他模型 2026-06-02；不含长上下文、缓存写入及服务档位调整）";
 export const CODEX_RATE_SOURCE =
   "OpenAI Codex rate card（help.openai.com/en/articles/20001106-codex-rate-card，核对日期 2026-06-02）";
 
 function normalizeModel(model: string): string {
-  return model.toLowerCase().replace(/\s+/g, "-");
+  return model.trim().toLowerCase().replace(/\s+/g, "-");
 }
 
 export function resolvePricingRate(model: string): PricingRate | null {
   const normalized = normalizeModel(model);
-  if (normalized in RATE_TABLE) {
+  if (Object.hasOwn(RATE_TABLE, normalized)) {
     return RATE_TABLE[normalized];
   }
 
-  if (normalized.startsWith("gpt-5.4")) {
-    return RATE_TABLE["gpt-5.4"];
-  }
-
-  if (normalized.startsWith("gpt-5.5")) {
-    return RATE_TABLE["gpt-5.5"];
-  }
-
-  if (normalized.startsWith("gpt-5.3-codex")) {
-    return RATE_TABLE["gpt-5.3-codex"];
-  }
-
-  if (normalized.startsWith("gpt-5.2")) {
-    return RATE_TABLE["gpt-5.2"];
-  }
-
-  if (normalized.startsWith("gpt-5")) {
-    return RATE_TABLE["gpt-5"];
-  }
-
-  return null;
+  // 只接受已知模型的日期快照，避免新型号、mini 或 pro 被套用到其他模型。
+  const baseModel = normalized.replace(/-\d{4}-\d{2}-\d{2}$/, "");
+  return Object.hasOwn(RATE_TABLE, baseModel) ? RATE_TABLE[baseModel] : null;
 }
 
 export function estimateApiCostUsd(
@@ -124,7 +114,7 @@ export function estimateApiCostUsd(
   }
 
   return (
-    (tokens.input / 1_000_000) * rate.inputUsdPerMillion +
+    (Math.max(0, tokens.input - tokens.cachedInput) / 1_000_000) * rate.inputUsdPerMillion +
     (tokens.cachedInput / 1_000_000) * rate.cachedInputUsdPerMillion +
     (tokens.output / 1_000_000) * rate.outputUsdPerMillion
   );
@@ -145,7 +135,7 @@ export function estimateCodexCredits(
   }
 
   return (
-    (tokens.input / 1_000_000) * rate.inputCreditsPerMillion +
+    (Math.max(0, tokens.input - tokens.cachedInput) / 1_000_000) * rate.inputCreditsPerMillion +
     (tokens.cachedInput / 1_000_000) * rate.cachedInputCreditsPerMillion +
     (tokens.output / 1_000_000) * rate.outputCreditsPerMillion
   );

@@ -38,6 +38,9 @@ jobs:
       - name: Verify overview comparisons
         run: npm run verify:comparisons
 
+      - name: Verify usage and pricing regressions
+        run: npm run verify:usage
+
       - name: Verify startup settings
         run: npm run verify:startup
 

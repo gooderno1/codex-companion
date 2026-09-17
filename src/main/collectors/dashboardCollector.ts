@@ -216,7 +216,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.5.2"
+      clientVersion: "0.5.3-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -509,7 +509,7 @@ async function collectOfficialUsageRateSnapshot(
     const snapshot = normalizeOfficialUsageSnapshot(
       await readCodexUsageRateLimits({
         codexHome,
-        clientVersion: "0.5.2"
+        clientVersion: "0.5.3-dev.1"
       })
     );
     return snapshot.primary || snapshot.secondary ? snapshot : null;
@@ -760,7 +760,7 @@ function resolveResetAwareQuotaCycleBounds(
   };
 }
 
-function buildQuotaWindowUsage(args: {
+export function buildQuotaWindowUsage(args: {
   latestRateSnapshot: LatestRateSnapshot | null;
   events: CodexTokenEvent[];
   quotaObservations: QuotaObservation[];
@@ -863,7 +863,24 @@ function buildQuotaWindowUsage(args: {
   }
 
   for (const observation of quotaObservationEntries) {
-    const bucket = getBucket(observation.observedAt);
+    // 核心包已确认的 reset 可能早于首条新窗口记录。旧窗口的延迟观测
+    // 仍归属于 reset 前的周期，不能仅按写入时间污染新周期的高水位。
+    const observedMs = new Date(observation.observedAt).getTime();
+    const observedEndMs = new Date(observation.resetsAt ?? "").getTime();
+    const closingReset = boundaryResetEvents.find((event) => {
+      const beforeDistance = Math.abs(
+        observedEndMs - new Date(event.beforeWindowResetsAt ?? "").getTime()
+      );
+      const afterDistance = Math.abs(
+        observedEndMs - new Date(event.afterCycleEndAt).getTime()
+      );
+      return observedMs >= new Date(event.boundaryAt).getTime() &&
+        beforeDistance <= QUOTA_RESET_BOUNDARY_SNAP_WINDOW_MS &&
+        beforeDistance < afterDistance;
+    });
+    const bucket = getBucket(closingReset
+      ? new Date(new Date(closingReset.boundaryAt).getTime() - 1).toISOString()
+      : observation.observedAt);
     if (!bucket) {
       continue;
     }
