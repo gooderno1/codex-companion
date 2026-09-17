@@ -33,6 +33,7 @@
 .activity-results-table { max-height: 520px; overflow: auto; }
 .activity-dialog table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .activity-dialog th { text-align: left; position: sticky; top: 0; z-index: 1; background: #f4f8ff; color: var(--text-secondary); font-weight: 500; white-space: nowrap; }
+.activity-dialog th.sort-active { background: #ebf4ff; color: var(--accent-blue); }
 .activity-dialog td, .activity-dialog th { padding: 11px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
 .activity-dialog td:not(:first-child) { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .activity-dialog td:first-child { overflow-wrap: anywhere; }

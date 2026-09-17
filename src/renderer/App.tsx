@@ -1,3 +1,5 @@
+import { nextTableSort, sortTableRows, type TableSortState } from "../shared/tableSort";
+import { TableSortHeader } from "./components/TableSortHeader";
 import { formatCompactToken, exactTokenLabel } from "../shared/tokenFormat";
 import React, {
   useDeferredValue,
@@ -3512,8 +3514,19 @@ function ModelContributionCard({
   );
 }
 
+type SessionSortKey = "recent" | "name" | "project" | "model" | "token" | "cost";
+
 function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["ledger"]["sessions"] }) {
   const [details, setDetails] = useState<{ id?: string } | null>(null);
+  const [sort, setSort] = useState<TableSortState<SessionSortKey>>({ key: "recent", direction: "desc" });
+  const sortedSessions = useMemo(() => sortTableRows(sessions, sort, (row, key) => {
+    if (key === "name") return row.name ?? row.sessionId;
+    if (key === "project") return row.projectName;
+    if (key === "model") return row.dominantModel;
+    if (key === "token") return row.tokens.total;
+    if (key === "cost") return row.apiCostUsd;
+    return row.lastEventAt ? Date.parse(row.lastEventAt) : null;
+  }, row => row.sessionId), [sessions, sort]);
   return (
     <SectionCard className="ledger-session-card">
       <div className="ledger-card-head">
@@ -3524,16 +3537,11 @@ function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["led
         <table className="project-table session-table">
           <thead>
             <tr>
-              <th>最近时间</th>
-              <th>会话名称 / ID</th>
-              <th>Codex 项目</th>
-              <th>主模型</th>
-              <th>Token</th>
-              <th>API 等价成本</th>
+              {([ ["recent", "最近时间"], ["name", "会话名称 / ID"], ["project", "Codex 项目"], ["model", "主模型"], ["token", "Token"], ["cost", "API 等价成本"] ] as const).map(([key, label]) => <TableSortHeader key={key} label={label} sortKey={key} sort={sort} onSort={key => setSort(current => nextTableSort(current, key))} />)}
             </tr>
           </thead>
           <tbody>
-            {sessions.slice(0, 8).map((session) => (
+            {sortedSessions.slice(0, 8).map((session) => (
               <tr key={session.sessionId}>
                 <td>{formatShortDate(session.lastEventAt)}</td>
                 <td className="session-name-cell"><button className="activity-entry" title={session.name ?? session.sessionId} onClick={() => setDetails({ id: session.sessionId })}>{session.name ?? formatSessionCode(session.sessionId)}</button>{session.name && <small title={session.sessionId}>{formatSessionCode(session.sessionId)}</small>}</td>
