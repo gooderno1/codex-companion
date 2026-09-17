@@ -22,6 +22,7 @@ export interface ActivityTotals {
   days: ActivitySlice[];
 }
 export interface ActivitySession extends ActivityTotals {
+  name: string | null;
   sessionId: string;
   projectId: string;
   cwd: string | null;

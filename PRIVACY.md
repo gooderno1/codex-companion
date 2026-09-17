@@ -8,6 +8,7 @@
 - `token_count`、`turn_context.model`、`cwd`、`rate_limits` 等统计相关字段
 - `~/.codex/auth.json` 中的访问令牌与账号 ID；仅在主进程内存中用于官方 Usage 请求鉴权
 - Codex 保存的本地项目名称、根目录、项目迁移 ID 和会话项目归属；只读 state SQLite 的项目表及归属字段，和桌面状态文件的项目相关字段
+- Codex 自动生成或用户修改的会话名称：只读 `threads.id / name` 和 `session_index.jsonl` 的 `id / thread_name / updated_at`；不使用可能包含初始任务正文的 `threads.title`。名称显示在本地列表和详情中，可随主快照保存；不写入历史 Token 索引。
 - 本地 Git 仓库的提交历史、增删行统计、远端地址与默认分支
 
 ## 本地存储的内容

@@ -1,3 +1,4 @@
+import { formatCompactToken, exactTokenLabel } from "../shared/tokenFormat";
 import React, {
   useDeferredValue,
   useEffect,
@@ -170,22 +171,6 @@ function resolveNotificationKeyFromHash(): string | null {
 
 function formatNumber(value: number) {
   return value.toLocaleString("zh-CN");
-}
-
-function formatCompactToken(value: number | null) {
-  if (value === null) {
-    return "未观测";
-  }
-
-  if (value >= 100_000_000) {
-    return `${(value / 100_000_000).toFixed(value >= 1_000_000_000 ? 0 : 1)} 亿`;
-  }
-
-  if (value >= 10_000) {
-    return `${(value / 10_000).toFixed(value >= 100_000 ? 0 : 1)} 万`;
-  }
-
-  return formatNumber(Math.round(value));
 }
 
 function formatUsd(value: number | null) {
@@ -3354,7 +3339,7 @@ function PeriodInsightCard({
       icon: "session" as const,
       label: "单次峰值",
       value: analysis.peakSession ? formatCompactToken(analysis.peakSession.tokens.total) : "--",
-      detail: analysis.peakSession ? `会话 ${formatSessionCode(analysis.peakSession.sessionId)}` : "暂无会话样本"
+      detail: analysis.peakSession ? `会话 ${analysis.peakSession.name ?? formatSessionCode(analysis.peakSession.sessionId)}` : "暂无会话样本"
     },
     {
       icon: "month" as const,
@@ -3540,8 +3525,8 @@ function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["led
           <thead>
             <tr>
               <th>最近时间</th>
-              <th>会话 ID</th>
-              <th>项目 / 仓库</th>
+              <th>会话名称 / ID</th>
+              <th>Codex 项目</th>
               <th>主模型</th>
               <th>Token</th>
               <th>API 等价成本</th>
@@ -3551,10 +3536,10 @@ function SessionAttributionCard({ sessions }: { sessions: DashboardSnapshot["led
             {sessions.slice(0, 8).map((session) => (
               <tr key={session.sessionId}>
                 <td>{formatShortDate(session.lastEventAt)}</td>
-                <td title={session.sessionId}><button className="activity-entry" onClick={() => setDetails({ id: session.sessionId })}>{formatSessionCode(session.sessionId)}</button></td>
+                <td className="session-name-cell"><button className="activity-entry" title={session.name ?? session.sessionId} onClick={() => setDetails({ id: session.sessionId })}>{session.name ?? formatSessionCode(session.sessionId)}</button>{session.name && <small title={session.sessionId}>{formatSessionCode(session.sessionId)}</small>}</td>
                 <td title={session.cwd ?? undefined}>{session.projectName ?? "等待项目归属刷新"}</td>
                 <td>{session.dominantModel}</td>
-                <td>{formatCompactToken(session.tokens.total)}</td>
+                <td title={exactTokenLabel(session.tokens.total)}>{formatCompactToken(session.tokens.total)}</td>
                 <td>{formatUsd(session.apiCostUsd)}</td>
               </tr>
             ))}

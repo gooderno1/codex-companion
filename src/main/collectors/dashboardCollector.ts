@@ -1,3 +1,4 @@
+import { readCodexSessionNames } from "../codexSessionNames";
 import { readCodexProjects, projectForSession, containsProjectPath, type CodexProjectCatalog } from "../codexProjects";
 import { UNATTRIBUTED_PROJECT } from "../../shared/activityDetails";
 import type {
@@ -221,7 +222,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.6.1"
+      clientVersion: "0.6.2-dev.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -517,7 +518,7 @@ async function collectOfficialUsageRateSnapshot(
     const snapshot = normalizeOfficialUsageSnapshot(
       await readCodexUsageRateLimits({
         codexHome,
-        clientVersion: "0.6.1"
+        clientVersion: "0.6.2-dev.1"
       })
     );
     // 成功响应缺少窗口时保持未观测，不能回填历史窗口。
@@ -2102,11 +2103,11 @@ async function collectDashboardSnapshot(
     }
   ];
 
-  const projectCatalog = await readCodexProjects(codex.codexHome);
+  const [projectCatalog, sessionNames] = await Promise.all([readCodexProjects(codex.codexHome), readCodexSessionNames(codex.codexHome)]);
   const sessionProjectMap = new Map(codex.sessions.map(session => [session.sessionId, projectForSession(projectCatalog, session)]));
   const sessions = serializeSessions(codex.sessions, git.sessionRepoMap).map(session => {
     const projectId = sessionProjectMap.get(session.sessionId) ?? UNATTRIBUTED_PROJECT;
-    return { ...session, projectId, projectName: projectCatalog.projects.find(project => project.id === projectId)?.name ?? "无项目 / 未匹配" };
+    return { ...session, name: sessionNames.get(session.sessionId) ?? null, projectId, projectName: projectCatalog.projects.find(project => project.id === projectId)?.name ?? "无项目 / 未匹配" };
   });
   const modelMetrics = buildModelMetrics(codex.events, monthPeriod);
   const fiveHourModels = buildModelMetrics(codex.events, primaryPeriod).slice(0, 3);

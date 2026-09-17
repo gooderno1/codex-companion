@@ -271,6 +271,7 @@ export interface ModelMetric {
 }
 
 export interface SessionAttribution {
+  name?: string | null;
   projectId?: string;
   projectName?: string;
   sessionId: string;

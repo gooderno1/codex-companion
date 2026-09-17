@@ -1,7 +1,7 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.6.1`
+- 当前适用版本：`v0.6.2-dev.1`
 - 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
 
 ## 总览页
@@ -68,7 +68,7 @@
 | 周额度账本 | `WeeklyLedgerCard` | 账本页模块 | `weeklyPeriods` | `snapshot.ledger.weeklyPeriods`、`period.quotaEvidence` |
 | 模型贡献 | `ModelContributionCard` | 账本页模块 | `modelPeriod`、`modelSort` | `snapshot.ledger.analysis.*.models` |
 | 模型表头排序 | `ModelSortHeader` | 账本页模块 | `model / share / token / cost / events`、`asc / desc` | 本地页面状态 |
-| 会话归因 | `SessionAttributionCard` | 账本页模块 | 最近 8 条会话、查看详情、会话 ID 直达 | `snapshot.ledger.sessions` |
+| 会话归因 | `SessionAttributionCard` | 账本页模块 | 最近 8 条会话名称 / ID、查看详情、会话名称直达 | `snapshot.ledger.sessions`；`readCodexSessionNames` 独立读取名称 |
 | 项目 / 会话详情 | `ActivityDetails` | 模态详情页 | 时间范围、搜索、排序、每页 25 项、对象选择、关联会话、模型与日用量 | `activity:details` / `ActivityDetailsService` / `ActivityIndex`，Codex 项目映射与 SQLite 时间索引；`activity:code` 单独按需读取 Git |
 | 账本页一致性校验 | `scripts/verify-ledger-page.mjs` | 工程校验 | `npm run verify:ledger` | 设计图、UI Contract、数据合同、采集器和渲染层 |
 
@@ -139,3 +139,5 @@
 - 设置页当前按单列卡片流展示新用户使用路径、Codex 数据目录、仓库根目录、计费口径、Git 与授权、刷新历史摘要和本机数据边界；刷新历史在设置页只显示最近 5 条摘要，完整记录进入 `RefreshHistoryPage` 分页查看，并提供返回设置入口。
 - 挂件入口不再放在主页面工具栏，保持默认关闭策略。
 - 页面提交前必须用真实 Electron 窗口截图验证 `1360 x 900` 和 `1080 x 720`，截图通过后再进入 Git 提交。
+
+- `src/shared/tokenFormat.ts` 供总览、账本和 `ActivityDetails` 共用 Token 自动单位，详情使用完整数值提示。

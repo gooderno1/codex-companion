@@ -26,7 +26,7 @@
 .activity-scroll { flex: 1; min-height: 0; overflow: auto; padding: 18px 24px; }
 .activity-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
 .activity-summary > div { background: white; border: 1px solid var(--line-soft); border-radius: 12px; padding: 14px 18px; }
-.activity-summary span { display: block; font-size: 12px; color: var(--text-tertiary); }
+.activity-summary > div > span { display: block; font-size: 12px; color: var(--text-tertiary); }
 .activity-summary strong { display: block; font-size: 24px; margin-top: 5px; font-variant-numeric: tabular-nums; }
 .activity-content { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; gap: 16px; }
 .activity-results, .activity-object { background: white; border: 1px solid var(--line-soft); border-radius: 12px; min-width: 0; }
@@ -63,3 +63,7 @@
 .activity-entry { cursor: pointer; text-align: left; color: var(--accent-blue); padding: 0; }
 @media (max-width: 1000px) { .activity-content { grid-template-columns: 1fr; } .activity-results-table { max-height: 310px; } .activity-object { max-height: none; } .activity-summary strong { font-size: 20px; } }
 @media (max-width: 700px) { .activity-dialog { width: calc(100vw - 12px); height: calc(100vh - 12px); } .activity-header, .activity-controls, .activity-scroll { padding-left: 14px; padding-right: 14px; } .activity-summary { gap: 6px; } .activity-summary > div { padding: 10px; } .activity-summary strong { font-size: 16px; } }
+
+.session-name-cell .activity-entry { display: block; max-width: 270px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-name-cell small { display: block; margin-top: 3px; color: var(--text-tertiary); font-size: 10px; }
+.activity-session-id { overflow-wrap: anywhere; }

@@ -1,3 +1,4 @@
+import { readCodexSessionNames } from "./codexSessionNames";
 import type { ActivityDetailsRequest, ActivityDetailsResponse, ActivityProject, ActivitySession, ActivitySlice, ActivityTotals } from "../shared/activityDetails";
 import type { CodeActivity } from "../shared/contracts";
 import { type CodexTokenEvent, type CollectedCodexData } from "./collectors/codexCollector";
@@ -62,7 +63,7 @@ export function aggregateActivityDetails(codex: Pick<CollectedCodexData, "events
     let session = sessions.get(event.sessionId);
     if (!session) {
       const meta = metadata.get(event.sessionId);
-      session = { ...totals(), sessionId: event.sessionId, projectId, cwd: meta?.cwd ?? event.cwd, startedAt: meta?.startedAt ?? null };
+      session = { ...totals(), name: null, sessionId: event.sessionId, projectId, cwd: meta?.cwd ?? event.cwd, startedAt: meta?.startedAt ?? null };
       sessions.set(event.sessionId, session);
       project.sessions++;
     }
@@ -101,10 +102,11 @@ export class ActivityDetailsService {
     const preferences = await this.settings.read();
     let index = this.indexes.get(preferences.codexHome);
     if (!index) { index = new ActivityIndex(this.directory, preferences.codexHome, this.standardCache); this.indexes.set(preferences.codexHome, index); }
-    const [stats, catalog] = await Promise.all([index.refresh(), readCodexProjects(preferences.codexHome)]);
+    const [stats, catalog, names] = await Promise.all([index.refresh(), readCodexProjects(preferences.codexHome), readCodexSessionNames(preferences.codexHome)]);
     const indexedAt = performance.now();
     const codex = await index.query(range);
     const result = aggregateActivityDetails(codex, catalog, range, new Date().toISOString());
+    for (const session of result.sessions) session.name = names.get(session.sessionId) ?? null;
     result.coverage = codex.coverage;
     result.warnings = catalog.warnings;
     result.performance = { ...stats, indexMs: Math.round(indexedAt - started), queryMs: Math.round(performance.now() - indexedAt) };
