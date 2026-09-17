@@ -1,5 +1,13 @@
 # DEVELOPMENT LOG
 
+## [2026-09-17] v0.6.2 release: 发布会话名称、Token 单位与表头排序
+
+- 开发原因：用户要求将已验证的名称、单位和排序改动发布为正式 Release，供升级测试。
+- 发布范围：包含 `v0.6.2-dev.1` 与 `v0.6.2-dev.2`，无排除版本；核心包保持 `@lifeinhand/codex-usage-core@0.2.0-dev.3`。
+- 实现方式：统一应用 / clientVersion 为 `0.6.2`，同步 README、数据契约、组件映射和 Release notes；由正式 tag 工作流生成安装包、blockmap、latest.yml 和 SHA256 清单。
+- 当前结果：准备发布已通过真实界面与开发 CI 验证的改动，不修改用量核心和数据库统计口径。
+- 验证方式：正式版完整构建、`verify:activity`、`verify:updater`、`verify:signing-policy` 与 `git diff --check` 通过；更新器辅助进程测试在支持 wscript 的非隔离环境补验通过。远端工作流与资产校验结果在发布后回写。
+
 ## [2026-09-17] v0.6.2-dev.2 feat(activity): 表头双向排序与完整结果排序
 
 - 开发原因：用户需要点击 Token 等字段升序 / 降序查看，现有详情只能通过下拉框使用固定方向，账本会话表缺少排序入口。
