@@ -23,7 +23,19 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 
 - npm run build 与定价、用量、历史详情 / SQLite、更新器、通知、同期、开机自启、签名政策回归通过；git diff --check 通过。
 - 合成样例：100 万输入含 80 万缓存、10 万输出，Sol 为 USD 3.12 / 78 credits，Astra 为 USD 7.80 / 195 credits；旧文件重估后 Token 总量守恒。
-- 正式 CI、Windows 打包与四项资产核验结果在发布完成后补记；在这些门禁通过前，草稿不公开。
+- 正式提交 5c821d3 的 CI 35422843063 与 Windows Package 35422864790 均成功；安装包产品名 / 版本正确，Authenticode 为 NotSigned。
+- 四项工作流产物、GitHub digest、匿名公开下载的 SHA256 全部一致；latest.yml 版本、路径、大小、SHA512 及 stable 更新入口匹配。
+
+### Release 资产校验
+
+- Codex.Companion.Setup.0.6.3.exe：102992327 bytes；SHA256 4991240dcce246dc2a1c9830e906f624c4890debe4cc5b8a161027c4f192dd2a。
+- Codex.Companion.Setup.0.6.3.exe.blockmap：108435 bytes；SHA256 e5aa1b8c2347e1eeab5d6cbb10e44456ae38b4a7de20cffdecfd3ae8991dd984。
+- latest.yml：359 bytes；SHA256 42a52643ea10a58bf6ec5094cf2f88ffec8afbf3c138b45808f9c7cbca8ba15c。
+- SHA256SUMS.txt：99 bytes；SHA256 fb68a7caa7428688f68c5e0d4f5dd22bbb24609b9eebe6ec593a8959a242d661。
+
+- v0.6.3 已公开为 stable Latest，Release id 391921184；补齐同源资产后清理本次重复草稿 391921182。
+- 发布后记录 v0.6.3-dev.5 未包含在安装包中：仅补记发布结果，未改 tag 或重新打包。
+- 生产依赖审计无已知漏洞；开发依赖审计有 4 项既有告警（2 高、1 中、1 低），本次未升级依赖。
 
 ### 升级注意事项与证据边界
 

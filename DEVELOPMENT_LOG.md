@@ -1,5 +1,17 @@
 # DEVELOPMENT LOG
 
+## [2026-09-19] v0.6.3-dev.5 docs(release): 记录模型定价正式发布与公开资产验证
+
+- 开发原因：完成自动计费维护的正式发布验收，保留可审计的准确提交、工作流及下载结果。
+- 实现方式：v0.6.3 tag 固定提交 5c821d3b30f99d86edb3473069eff01be1ad914e；CI 35422843063 与 Windows Package 35422864790 均成功。
+- 当前结果：v0.6.3 已于 2026-09-19T05:09:23Z 公开为 stable Latest，Release id 391921184；四项资产来自同一次打包，重复草稿 391921182 已清理，未移动 tag。
+- 资产结果：安装包产品名 Codex Companion、产品版本 0.6.3、签名 NotSigned；102992327 bytes，SHA256 4991240dcce246dc2a1c9830e906f624c4890debe4cc5b8a161027c4f192dd2a。
+- 验证方式：工作流产物、GitHub digest 与四项匿名下载 SHA256 全部一致；latest.yml 的版本、路径、大小、SHA512 匹配，stable 更新入口内容相同。
+- 验证方式：开发实现的构建和全部发布专项通过；本次补记仅变更文档，执行 npm run build 和 git diff --check。
+- 遗留边界：标准短上下文快照重估不能还原缺失的缓存写入、实际档位、地区及完整请求上下文；Cyber 长上下文来源冲突仍保持 pending，Rosalind 未来 API 价未启用。
+- 遗留问题：生产依赖 npm audit --omit=dev 无已知漏洞；完整开发依赖审计存在 4 项既有告警（2 高、1 中、1 低），涉及 xmldom、browserslist、baseline-browser-mapping、joi；本次未扩展为依赖升级。
+- 版本说明：dev.5 为发布后资产补记，不在 v0.6.3 安装包的 tag 提交内；不改变应用版本或再次发版。
+
 ## [2026-09-19] v0.6.3-dev.4 fix(pricing): 补齐官方模型价格并重估旧缓存
 
 - 开发原因：每日价格任务首次核查发现 v0.6.2 遗漏 GPT-5.6、Daybreak、GPT-5.1 Codex 系列 API 价及 Astra credits；这是应用漏表，不声称官网当日调价。
@@ -13,7 +25,7 @@
 - 验证样例：100 万输入含 80 万缓存、10 万输出，Sol 为 USD 3.12 / 78 credits，Astra 为 USD 7.80 / 195 credits；旧索引累计 180 Token 重算 USD 0.0018 / 0.045 credits，Token 不变，下次恢复复用。
 - 当前结果：本机最终构建和定价回归通过；仅修改价格、缓存、相关契约及验证，未实现额度估算页面。核心远端最新仍为 @lifeinhand/codex-usage-core@0.2.0-dev.3，本次未修改共享解析或 reset。
 - 验证方式：npm run build、verify:usage、verify:activity、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check 通过；回归仅使用合成数据。
-- 发布状态：目标正式版本 v0.6.3；正式 tag、CI 和资产结果将在发布完成后补记。定时任务检查差异与续接状态只保存在 local_dev_work/model-pricing-watch。
+- 发布状态：v0.6.3 已正式发布；准确 tag、CI 与资产结果见本文件最新发布补记。定时任务检查差异与续接状态只保存在 local_dev_work/model-pricing-watch。
 
 ## [2026-09-18] v0.6.3-dev.3 docs(automation): 将每日计费核查迁入项目专用任务
 
