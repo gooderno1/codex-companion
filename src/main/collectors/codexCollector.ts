@@ -13,7 +13,7 @@ import { emptyTokens, roundTo, sumTokens } from "./metrics";
 const CODEX_HISTORY_LOOKBACK_DAYS = 60;
 const PRIMARY_CODEX_LIMIT_ID = "codex";
 // 缓存包含派生成本；更新定价或成本公式时必须使旧缓存失效。
-export const CODEX_SESSION_CACHE_VERSION = 2;
+export const CODEX_SESSION_CACHE_VERSION = 3;
 
 export interface ObservedLimitWindow {
   observedAt?: string;
@@ -45,6 +45,8 @@ export interface CodexTokenEvent {
   tokens: TokenBreakdown;
   apiCostUsd: number;
   creditsEstimate: number;
+  apiPricingStatus?: "priced" | "unpriced";
+  creditPricingStatus?: "priced" | "unpriced";
 }
 
 export interface CodexSessionSummary {
@@ -417,8 +419,11 @@ export async function parseSessionFile(filePath: string): Promise<SessionParseRe
     }
 
     const model = currentModel;
-    const eventApiCost = roundTo(estimateApiCostUsd(model, tokenBreakdown), 6);
-    const eventCredits = roundTo(estimateCodexCredits(model, tokenBreakdown), 6);
+    const apiEstimate = estimateApiCostUsd(model, tokenBreakdown);
+    const creditEstimate = estimateCodexCredits(model, tokenBreakdown);
+    // 数值只累计已知部分；未知价格由独立状态表示，不是免费。
+    const eventApiCost = roundTo(apiEstimate ?? 0, 6);
+    const eventCredits = roundTo(creditEstimate ?? 0, 6);
     events.push({
       sessionId,
       timestamp,
@@ -426,7 +431,9 @@ export async function parseSessionFile(filePath: string): Promise<SessionParseRe
       model,
       tokens: tokenBreakdown,
       apiCostUsd: eventApiCost,
-      creditsEstimate: eventCredits
+      creditsEstimate: eventCredits,
+      apiPricingStatus: apiEstimate === null ? "unpriced" : "priced",
+      creditPricingStatus: creditEstimate === null ? "unpriced" : "priced"
     });
 
     tokens = sumTokens(tokens, tokenBreakdown);

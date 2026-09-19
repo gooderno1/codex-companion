@@ -64,7 +64,8 @@ import {
 import { collectGitData } from "./gitCollector";
 import {
   API_RATE_SOURCE,
-  CODEX_RATE_SOURCE
+  CODEX_RATE_SOURCE,
+  PRICING_CATALOG_VERSION
 } from "./pricing";
 import {
   emptyCodeActivity,
@@ -222,7 +223,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.6.2"
+      clientVersion: "0.6.3"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -518,7 +519,7 @@ async function collectOfficialUsageRateSnapshot(
     const snapshot = normalizeOfficialUsageSnapshot(
       await readCodexUsageRateLimits({
         codexHome,
-        clientVersion: "0.6.2"
+        clientVersion: "0.6.3"
       })
     );
     // 成功响应缺少窗口时保持未观测，不能回填历史窗口。
@@ -1587,6 +1588,7 @@ function buildPendingDashboardSnapshot(
     generatedFrom: "pending",
     quotaDisplayVersion: 2,
     projectAttributionVersion: 1,
+    pricingCatalogVersion: PRICING_CATALOG_VERSION,
     sourceHealth: {
       codexHome: preferences.codexHome,
       repoRoots: preferences.repoRoots,
@@ -2239,6 +2241,7 @@ async function collectDashboardSnapshot(
     generatedFrom: "live",
     quotaDisplayVersion: 2,
     projectAttributionVersion: 1,
+    pricingCatalogVersion: PRICING_CATALOG_VERSION,
     sourceHealth: {
       codexHome: codex.codexHome,
       repoRoots: git.roots,
@@ -2446,7 +2449,7 @@ export class DashboardService {
     if (
       !force &&
       this.cachedSnapshot &&
-      Date.now() - this.cachedAt < 60_000 && this.cachedSnapshot.projectAttributionVersion === 1 && canUseCurrentQuotaCache(this.cachedSnapshot)
+      Date.now() - this.cachedAt < 60_000 && this.cachedSnapshot.pricingCatalogVersion === PRICING_CATALOG_VERSION && this.cachedSnapshot.projectAttributionVersion === 1 && canUseCurrentQuotaCache(this.cachedSnapshot)
     ) {
       return this.cachedSnapshot;
     }
@@ -2472,7 +2475,7 @@ export class DashboardService {
 
   public async getCachedSnapshot(): Promise<DashboardSnapshot | null> {
     const cached = this.cachedSnapshot ?? await this.snapshotStore.read();
-    if (!cached || cached.projectAttributionVersion !== 1 || !canUseCurrentQuotaCache(cached)) {
+    if (!cached || cached.pricingCatalogVersion !== PRICING_CATALOG_VERSION || cached.projectAttributionVersion !== 1 || !canUseCurrentQuotaCache(cached)) {
       return null;
     }
 
@@ -2531,7 +2534,7 @@ export class DashboardService {
       return snapshot;
     } catch (error) {
       const cached = await this.snapshotStore.read();
-      if (!cached) {
+      if (!cached || cached.pricingCatalogVersion !== PRICING_CATALOG_VERSION) {
         throw error;
       }
 

@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "2026-09-19",
+  "verifiedAt": "2026-09-19",
+  "effectiveFrom": null,
+  "effectiveTimeBasis": "unknown",
+  "mode": "standard-snapshot-revaluation",
+  "perTokens": 1000000,
+  "sources": [
+    {
+      "url": "https://learn.chatgpt.com/docs/pricing",
+      "verifiedAt": "2026-09-19",
+      "evidence": "#### Token rates\n\nThe token rates below are quoted in credits per million input tokens, cached\ninput tokens, and output tokens. [Learn more about\ntokens](https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them).\n\nFast mode applies a 2.5x multiplier to Astra's Standard rate.\n\nA small subset of Enterprise customers should continue using the legacy rate\ncard until we migrate you to the new token-based pricing. For more information,\n[contact OpenAI\nsales](https://chatgpt.com/contact-sales?utm_internal_source=openai_developers_codex).\n\n\n\n  <table>\n    <thead>\n      <tr>\n        <th scope=\"col\">Credits per 1M tokens</th>\n        <th scope=\"col\" style=\"text-align:center\">\n          Input Tokens\n        </th>\n        <th scope=\"col\" style=\"text-align:center\">\n          Cached input tokens\n        </th>\n        <th scope=\"col\" style=\"text-align:center\">\n          Output Tokens\n        </th>\n      </tr>\n    </thead>\n    <tbody>\n      <tr>\n        <td>GPT-6 Astra</td>\n        <td style=\"text-align:center\">250 credits</td>\n        <td style=\"text-align:center\">25 credits</td>\n        <td style=\"text-align:center\">1,250 credits</td>\n      </tr>\n      <tr>\n        <td>GPT-5.6 Sol</td>\n        <td style=\"text-align:center\">100 credits</td>\n        <td style=\"text-align:center\">10 credits</td>\n        <td style=\"text-align:center\">500 credits</td>\n      </tr>\n      <tr>\n        <td>Daybreak Blue</td>\n        <td style=\"text-align:center\">100 credits</td>\n        <td style=\"text-align:center\">10 credits</td>\n        <td style=\"text-align:center\">500 credits</td>\n      </tr>\n      <tr>\n        <td>Daybreak Red</td>\n        <td style=\"text-align:center\">312.5 credits</td>\n        <td style=\"text-align:center\">31.25 credits</td>\n        <td style=\"text-align:center\">1875 credits</td>\n      </tr>\n      <tr>\n        <td>GPT-5.6 Terra</td>\n        <td style=\"text-align:center\">50 credits</td>\n        <td style=\"text-align:center\">5 credits</td>\n        <td style=\"text-align:center\">300 credits</td>\n      </tr>\n      <tr>\n        <td>GPT-5.6 Luna</td>\n        <td style=\"text-align:center\">5 credits</td>\n        <td style=\"text-align:center\">0.5 credits</td>\n        <td style=\"text-align:center\">30 credits</td>\n      </tr>\n      <tr>\n        <td>GPT-Rosalind-Research</td>\n        <td style=\"text-align:center\">125 credits</td>\n        <td style=\"text-align:center\">12.5 credits</td>\n        <td style=\"text-align:center\">625 credits</td>\n      </tr>\n      <tr>\n        <td>GPT-5.5</td>\n        <td style=\"text-align:center\">125 credits</td>\n        <td style=\"text-align:center\">12.50 credits</td>\n        <td style=\"text-align:center\">750 credits</td>\n      </tr>\n      <tr>\n        <td>GPT-5.4</td>\n        <td style=\"text-align:center\">62.50 credits</td>\n        <td style=\"text-align:center\">6.250 credits</td>\n        <td style=\"text-align:center\">375 credits</td>\n      </tr>\n      <tr>\n        <td>GPT-5.4 mini</td>\n        <td style=\"text-align:center\">18.75 credits</td>\n        <td style=\"text-align:center\">1.875 credits</td>\n        <td style=\"text-align:center\">113 credits</td>\n      </tr>\n      <tr>\n        <td>GPT-Image-2 (image)</td>\n        <td style=\"text-align:center\">200 credits</td>\n        <td style=\"text-align:center\">50 credits</td>\n        <td style=\"text-align:center\">750 credits</td>\n      </tr>\n      <tr>\n        <td>GPT-Image-2 (text)</td>\n        <td style=\"text-align:center\">125 credits</td>\n        <td style=\"text-align:center\">31.25 credits</td>\n        <td style=\"text-align:center\">250 credits</td>\n      </tr>\n    </tbody>\n    <tfoot>\n      <tr>\n        <td colspan=\"4\" style=\"text-align:center\">\n          GPT-5.6 usage averages 5-30 credits per message.\n        </td>\n      </tr>\n      <tr>\n        <td colspan=\"4\" style=\"text-align:center\">\n          Fast mode consumes credits at a higher rate for supported models. See\n          [Speed](https://learn.chatgpt.com/docs/agent-configuration/speed) for rates.\n        </td>\n      </tr>\n      <tr>\n        <td colspan=\"4\" style=\"text-align:center\">\n          Daybreak access requires [Trusted Access for\n          Cyber](https://learn.chatgpt.com/docs/cyber-safety#trusted-access-for-cyber) approval.\n          Daybreak Blue uses GPT-5.6 Sol credit rates. Daybreak Red requires\n          separate approval and provisioning.\n        </td>\n      </tr>\n    </tfoot>\n  </table>\n\n\n\n_GPT-5.6 Sol’s promotional pricing is available at least through November 21, 2026._\n\nSpeed configurations will increase credit consumption for all models that apply.\nFast mode consumes credits at a higher rate for supported models. See\n[Speed](https://learn.chatgpt.com/docs/agent-configuration/speed) for supported models and rates.\n\n[Learn more about credits in ChatGPT Plus and\nPro.](https://help.openai.com/en/articles/12642688)\n\n[Learn more about credits in ChatGPT Business, Enterprise, and\nEdu.](https://help.openai.com/en/articles/11487671-flexible-pricing-for-the-enterprise-edu-and-business-plans)\n\nFor Business and Enterprise/Edu credit billing, use the [credit-based rate card](https://help.openai.com/en/articles/11481834-chatgpt-rate-card-business-enterpriseedu-credit-based-pricing). If your Enterprise agreement specifies usage-based billing in USD, use the [Enterprise USD rate card](https://help.openai.com/en/articles/20001415-chatgpt-rate-card-enterprise-token-based-pricing) and your agreement instead. Workspace administrators can also review [ChatGPT Work usage and cost](https://learn.chatgpt.com/docs/enterprise/chatgpt-work-usage-and-cost#understand-tokens-and-credits).\n\n",
+      "evidenceHash": "339230a9b89c2508ab976fa8080281509fbb6c6caf400a1a0c0245b5abd4d2f0"
+    },
+    {
+      "url": "https://learn.chatgpt.com/docs/agent-configuration/speed",
+      "verifiedAt": "2026-09-19",
+      "evidence": "# Speed\n\n> For the complete documentation index, see [llms.txt](https://learn.chatgpt.com/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.\n\n**ChatGPT Work and Codex share usage.** Both use the same\n  pricing, credits, and usage limits. See [Codex pricing](https://learn.chatgpt.com/docs/pricing) for\n  details.\n\n## Fast mode\n\nGPT-5.5 retires from ChatGPT, ChatGPT Work, and Codex on all plans on\nOctober 14, 2026. The OpenAI API isn't affected. See\n[GPT-5.5 retirement](https://learn.chatgpt.com/docs/models#gpt-55-retirement) for migration guidance.\n\nCodex offers the ability to increase the speed of the model for increased\ncredit consumption.\n\nFor GPT-5.6, GPT-5.5, and GPT-5.4, Fast mode increases model speed by 1.5x.\nGPT-5.6 and GPT-5.5 consume credits at 2.5x the Standard rate; GPT-5.4 consumes\ncredits at 2x the Standard rate.\n\nGPT-6 Astra Fast mode consumes credits at 2.5x the Standard rate where\navailable. See [Models](https://learn.chatgpt.com/docs/models) for model availability and\n[Pricing](https://learn.chatgpt.com/docs/pricing#token-rates) for token rates.\n\nUse `/fast on`, `/fast off`, or `/fast status` in the CLI to change or inspect\nthe current setting. You can also persist the default with `service_tier =\n\"fast\"` plus `[features].fast_mode = true` in `config.toml`. Fast mode is\navailable in the ChatGPT desktop app, Codex CLI, and IDE extension when you\nsign in with ChatGPT. Fast mode is a ChatGPT credit feature. With an API key,\nCodex uses API token pricing instead, and ChatGPT credit multipliers don't\napply. API Priority processing has its own billing rate; for GPT-5.6, it costs\n2x the Standard API token rate.\n\n<VideoPlayer\n  src=\"/videos/codex/fast-mode-demo.mp4\"\n  class=\"[&_video]:mx-auto [&_video]:max-h-[400px] [&_video]:max-w-full [&_video]:w-auto\"\n/>",
+      "evidenceHash": "c62732d9ab4433a0f5dd24abf77b8a7f8def0d236eba7e3608741e4bd6ad2f65"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/pricing",
+      "verifiedAt": "2026-09-19",
+      "evidence": "### Standard pricing data\n| Model | Short context input | Short context cached input | Short context cache writes | Short context output | Long context input | Long context cached input | Long context cache writes | Long context output |\n| gpt-6-astra | $10.00 | $1.00 | $12.50 | $50.00 | $20.00 | $2.00 | $25.00 | $75.00 |\n| gpt-5.6-sol | $4.00 | $0.40 | $5.00 | $20.00 | $8.00 | $0.80 | $10.00 | $30.00 |\n| gpt-5.6-terra | $2.00 | $0.20 | $2.50 | $12.00 | $4.00 | $0.40 | $5.00 | $18.00 |\n| gpt-5.6-luna | $0.20 | $0.02 | $0.25 | $1.20 | $0.40 | $0.04 | $0.50 | $1.80 |\nRegional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026, that are eligible for data residency. See our [Your data](https://developers.openai.com/api/docs/guides/your-data) guide for supported regions and processing details. [OpenAI models in Amazon Bedrock](https://developers.openai.com/api/docs/guides/amazon-bedrock) are billed through AWS. Bedrock pricing in commercial regions matches OpenAI direct pricing for equivalent services. Priority processing was renamed Fast mode on July 30, 2026. You can use either `service_tier: \"priority\"` or `service_tier: \"fast\"` in your API requests. [Learn more about Fast mode](https://developers.openai.com/api/docs/guides/fast-mode). GPT-5.6 Sol’s promotional pricing is available at least through November 21, 2026.\n| Model | Short context input | Short context cached input | Short context cache writes | Short context output | Long context input | Long context cached input | Long context cache writes | Long context output |\n| gpt-6-astra | $5.00 | $0.50 | $6.25 | $25.00 | $10.00 | $1.00 | $12.50 | $37.50 |\n| gpt-5.6-sol | $2.00 | $0.20 | $2.50 | $10.00 | $4.00 | $0.40 | $5.00 | $15.00 |\n| gpt-5.6-terra | $1.00 | $0.10 | $1.25 | $6.00 | $2.00 | $0.20 | $2.50 | $9.00 |\n| gpt-5.6-luna | $0.10 | $0.01 | $0.125 | $0.60 | $0.20 | $0.02 | $0.25 | $0.90 |\n| Model | Short context input | Short context cached input | Short context cache writes | Short context output | Long context input | Long context cached input | Long context cache writes | Long context output |\n| gpt-6-astra | $5.00 | $0.50 | $6.25 | $25.00 | $10.00 | $1.00 | $12.50 | $37.50 |\n| gpt-5.6-sol | $2.00 | $0.20 | $2.50 | $10.00 | $4.00 | $0.40 | $5.00 | $15.00 |\n| gpt-5.6-terra | $1.00 | $0.10 | $1.25 | $6.00 | $2.00 | $0.20 | $2.50 | $9.00 |\n| gpt-5.6-luna | $0.10 | $0.01 | $0.125 | $0.60 | $0.20 | $0.02 | $0.25 | $0.90 |\n### Fast pricing data\n| Model | Short context input | Short context cached input | Short context cache writes | Short context output | Long context input | Long context cached input | Long context cache writes | Long context output |\n| gpt-6-astra | $20.00 | $2.00 | $25.00 | $100.00 | $40.00 | $4.00 | $50.00 | $150.00 |\n| gpt-5.6-sol | $8.00 | $0.80 | $10.00 | $40.00 | $16.00 | $1.60 | $20.00 | $60.00 |\n| gpt-5.6-terra | $4.00 | $0.40 | $5.00 | $24.00 | $8.00 | $0.80 | $10.00 | $36.00 |\n| gpt-5.6-luna | $0.40 | $0.04 | $0.50 | $2.40 | $0.80 | $0.08 | $1.00 | $3.60 |\nCyber models\n| Model | Short context input | Short context cached input | Short context cache writes | Short context output | Long context input | Long context cached input | Long context cache writes | Long context output |\n| gpt-5.6-sol | $4.00 | $0.40 | $5.00 | $20.00 | $8.00 | $0.80 | $10.00 | $30.00 |\n| gpt-5.6-cyber | $12.50 | $1.25 | $15.625 | $75.00 | - | - | - | - |\n  `gpt-daybreak-blue-latest` and `gpt-daybreak-red-latest` \n  are aliases that currently point to `gpt-5.6-sol` and \n  `gpt-5.6-cyber`, respectively. As new models are released through\n| Model | Price per minute |\n| Model | Modality | Input | Cached input | Output / cost |\n| Model | Modality | Input | Cached input | Output |\n| Model | Modality | Input | Cached input | Output |\n| Model | Size | Portrait | Landscape | Price per second |\n| Model | Size | Portrait | Landscape | Price per second |\n| Model | Use case | Input | Output | Estimated cost |\n| Life Sciences | gpt-rosalind-research | $5.00 | $0.50 | $25.00 |\nBilling for `gpt-rosalind-research` begins on October 5, 2026. Cache-write pricing does not apply to this model. Access is limited to approved internal research through the [trusted-access program](https://help.openai.com/en/articles/20001193-gpt-rosalind-for-life-sciences-research). All eligible organizations will continue to get access to the latest GPT-Rosalind models as they’re released. Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026, that are eligible for data residency. See our [Your data](https://developers.openai.com/api/docs/guides/your-data) guide for supported regions and processing details.\n| Model | Training | Input | Cached input | Output |\n| Model | Training | Input | Cached input | Output |",
+      "evidenceHash": "8a569d85dbf59e0ac384d60d8aa7417f028eb563127d830b3eb94aa9eeb3ab3d"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+      "verifiedAt": "2026-09-19",
+      "evidence": "# GPT-6 Astra\n\n- Model ID: gpt-6-astra\n- Model type: reasoning\n- Current snapshot: gpt-6-astra\n\nOur most capable model, built for the hardest end-to-end work\n\nGPT-6 Astra is our most capable model, built for the hardest end-to-end work.\nUse it for complex reasoning, coding, computer use, research, and document creation.\n`reasoning.effort` supports `low`, `medium`, `high`, `xhigh`, and `max`.\n\nGet started with GPT-6 Astra using the [model guide](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6-astra).\n\n## Snapshots\n- gpt-6-astra\n\n## Current snapshot details\n- Context window: 1,050,000 tokens\n- Max input: 922,000 tokens\n- Max output: 128,000 tokens\n- Knowledge cutoff: 2026-04-30\n- Input modalities: text, image\n- Output modalities: text\n- Supported endpoints: responses, chat_completions, batch\n- Supported features: streaming, structured_outputs, function_calling, file_search, image_input, web_search, prompt_caching\n\n## Supported tools\n- web_search\n- file_search\n- image_generation\n- code_interpreter\n- hosted_shell\n- apply_patch\n- skills\n- computer_use\n- mcp\n- tool_search\n\n## Pricing notes\n- Prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.\n- Cache writes are billed at 1.25x the uncached input token rate.\n- Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.\n\nPlayground: https://platform.openai.com/chat/edit?models=gpt-6-astra\n",
+      "evidenceHash": "25fd1d501706103c38d610d0595f14cf5ad54a611506a1f0ebfa28f5f86ddb68"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+      "verifiedAt": "2026-09-19",
+      "evidence": "# GPT-5.6 Sol\n\n- Model ID: gpt-5.6-sol\n- Model type: reasoning\n- Current snapshot: gpt-5.6-sol\n\nFlagship model for complex professional work\n\nGPT-5.6 Sol is a flagship model in the GPT-5.6 family. It roughly\ncorresponds to the unsuffixed model tier used in earlier GPT-5 families.\nThe `gpt-5.6` alias routes requests to GPT-5.6 Sol.\nReasoning.effort supports: none, low, medium (default), high, xhigh, and max.\n\n## Snapshots\n- gpt-5.6-sol\n\n## Current snapshot details\n- Context window: 1,050,000 tokens\n- Max input: 922,000 tokens\n- Max output: 128,000 tokens\n- Knowledge cutoff: 2026-02-16\n- Input modalities: text, image\n- Output modalities: text\n- Supported endpoints: responses, chat_completions, batch\n- Supported features: streaming, structured_outputs, function_calling, file_search, image_input, web_search, prompt_caching\n\n## Supported tools\n- web_search\n- file_search\n- image_generation\n- code_interpreter\n- hosted_shell\n- apply_patch\n- skills\n- computer_use\n- mcp\n- tool_search\n\n## Pricing notes\n- GPT-5.6 Sol costs $4 per million input tokens and $20 per million output tokens, a 20% reduction in input pricing and a 33% reduction in output pricing. GPT-5.6 Sol’s promotional pricing is available at least through November 21, 2026.\n- Prompts with >272K input tokens are priced at 2x input and 1.5x output for the full request.\n- Cache writes are billed at 1.25x the uncached input token rate.\n\nPlayground: https://platform.openai.com/chat/edit?models=gpt-5.6-sol\n",
+      "evidenceHash": "d217a1b0d42cf3c1604319e0d043ada2a7d16d7a37eb3c3cb0073bd510ba84da"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+      "verifiedAt": "2026-09-19",
+      "evidence": "# GPT-5.6 Terra\n\n- Model ID: gpt-5.6-terra\n- Model type: reasoning\n- Current snapshot: gpt-5.6-terra\n\nGPT-5.6 model that balances intelligence and cost\n\nGPT-5.6 Terra is designed for workloads that balance intelligence and cost.\nIt roughly corresponds to the mini model tier used in earlier GPT-5 families.\nReasoning.effort supports: none, low, medium (default), high, xhigh, and max.\n\n## Snapshots\n- gpt-5.6-terra\n\n## Current snapshot details\n- Context window: 1,050,000 tokens\n- Max input: 922,000 tokens\n- Max output: 128,000 tokens\n- Knowledge cutoff: 2026-02-16\n- Input modalities: text, image\n- Output modalities: text\n- Supported endpoints: responses, chat_completions, batch\n- Supported features: streaming, structured_outputs, function_calling, file_search, image_input, web_search, prompt_caching\n\n## Supported tools\n- web_search\n- file_search\n- image_generation\n- code_interpreter\n- hosted_shell\n- apply_patch\n- skills\n- computer_use\n- mcp\n- tool_search\n\n## Pricing notes\n- Prompts with >272K input tokens are priced at 2x input and 1.5x output for the full request.\n- Cache writes are billed at 1.25x the uncached input token rate.\n\nPlayground: https://platform.openai.com/chat/edit?models=gpt-5.6-terra\n",
+      "evidenceHash": "25186ba1634f87e061b1c8266e610b6ce334591ed3e2ec807264b267266d50e2"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+      "verifiedAt": "2026-09-19",
+      "evidence": "# GPT-5.6 Luna\n\n- Model ID: gpt-5.6-luna\n- Model type: reasoning\n- Current snapshot: gpt-5.6-luna\n\nGPT-5.6 model optimized for cost-sensitive workloads\n\nGPT-5.6 Luna is designed for cost-sensitive, high-volume workloads. It\nroughly corresponds to the nano model tier used in earlier GPT-5 families.\nReasoning.effort supports: none, low, medium (default), high, xhigh, and max.\n\n## Snapshots\n- gpt-5.6-luna\n\n## Current snapshot details\n- Context window: 1,050,000 tokens\n- Max input: 922,000 tokens\n- Max output: 128,000 tokens\n- Knowledge cutoff: 2026-02-16\n- Input modalities: text, image\n- Output modalities: text\n- Supported endpoints: responses, chat_completions, batch\n- Supported features: streaming, structured_outputs, function_calling, file_search, image_input, web_search, prompt_caching\n\n## Supported tools\n- web_search\n- file_search\n- image_generation\n- code_interpreter\n- hosted_shell\n- apply_patch\n- skills\n- computer_use\n- mcp\n- tool_search\n\n## Pricing notes\n- Prompts with >272K input tokens are priced at 2x input and 1.5x output for the full request.\n- Cache writes are billed at 1.25x the uncached input token rate.\n\nPlayground: https://platform.openai.com/chat/edit?models=gpt-5.6-luna\n",
+      "evidenceHash": "1e510bf67d39ccf7b466ff51800a65219456e0c769aeb6a875fc4e5d1e9137b5"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.6-cyber",
+      "verifiedAt": "2026-09-19",
+      "evidence": "# GPT-5.6 Cyber\n\n- Model ID: gpt-5.6-cyber\n- Model type: reasoning\n- Current snapshot: gpt-5.6-cyber\n\nOur most advanced cybersecurity model for authorized vulnerability research and security testing.\n\nAn alias for our most advanced purpose-trained cybersecurity models, for\napproved defenders conducting advanced, authorized vulnerability research,\nexploit validation, and security testing.\n\nThis model requires separate approval and provisioning, you can apply to join the Daybreak program [here](https://openai.com/daybreak/). More details on pricing [here](https://developers.openai.com/api/docs/pricing).\n\n## Snapshots\n- gpt-5.6-cyber\n\n## Current snapshot details\n- Context window: 400,000 tokens\n- Max input: 272,000 tokens\n- Max output: 128,000 tokens\n- Knowledge cutoff: 2026-02-16\n- Input modalities: text, image\n- Output modalities: text\n- Supported endpoints: responses\n- Supported features: streaming, structured_outputs, function_calling, file_search, image_input, web_search, prompt_caching\n\n## Supported tools\n- web_search\n- file_search\n- image_generation\n- code_interpreter\n- hosted_shell\n- apply_patch\n- skills\n- computer_use\n- mcp\n- tool_search\n\n## Pricing notes\n- Prompts with >272K input tokens are priced at 2x input and 1.5x output for the full request.\n- Cache writes are billed at 1.25x the uncached input token rate.\n\nPlayground: https://platform.openai.com/chat/edit?models=gpt-5.6-cyber\n",
+      "evidenceHash": "886f16be8097fe095f6cf8b7b431032536e1c398902ff584f65aa5c8124bbdd9"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-daybreak-blue-latest",
+      "verifiedAt": "2026-09-19",
+      "evidence": "# Daybreak Blue\n\n- Model ID: gpt-daybreak-blue-latest\n- Model type: reasoning\n- Current snapshot: gpt-5.6-sol\n\nAn alias for flagship general-purpose models with safeguards for defensive cybersecurity work.\n\nAn alias for our flagship general-purpose models, with safeguards calibrated\nfor defensive cybersecurity work.\n\nThis model requires separate approval and provisioning, you can apply to join the Daybreak program [here](https://openai.com/daybreak/). More details on pricing [here](https://developers.openai.com/api/docs/pricing).\n\n## Snapshots\n- gpt-5.6-sol\n\n## Current snapshot details\n- Context window: 1,050,000 tokens\n- Max input: 922,000 tokens\n- Max output: 128,000 tokens\n- Knowledge cutoff: 2026-02-16\n- Input modalities: text, image\n- Output modalities: text\n- Supported endpoints: responses\n- Supported features: streaming, structured_outputs, function_calling, file_search, image_input, web_search, prompt_caching\n\n## Supported tools\n- web_search\n- file_search\n- image_generation\n- code_interpreter\n- hosted_shell\n- apply_patch\n- skills\n- computer_use\n- mcp\n- tool_search\n\nPlayground: https://platform.openai.com/chat/edit?models=gpt-5.6-sol\n",
+      "evidenceHash": "6532868806c593bcb691c469e05addbd3596015f901eab95a2882bbbba51cd71"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-daybreak-red-latest",
+      "verifiedAt": "2026-09-19",
+      "evidence": "# Daybreak Red\n\n- Model ID: gpt-daybreak-red-latest\n- Model type: reasoning\n- Current snapshot: gpt-5.6-cyber\n\nAn alias for advanced cybersecurity models for authorized vulnerability research and security testing.\n\nAn alias for our most advanced purpose-trained cybersecurity models, for\napproved defenders conducting advanced, authorized vulnerability research,\nexploit validation, and security testing.\n\nThis model requires separate approval and provisioning, you can apply to join the Daybreak program [here](https://openai.com/daybreak/). More details on pricing [here](https://developers.openai.com/api/docs/pricing).\n\n## Snapshots\n- gpt-5.6-cyber\n\n## Current snapshot details\n- Context window: 400,000 tokens\n- Max input: 272,000 tokens\n- Max output: 128,000 tokens\n- Knowledge cutoff: 2026-02-16\n- Input modalities: text, image\n- Output modalities: text\n- Supported endpoints: responses\n- Supported features: streaming, structured_outputs, function_calling, file_search, image_input, web_search, prompt_caching\n\n## Supported tools\n- web_search\n- file_search\n- image_generation\n- code_interpreter\n- hosted_shell\n- apply_patch\n- skills\n- computer_use\n- mcp\n- tool_search\n\nPlayground: https://platform.openai.com/chat/edit?models=gpt-5.6-cyber\n",
+      "evidenceHash": "b196ee66d25bf7651474086b96e1886a344e5a5431e2fd7c548aaac2c3e5611f"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/pricing",
+      "verifiedAt": "2026-09-19",
+      "evidence": "Text tokens. Per 1M tokens. Input $1.25; Cached input $0.125; Output $10.",
+      "evidenceHash": "bcafb3325f6c4e8938eb75a94593190f594088423d040350757d713aff1ad8d0",
+      "extraction": "rendered-pricing-table"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.1-codex",
+      "verifiedAt": "2026-09-19",
+      "evidence": "Text tokens. Per 1M tokens. Input $1.25; Cached input $0.125; Output $10.",
+      "evidenceHash": "bcafb3325f6c4e8938eb75a94593190f594088423d040350757d713aff1ad8d0",
+      "extraction": "rendered-pricing-table"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.1-codex-max",
+      "verifiedAt": "2026-09-19",
+      "evidence": "Text tokens. Per 1M tokens. Input $1.25; Cached input $0.125; Output $10.",
+      "evidenceHash": "bcafb3325f6c4e8938eb75a94593190f594088423d040350757d713aff1ad8d0",
+      "extraction": "rendered-pricing-table"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.1-codex-mini",
+      "verifiedAt": "2026-09-19",
+      "evidence": "Text tokens. Per 1M tokens. Input $0.25; Cached input $0.025; Output $2.",
+      "evidenceHash": "7efdc28149294ee76b36f480ca9d1d869b5e2a09c500081c098586665b28bbf2",
+      "extraction": "rendered-pricing-table"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/codex-mini-latest",
+      "verifiedAt": "2026-09-19",
+      "evidence": "Text tokens. Per 1M tokens. Input $1.5; Cached input $0.375; Output $6.",
+      "evidenceHash": "599b627c22d51dc4991ac019dcbb9e539bc63097d0c6e18bcc7f3551bca69db7",
+      "extraction": "rendered-pricing-table"
+    }
+  ],
+  "rates": {
+    "gpt-6-astra": {
+      "inputUsdPerMillion": 10,
+      "cachedInputUsdPerMillion": 1,
+      "outputUsdPerMillion": 50,
+      "inputCreditsPerMillion": 250,
+      "cachedInputCreditsPerMillion": 25,
+      "outputCreditsPerMillion": 1250
+    },
+    "gpt-5.5": {
+      "inputUsdPerMillion": 5,
+      "cachedInputUsdPerMillion": 0.5,
+      "outputUsdPerMillion": 30,
+      "inputCreditsPerMillion": 125,
+      "cachedInputCreditsPerMillion": 12.5,
+      "outputCreditsPerMillion": 750
+    },
+    "gpt-5.4": {
+      "inputUsdPerMillion": 2.5,
+      "cachedInputUsdPerMillion": 0.25,
+      "outputUsdPerMillion": 15,
+      "inputCreditsPerMillion": 62.5,
+      "cachedInputCreditsPerMillion": 6.25,
+      "outputCreditsPerMillion": 375
+    },
+    "gpt-5.4-mini": {
+      "inputUsdPerMillion": 0.75,
+      "cachedInputUsdPerMillion": 0.075,
+      "outputUsdPerMillion": 4.5,
+      "inputCreditsPerMillion": 18.75,
+      "cachedInputCreditsPerMillion": 1.875,
+      "outputCreditsPerMillion": 113
+    },
+    "gpt-5.3-codex": {
+      "inputUsdPerMillion": 1.75,
+      "cachedInputUsdPerMillion": 0.175,
+      "outputUsdPerMillion": 14,
+      "inputCreditsPerMillion": 43.75,
+      "cachedInputCreditsPerMillion": 4.375,
+      "outputCreditsPerMillion": 350
+    },
+    "gpt-5.2": {
+      "inputUsdPerMillion": 1.75,
+      "cachedInputUsdPerMillion": 0.175,
+      "outputUsdPerMillion": 14,
+      "inputCreditsPerMillion": 43.75,
+      "cachedInputCreditsPerMillion": 4.375,
+      "outputCreditsPerMillion": 350
+    },
+    "gpt-5.2-codex": {
+      "inputUsdPerMillion": 1.75,
+      "cachedInputUsdPerMillion": 0.175,
+      "outputUsdPerMillion": 14,
+      "inputCreditsPerMillion": 43.75,
+      "cachedInputCreditsPerMillion": 4.375,
+      "outputCreditsPerMillion": 350
+    },
+    "gpt-5": {
+      "inputUsdPerMillion": 1.25,
+      "cachedInputUsdPerMillion": 0.125,
+      "outputUsdPerMillion": 10,
+      "inputCreditsPerMillion": null,
+      "cachedInputCreditsPerMillion": null,
+      "outputCreditsPerMillion": null
+    },
+    "gpt-5-codex": {
+      "inputUsdPerMillion": 1.25,
+      "cachedInputUsdPerMillion": 0.125,
+      "outputUsdPerMillion": 10,
+      "inputCreditsPerMillion": null,
+      "cachedInputCreditsPerMillion": null,
+      "outputCreditsPerMillion": null
+    },
+    "gpt-5.6-sol": {
+      "inputUsdPerMillion": 4,
+      "cachedInputUsdPerMillion": 0.4,
+      "outputUsdPerMillion": 20,
+      "inputCreditsPerMillion": 100,
+      "cachedInputCreditsPerMillion": 10,
+      "outputCreditsPerMillion": 500
+    },
+    "gpt-5.6-terra": {
+      "inputUsdPerMillion": 2,
+      "cachedInputUsdPerMillion": 0.2,
+      "outputUsdPerMillion": 12,
+      "inputCreditsPerMillion": 50,
+      "cachedInputCreditsPerMillion": 5,
+      "outputCreditsPerMillion": 300
+    },
+    "gpt-5.6-luna": {
+      "inputUsdPerMillion": 0.2,
+      "cachedInputUsdPerMillion": 0.02,
+      "outputUsdPerMillion": 1.2,
+      "inputCreditsPerMillion": 5,
+      "cachedInputCreditsPerMillion": 0.5,
+      "outputCreditsPerMillion": 30
+    },
+    "gpt-5.6-cyber": {
+      "inputUsdPerMillion": 12.5,
+      "cachedInputUsdPerMillion": 1.25,
+      "outputUsdPerMillion": 75,
+      "inputCreditsPerMillion": 312.5,
+      "cachedInputCreditsPerMillion": 31.25,
+      "outputCreditsPerMillion": 1875
+    },
+    "gpt-5.1": {
+      "inputUsdPerMillion": 1.25,
+      "cachedInputUsdPerMillion": 0.125,
+      "outputUsdPerMillion": 10,
+      "inputCreditsPerMillion": null,
+      "cachedInputCreditsPerMillion": null,
+      "outputCreditsPerMillion": null
+    },
+    "gpt-5.1-codex": {
+      "inputUsdPerMillion": 1.25,
+      "cachedInputUsdPerMillion": 0.125,
+      "outputUsdPerMillion": 10,
+      "inputCreditsPerMillion": null,
+      "cachedInputCreditsPerMillion": null,
+      "outputCreditsPerMillion": null
+    },
+    "gpt-5.1-codex-max": {
+      "inputUsdPerMillion": 1.25,
+      "cachedInputUsdPerMillion": 0.125,
+      "outputUsdPerMillion": 10,
+      "inputCreditsPerMillion": null,
+      "cachedInputCreditsPerMillion": null,
+      "outputCreditsPerMillion": null
+    },
+    "gpt-5.1-codex-mini": {
+      "inputUsdPerMillion": 0.25,
+      "cachedInputUsdPerMillion": 0.025,
+      "outputUsdPerMillion": 2,
+      "inputCreditsPerMillion": null,
+      "cachedInputCreditsPerMillion": null,
+      "outputCreditsPerMillion": null
+    },
+    "codex-mini-latest": {
+      "inputUsdPerMillion": 1.5,
+      "cachedInputUsdPerMillion": 0.375,
+      "outputUsdPerMillion": 6,
+      "inputCreditsPerMillion": null,
+      "cachedInputCreditsPerMillion": null,
+      "outputCreditsPerMillion": null
+    }
+  },
+  "aliases": {
+    "gpt-5.6": "gpt-5.6-sol",
+    "gpt-daybreak-blue-latest": "gpt-5.6-sol",
+    "gpt-daybreak-red-latest": "gpt-5.6-cyber"
+  },
+  "rules": {
+    "gpt-6-astra": {
+      "apiFastMultiplier": 2,
+      "codexFastMultiplier": 2.5,
+      "cacheWriteUsdPerMillion": 12.5,
+      "longContext": {
+        "threshold": 272000,
+        "scope": "request",
+        "inputMultiplier": 2,
+        "cacheMultiplier": 2,
+        "outputMultiplier": 1.5
+      }
+    },
+    "gpt-5.6-sol": {
+      "apiFastMultiplier": 2,
+      "codexFastMultiplier": 2.5,
+      "cacheWriteUsdPerMillion": 5,
+      "longContext": {
+        "threshold": 272000,
+        "scope": "request",
+        "inputMultiplier": 2,
+        "cacheMultiplier": 2,
+        "outputMultiplier": 1.5
+      },
+      "promotion": {
+        "atLeastThrough": "2026-11-21",
+        "expiresAt": null
+      }
+    },
+    "gpt-5.6-terra": {
+      "apiFastMultiplier": 2,
+      "codexFastMultiplier": 2.5,
+      "cacheWriteUsdPerMillion": 2.5,
+      "longContext": {
+        "threshold": 272000,
+        "scope": "request",
+        "inputMultiplier": 2,
+        "cacheMultiplier": 2,
+        "outputMultiplier": 1.5
+      }
+    },
+    "gpt-5.6-luna": {
+      "apiFastMultiplier": 2,
+      "codexFastMultiplier": 2.5,
+      "cacheWriteUsdPerMillion": 0.25,
+      "longContext": {
+        "threshold": 272000,
+        "scope": "request",
+        "inputMultiplier": 2,
+        "cacheMultiplier": 2,
+        "outputMultiplier": 1.5
+      }
+    },
+    "gpt-5.6-cyber": {
+      "apiFastMultiplier": null,
+      "codexFastMultiplier": null,
+      "cacheWriteUsdPerMillion": 15.625,
+      "longContext": null
+    }
+  },
+  "pending": [
+    {
+      "modelId": "gpt-rosalind-research",
+      "billingSystem": "api-usd",
+      "effectiveFrom": "2026-10-05",
+      "input": 5,
+      "cacheRead": 0.5,
+      "cacheWrite": null,
+      "output": 25,
+      "status": "future"
+    },
+    {
+      "modelId": "gpt-5.6-cyber",
+      "dimension": "long-context",
+      "status": "pending",
+      "reason": "模型详情最大输入272000却另写超过272K倍率；API价格表长上下文为空，暂不启用。"
+    }
+  ]
+}

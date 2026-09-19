@@ -398,6 +398,7 @@ export interface RefreshHistoryEntry {
 export interface DashboardSnapshot {
   quotaDisplayVersion?: number;
   projectAttributionVersion?: number;
+  pricingCatalogVersion?: string;
   generatedAt: string;
   generatedFrom: "live" | "cache" | "pending";
   sourceHealth: {

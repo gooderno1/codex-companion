@@ -1,0 +1,80 @@
+{
+  "catalogVersion": "2026-09-17",
+  "mode": "standard-snapshot-revaluation",
+  "effectiveFrom": null,
+  "effectiveTimeBasis": "unknown",
+  "rates": {
+    "gpt-6-astra": {
+      "inputUsdPerMillion": 10,
+      "cachedInputUsdPerMillion": 1,
+      "outputUsdPerMillion": 50,
+      "inputCreditsPerMillion": null,
+      "cachedInputCreditsPerMillion": null,
+      "outputCreditsPerMillion": null
+    },
+    "gpt-5.5": {
+      "inputUsdPerMillion": 5,
+      "cachedInputUsdPerMillion": 0.5,
+      "outputUsdPerMillion": 30,
+      "inputCreditsPerMillion": 125,
+      "cachedInputCreditsPerMillion": 12.5,
+      "outputCreditsPerMillion": 750
+    },
+    "gpt-5.4": {
+      "inputUsdPerMillion": 2.5,
+      "cachedInputUsdPerMillion": 0.25,
+      "outputUsdPerMillion": 15,
+      "inputCreditsPerMillion": 62.5,
+      "cachedInputCreditsPerMillion": 6.25,
+      "outputCreditsPerMillion": 375
+    },
+    "gpt-5.4-mini": {
+      "inputUsdPerMillion": 0.75,
+      "cachedInputUsdPerMillion": 0.075,
+      "outputUsdPerMillion": 4.5,
+      "inputCreditsPerMillion": 18.75,
+      "cachedInputCreditsPerMillion": 1.875,
+      "outputCreditsPerMillion": 113
+    },
+    "gpt-5.3-codex": {
+      "inputUsdPerMillion": 1.75,
+      "cachedInputUsdPerMillion": 0.175,
+      "outputUsdPerMillion": 14,
+      "inputCreditsPerMillion": 43.75,
+      "cachedInputCreditsPerMillion": 4.375,
+      "outputCreditsPerMillion": 350
+    },
+    "gpt-5.2": {
+      "inputUsdPerMillion": 1.75,
+      "cachedInputUsdPerMillion": 0.175,
+      "outputUsdPerMillion": 14,
+      "inputCreditsPerMillion": 43.75,
+      "cachedInputCreditsPerMillion": 4.375,
+      "outputCreditsPerMillion": 350
+    },
+    "gpt-5.2-codex": {
+      "inputUsdPerMillion": 1.75,
+      "cachedInputUsdPerMillion": 0.175,
+      "outputUsdPerMillion": 14,
+      "inputCreditsPerMillion": 43.75,
+      "cachedInputCreditsPerMillion": 4.375,
+      "outputCreditsPerMillion": 350
+    },
+    "gpt-5": {
+      "inputUsdPerMillion": 1.25,
+      "cachedInputUsdPerMillion": 0.125,
+      "outputUsdPerMillion": 10,
+      "inputCreditsPerMillion": null,
+      "cachedInputCreditsPerMillion": null,
+      "outputCreditsPerMillion": null
+    },
+    "gpt-5-codex": {
+      "inputUsdPerMillion": 1.25,
+      "cachedInputUsdPerMillion": 0.125,
+      "outputUsdPerMillion": 10,
+      "inputCreditsPerMillion": null,
+      "cachedInputCreditsPerMillion": null,
+      "outputCreditsPerMillion": null
+    }
+  }
+}

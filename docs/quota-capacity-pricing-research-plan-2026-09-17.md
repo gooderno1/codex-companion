@@ -169,6 +169,9 @@ API 标价不是 OpenAI 的内部推理成本，也不是用户套餐实付。�
 
 ## 8. 数据与代码改造顺序
 
+- 2026-09-19 进度：v0.6.3 首次维护已补齐确认的标准价格、版本化快照、旧缓存重估和发布回归，详见 [定价核查](./model-pricing-2026-09-19.md)。以下页面与请求级解析改造仍为规划，未随定价维护实施。
+
+
 1. **价格目录与重估基础**：将 `src/main/collectors/pricing.ts` 的硬编码费率拆为纯计算器和版本化目录；API / credits 结果均带 pricingStatus 与版本，保留准确别名。
 2. **原始用量与派生成本分离**：当前 session cache / SQLite events 存有派生成本，定价变化会迫使索引失效。改为保存原始计数与元数据，派生成本按 `(eventId, catalogVersion, mode)` 缓存；聚合按 `(model, tier, date, pricingRule)` 加速。
 3. **补齐解析契约**：以共享核心优先方式补入请求计数、cacheWrite、modelSnapshot、tier / unknown、account scope、计数重置 / 压缩标记；缺失字段不得回填成已知标准档。共享逻辑先发核心正式包或远程 tag，再升级 Companion。

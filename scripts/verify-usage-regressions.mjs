@@ -76,9 +76,9 @@ assert.equal(estimateApiCostUsd(" GPT-6 Astra ", sample), 7.8);
 assert.equal(estimateApiCostUsd("gpt-6-astra", tokens(1_000_000, 1_000_000)), 1, "全缓存输入只收缓存价");
 assert.equal(estimateApiCostUsd("gpt-5.5", sample), 4.4, "旧模型也不能重复收缓存输入费");
 assert.equal(estimateCodexCredits("gpt-5.5", sample), 110);
-assert.equal(estimateCodexCredits("gpt-6-astra", sample), 0, "未核实的 credit 不从 API 单价推算");
+assert.equal(estimateCodexCredits("gpt-6-astra", sample), 195, "使用已核实的独立 credit 费率");
 assert.equal(resolvePricingRate("gpt-5.4-mini-2026-03-17").inputUsdPerMillion, 0.75);
-for (const model of ["gpt-6", "gpt-6-astra-pro", "gpt-5.6-sol", "gpt-5-unknown", "constructor"]) {
+for (const model of ["gpt-6", "gpt-6-astra-pro", "gpt-5.6-unknown", "gpt-5-unknown", "constructor"]) {
   assert.equal(resolvePricingRate(model), null, `未知模型不能套用其他单价：${model}`);
 }
 
@@ -96,14 +96,16 @@ try {
   const sessionCacheStore = { read: async () => cache, write: async (value) => { cache = value; } };
   const options = { codexHome: fixtureHome, sessionCacheStore };
   await collectCodexData(new Date(timestamp), options);
-  cache.version = 1;
+  cache.version = 2;
   for (const entry of Object.values(cache.entries)) {
-    for (const event of entry.result.events) event.apiCostUsd = 0;
+    for (const event of entry.result.events) { event.apiCostUsd = 0; event.creditsEstimate = 0; }
     entry.result.session.apiCostUsd = 0;
   }
   const refreshed = await collectCodexData(new Date(timestamp), options);
   assert.equal(refreshed.cacheStats.parsedFiles, 1, "升级后须重新解析未改动的旧成本缓存");
   assert.equal(refreshed.events[0].apiCostUsd, 7.8);
+  assert.equal(refreshed.events[0].creditsEstimate, 195);
+  assert.equal(refreshed.events[0].creditPricingStatus, "priced");
   assert.equal(refreshed.sessions[0].apiCostUsd, 7.8);
   const reused = await collectCodexData(new Date(timestamp), options);
   assert.equal(reused.cacheStats.reusedFiles, 1);

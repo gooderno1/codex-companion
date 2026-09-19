@@ -2,7 +2,36 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.6.2` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.6.3` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-09-19] v0.6.3 release: 补齐模型价格并重估历史成本
+
+### Release 范围
+
+- 包含 v0.6.3-dev.1～dev.4；dev.1～dev.3 为研究、规划和定时任务迁移文档，dev.4 为本次定价修复；未排除开发版本。
+- 不包含仍在规划中的额度估算页面；核心继续固定 @lifeinhand/codex-usage-core@0.2.0-dev.3。
+
+### 主要变更与修复
+
+- 补齐 GPT-5.6 Sol / Terra / Luna / Cyber 与 Daybreak 的标准 API 和 credits 价格；补齐 Astra 标准 credits。
+- 补齐 GPT-5.1 / Codex / Max / Mini、codex-mini-latest 的标准 API 价；缺乏证据的 credits 保持未定价。
+- 官方 gpt-5.6 和 Daybreak 别名明确登记；未知型号不套用相似价格。
+- 保留历史价格快照及公开来源证据；升级后重算会话缓存与 SQLite 历史索引，旧价格仪表盘缓存不能继续复用。
+- API 与 credits 分开核对；未来费率不提前启用，促销保证日期不当作自动涨价日期。
+
+### 验证结果
+
+- npm run build 与定价、用量、历史详情 / SQLite、更新器、通知、同期、开机自启、签名政策回归通过；git diff --check 通过。
+- 合成样例：100 万输入含 80 万缓存、10 万输出，Sol 为 USD 3.12 / 78 credits，Astra 为 USD 7.80 / 195 credits；旧文件重估后 Token 总量守恒。
+- 正式 CI、Windows 打包与四项资产核验结果在发布完成后补记；在这些门禁通过前，草稿不公开。
+
+### 升级注意事项与证据边界
+
+- 无需删除 Codex 数据或手工清缓存；首次刷新需重算派生成本，之后恢复增量复用。
+- 当前金额为 2026-09-19 标准短上下文快照重估，不是历史账单；缺少请求级字段时不含缓存写入、长上下文、服务档位或地区调整。
+- Rosalind API 的 2026-10-05 未来价格不启用；Cyber 长上下文来源不一致，保持待核对。
+- 沿用未签名发布方式；用户点击“重启并安装”后才安装，普通退出不安装。
+- 详细费率、官方来源、历史语义与回归路径见 [定价核查记录](./docs/model-pricing-2026-09-19.md)。
 
 ## [2026-09-17] v0.6.2 release: 会话名称、Token 单位与表头排序
 

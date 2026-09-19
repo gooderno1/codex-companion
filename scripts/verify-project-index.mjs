@@ -83,6 +83,20 @@ try {
   const local = new DatabaseSync(path.join(store, dbFile), { readOnly: true });
   assert.match(JSON.stringify(local.prepare("EXPLAIN QUERY PLAN SELECT payload FROM events WHERE at>=? AND at<? ORDER BY at").all(0, Date.now())), /events_at/);
   local.close();
+  index.close();
+  const stale = new DatabaseSync(path.join(store, dbFile));
+  stale.exec("PRAGMA user_version=102");
+  for (const row of stale.prepare("SELECT file,seq,payload FROM events").all()) {
+    const event = JSON.parse(row.payload); event.apiCostUsd = 0; event.creditsEstimate = 0;
+    stale.prepare("UPDATE events SET payload=? WHERE file=? AND seq=?").run(JSON.stringify(event), row.file, row.seq);
+  }
+  stale.close(); index = new ActivityIndex(store, home);
+  assert.equal((await index.refresh()).parsedFiles, 1, "价格升级使旧 SQLite 派生成本失效");
+  const revalued = await index.query({ startAt, endAt });
+  assert.equal(revalued.events.reduce((sum,e)=>sum+e.apiCostUsd,0), .0018);
+  assert.equal(revalued.events.reduce((sum,e)=>sum+e.creditsEstimate,0), .045);
+  assert.equal(revalued.events.reduce((sum,e)=>sum+e.tokens.total,0), 180);
+  assert.equal((await index.refresh()).reusedFiles, 1, "重估后恢复复用");
   const archived = path.join(home, "archived_sessions", path.basename(file));
   await rename(file, archived);
   await index.refresh();

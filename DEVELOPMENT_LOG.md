@@ -1,5 +1,20 @@
 # DEVELOPMENT LOG
 
+## [2026-09-19] v0.6.3-dev.4 fix(pricing): 补齐官方模型价格并重估旧缓存
+
+- 开发原因：每日价格任务首次核查发现 v0.6.2 遗漏 GPT-5.6、Daybreak、GPT-5.1 Codex 系列 API 价及 Astra credits；这是应用漏表，不声称官网当日调价。
+- 实现方式：提取版本化 JSON 目录，保存 2026-09-17 旧快照和 2026-09-19 新快照；保留官方 URL、证据片段 SHA256、独立 USD / credits、明确别名、促销及待生效条目。
+- 标准费率：Sol / Terra / Luna 每百万普通输入、缓存读取、输出分别为 USD 4/0.4/20、2/0.2/12、0.2/0.02/1.2；credits 分别 100/10/500、50/5/300、5/0.5/30。
+- 标准费率：Astra 新补 credits 250/25/1250；Cyber / Daybreak Red 为 USD 12.5/1.25/75、credits 312.5/31.25/1875。gpt-5.6 与 Daybreak Blue 明确指向 Sol。
+- 旧模型：GPT-5.1 / Codex / Max 为 USD 1.25/0.125/10；Codex Mini 为 0.25/0.025/2；codex-mini-latest 为 1.5/0.375/6。对应 credits 未取得官方证据，保持 null。
+- 适用范围：当前界面按核对日标准短上下文快照重估；不把 verifiedAt 当历史 effectiveFrom。未来 2026-10-05 Rosalind API 价不启用；Sol 优惠至少至 2026-11-21 不作为自动涨价时间。
+- 排除条件：当前事件缺少 cache_write_tokens、完整请求边界、实际服务档位与地区，继续明确排除这些调整；API Fast 与 Codex Fast 分开保存。Cyber 长上下文来源不一致，仅该维度待核对。
+- 实现方式：未知估值返回 null，事件保留 unpriced 状态，汇总仅累计已知部分；会话缓存升级到 3、SQLite 索引自动升级到 103，启动和失败回退均拒用不同价格版本的仪表盘缓存。
+- 验证样例：100 万输入含 80 万缓存、10 万输出，Sol 为 USD 3.12 / 78 credits，Astra 为 USD 7.80 / 195 credits；旧索引累计 180 Token 重算 USD 0.0018 / 0.045 credits，Token 不变，下次恢复复用。
+- 当前结果：本机最终构建和定价回归通过；仅修改价格、缓存、相关契约及验证，未实现额度估算页面。核心远端最新仍为 @lifeinhand/codex-usage-core@0.2.0-dev.3，本次未修改共享解析或 reset。
+- 验证方式：npm run build、verify:usage、verify:activity、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check 通过；回归仅使用合成数据。
+- 发布状态：目标正式版本 v0.6.3；正式 tag、CI 和资产结果将在发布完成后补记。定时任务检查差异与续接状态只保存在 local_dev_work/model-pricing-watch。
+
 ## [2026-09-18] v0.6.3-dev.3 docs(automation): 将每日计费核查迁入项目专用任务
 
 - 开发原因：用户要求定时维护在项目的新任务中运行，避免产品开发对话的无关上下文累积。
