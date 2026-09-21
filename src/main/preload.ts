@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { CodexCompanionApi } from "../shared/contracts";
 
 const api: CodexCompanionApi = {
+  getQuotaEstimation: (request) => ipcRenderer.invoke("quota:estimation", request),
   getActivityCode: (request) => ipcRenderer.invoke("activity:code", request),
   getActivityDetails: (request) => ipcRenderer.invoke("activity:details", request),
   getDashboard: (force) => ipcRenderer.invoke("dashboard:get", force),

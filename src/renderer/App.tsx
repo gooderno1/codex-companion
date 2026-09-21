@@ -45,20 +45,22 @@ import {
 } from "./components/update/UpdateExperience";
 import { BrandMark, Glyph, type IconName } from "./icons";
 import { ActivityDetails } from "./components/ActivityDetails";
+import { QuotaEstimationPage } from "./components/QuotaEstimationPage";
 
 const NAV_ITEMS: Array<{
-  page: Extract<AppPage, "overview" | "ledger" | "repositories" | "notifications">;
+  page: Extract<AppPage, "overview" | "ledger" | "quota-estimation" | "repositories" | "notifications">;
   label: string;
   icon: IconName;
 }> = [
   { page: "overview", label: "总览", icon: "overview" },
   { page: "ledger", label: "Codex 账本", icon: "ledger" },
+  { page: "quota-estimation", label: "额度估算", icon: "cost" },
   { page: "repositories", label: "代码仓库", icon: "repo" },
   { page: "notifications", label: "通知", icon: "bell" }
 ];
 
 const PAGE_META: Record<
-  Extract<AppPage, "overview" | "ledger" | "repositories" | "notifications" | "refresh-history" | "settings">,
+  Extract<AppPage, "overview" | "ledger" | "quota-estimation" | "repositories" | "notifications" | "refresh-history" | "settings">,
   { title: string; subtitle: string }
 > = {
   overview: {
@@ -69,6 +71,7 @@ const PAGE_META: Record<
     title: "Codex 账本",
     subtitle: "构成强度、周期细账与会话归因"
   },
+  "quota-estimation": { title: "额度估算", subtitle: "本地成本、窗口等价值与计算依据" },
   repositories: {
     title: "代码仓库",
     subtitle: "同步 Git 仓库活动与 Codex 投入"
@@ -140,6 +143,7 @@ function resolvePageFromHash(): AppPage {
   const hash = window.location.hash.replace(/^#\//, "").split("?")[0];
   if (
     hash === "ledger" ||
+    hash === "quota-estimation" ||
     hash === "repositories" ||
     hash === "notifications" ||
     hash === "refresh-history" ||
@@ -4093,7 +4097,7 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = window.codexCompanion.onNavigate((route) => {
-      if (!/^#\/(?:overview|ledger|repositories|notifications|refresh-history|settings)$/.test(
+      if (!/^#\/(?:overview|ledger|quota-estimation|repositories|notifications|refresh-history|settings)$/.test(
         route.split("?")[0]
       )) {
         return;
@@ -4406,6 +4410,7 @@ export default function App() {
   const currentPage =
     page === "overview" ||
     page === "ledger" ||
+    page === "quota-estimation" ||
     page === "repositories" ||
     page === "notifications" ||
     page === "refresh-history" ||
@@ -4547,7 +4552,7 @@ export default function App() {
               type="button"
               className="action-button"
               disabled={loading}
-              onClick={() => void refresh(true)}
+              onClick={() => currentPage === "quota-estimation" ? window.dispatchEvent(new Event("quota-estimation:refresh")) : void refresh(true)}
             >
               <span className="button-icon">
                 <Glyph name="refresh" />
@@ -4575,9 +4580,9 @@ export default function App() {
           </div>
         ) : null}
         {error ? <div className="error-banner">{error}</div> : null}
-        {loading && !snapshot ? <div className="loading-card">正在读取本机 Codex 与 Git 数据…</div> : null}
+        {loading && !snapshot && currentPage !== "quota-estimation" ? <div className="loading-card">正在读取本机 Codex 与 Git 数据…</div> : null}
         {isPending ? <div className="loading-hint">界面正在切换到最新快照…</div> : null}
-        {isFirstLoadPending ? (
+        {isFirstLoadPending && currentPage !== "quota-estimation" ? (
           <FirstLoadPanel snapshot={snapshot} preferences={preferences} gitStatus={gitStatus} />
         ) : null}
         {needsDataSetup ? (
@@ -4599,6 +4604,7 @@ export default function App() {
         ) : null}
 
         <div className="page-viewport">
+          {currentPage === "quota-estimation" ? <QuotaEstimationPage sourceKey={preferences?.codexHome ?? ""} /> : null}
           {snapshot ? (
             <>
             {currentPage === "overview" ? (

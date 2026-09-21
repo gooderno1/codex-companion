@@ -1,8 +1,20 @@
 # 组件映射表
 
 - 创建时间：2026-06-03
-- 当前适用版本：`v0.6.2`
-- 当前覆盖页面：总览页、Codex 账本页、代码仓库页、通知页、刷新历史页、设置页
+- 当前适用版本：`v0.7.0-dev.1`
+- 当前覆盖页面：总览页、Codex 账本页、额度估算页、代码仓库页、通知页、刷新历史页、设置页
+
+## 额度估算页
+
+| 区块 | 组件 / 位置 | 数据和行为 |
+| --- | --- | --- |
+| 一级页面 | `QuotaEstimationPage` / `#/quota-estimation` | 位于账本之后，可直接加载，不依赖主快照 |
+| 范围 / 价格筛选 | `QuotaEstimationPage` | 6 / 12 个月、全部、自定义、快照 / 历史口径；偏好本地恢复 |
+| 月度成本和明细 | `SliceTable`、`TableSortHeader` | 月、模型、每日原始数值排序；未知价格及部分合计明确标注 |
+| 窗口图和证据 | `WindowChart`、窗口表 / 详情 | 样本期片段、经验分位、质量等级、ΔC / Δp、时间偏移及排除原因 |
+| 异步查询 | `QuotaEstimationService` / Worker | 独立 `quota:estimation` IPC，后台串行查询，过期响应丢弃 |
+| 原始索引 | `QuotaEstimationIndex` | SQLite 原始 Token / 额度观测，按时间索引，价格变化不重解析 |
+| 定价映射 | `quotaEstimationPricing.ts` | 复用版本化目录，快照切换与有效历史价格区分 |
 
 ## 总览页
 

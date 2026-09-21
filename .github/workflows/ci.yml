@@ -44,6 +44,9 @@ jobs:
       - name: Verify activity details
         run: npm run verify:activity
 
+      - name: Verify quota estimation
+        run: npm run verify:estimation
+
       - name: Verify startup settings
         run: npm run verify:startup
 

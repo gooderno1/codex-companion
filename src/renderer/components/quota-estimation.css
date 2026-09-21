@@ -1,0 +1,61 @@
+.qe-page { display: grid; align-content: start; gap: 18px; padding-bottom: 28px; min-width: 0; min-height: 0; overflow-y: auto; }
+.qe-card { border: 1px solid var(--border-soft, #e5eaf0); border-radius: 18px; background: var(--bg-surface, #fff); padding: 22px; min-width: 0; }
+.qe-toolbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.qe-toolbar-fields { display: flex; gap: 14px; flex-wrap: wrap; flex: 1; }
+.qe-toolbar label { display: grid; gap: 7px; color: var(--text-secondary); font-size: 12px; }
+.qe-toolbar select, .qe-toolbar input { min-height: 36px; border: 1px solid var(--border-soft, #dce2eb); border-radius: 9px; background: #fff; color: var(--text-primary); padding: 6px 10px; min-width: 130px; }
+.qe-tabs { display: flex; width: fit-content; background: #edf2f7; border-radius: 12px; padding: 4px; gap: 4px; }
+.qe-tabs button { padding: 10px 20px; border-radius: 9px; cursor: pointer; font-size: 13px; color: var(--text-secondary); }
+.qe-tabs [aria-selected="true"] { background: #fff; color: var(--text-primary); box-shadow: 0 2px 5px #1020380a; font-weight: 650; }
+.qe-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 9px; color: var(--text-tertiary); font-size: 12px; }
+.qe-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.qe-stats .qe-card { display: grid; gap: 10px; }
+.qe-stats .qe-card > span { color: var(--text-secondary); font-size: 12px; }
+.qe-stats strong { font-size: 29px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -.7px; }
+.qe-stats small, .qe-page td small { display: block; font-size: 11px; font-weight: 400; color: var(--text-tertiary); margin-top: 5px; letter-spacing: 0; }
+.qe-section-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.qe-section-head h3 { margin: 0; font-size: 16px; font-weight: 650; }
+.qe-section-head p, .qe-section-head > span { color: var(--text-tertiary); font-size: 12px; margin: 7px 0 0; }
+.qe-table-scroll { overflow: auto; max-height: 620px; }
+.qe-page table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+.qe-page th { color: var(--text-secondary); background: #f8fafc; position: sticky; top: 0; font-weight: 500; z-index: 1; }
+.qe-page th, .qe-page td { text-align: left; padding: 13px 12px; border-bottom: 1px solid #edf1f6; white-space: nowrap; }
+.qe-page td:first-child { white-space: normal; min-width: 160px; overflow-wrap: anywhere; }
+.qe-page tr.selected td { background: #eef6ff; }
+.qe-page tbody tr:hover td { background: #f6faff; }
+.qe-page caption { text-align: left; padding: 20px 0 10px; font-size: 14px; font-weight: 600; }
+.qe-page button { cursor: pointer; }
+.qe-page button:disabled { opacity: .45; cursor: default; }
+.qe-page button:focus-visible, .qe-chart g:focus-visible { outline: 2px solid #1778e8; outline-offset: 3px; }
+.qe-link { color: #1768c9; text-align: left; font-weight: 550; padding: 3px 0; }
+.qe-pagination { display: flex; align-items: center; gap: 14px; margin-top: 16px; font-size: 12px; color: var(--text-secondary); flex-wrap: wrap; }
+.qe-pagination > span:first-child { flex: 1; }
+.qe-pagination button { border: 1px solid #dfe6ee; padding: 6px 10px; border-radius: 7px; }
+.qe-evidence { border-radius: 6px; padding: 5px 8px; background: #f0f3f6; font-size: 11px; color: #617081; }
+.qe-evidence.moderate { background: #e8f5f0; color: #24785a; }
+.qe-evidence.exploratory { background: #fff4de; color: #906414; }
+.qe-chart svg { width: 100%; height: auto; min-height: 150px; max-height: 240px; overflow: visible; }
+.qe-chart svg text { font-family: inherit; font-size: 11px; fill: #8090a3; }
+.qe-grid { stroke: #e7edf4; stroke-dasharray: 3 5; }
+.qe-segment { stroke: #3278c9; stroke-width: 3; }
+.qe-segment.exploratory { stroke: #c59a48; stroke-dasharray: 4 3; }
+.qe-band { fill: #c7dff7; opacity: .45; }
+.qe-chart circle { fill: #3278c9; }
+.qe-chart g[role="button"] { cursor: pointer; }
+.qe-chart g.selected .qe-segment { stroke-width: 6; }
+.qe-chart g.selected .qe-band { opacity: .9; }
+.qe-chart p, .qe-detail p, .qe-method p, .qe-method li { color: var(--text-secondary); font-size: 12px; line-height: 1.8; }
+.qe-breakdown { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 15px; margin: 20px 0; }
+.qe-breakdown div { display: grid; gap: 8px; }
+.qe-breakdown span { font-size: 12px; color: var(--text-secondary); }
+.qe-breakdown strong > span { font-size: 20px; color: var(--text-primary); }
+.qe-formula { background: #f0f6fd; color: #2464a6; border-radius: 10px; padding: 17px; margin: 15px 0; font-size: 17px; font-variant-numeric: tabular-nums; }
+.qe-exclusions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 15px; }
+.qe-exclusions span { padding: 5px 9px; border-radius: 6px; background: #f3f5f8; color: #68778a; font-size: 11px; }
+.qe-method summary { font-size: 13px; font-weight: 600; cursor: pointer; }
+.qe-method ul { padding-left: 20px; }
+.qe-source { overflow-wrap: anywhere; }
+.qe-empty, .qe-loading { color: var(--text-secondary); font-size: 13px; line-height: 1.8; }
+.qe-error { padding: 16px; background: #fff3ef; border: 1px solid #f4d7cf; color: #914933; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; }
+@media (max-width: 1100px) { .qe-card { padding: 16px; } .qe-stats strong { font-size: 24px; } .qe-breakdown { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 780px) { .qe-stats { grid-template-columns: 1fr; } .qe-toolbar-fields { flex-basis: 100%; } }
