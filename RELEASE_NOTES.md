@@ -23,7 +23,18 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 
 - 开发版本完整构建与 CI 35617828487 通过；覆盖估算、定价、用量、当前额度、历史详情、更新器、通知、同期、开机自启和签名政策。
 - Electron 真实数据通过日期筛选、排序、详情、价格口径切换、状态恢复及两种窗口尺寸检查；550 个文件的缓存命中查询约 1.24s，重启首次派生分析约 17.49s。
-- 正式版本的 CI、Windows tag 打包、安装包元数据及公开资产校验结果在发布完成后补记。
+- 正式 tag 固定提交 03fa1c33bb6b2d376ac2dc09ca01aaa94ba2df6e；CI 35618501379 与 Windows Package 35618501782 均成功。
+- 安装包和应用主程序 ProductName 为 Codex Companion、ProductVersion 为 0.7.0，Authenticode 为 NotSigned；安装包内 ASAR 的 Worker、SQLite、价格资源及重启索引复用验证通过。
+- 四项工作流产物、GitHub digest 与匿名公开下载 SHA256 全部一致；latest.yml 版本 / 路径 / 大小 / SHA512、stable 更新入口与 Latest Release API 一致。
+
+### Release 资产校验
+
+- Codex.Companion.Setup.0.7.0.exe：103009462 bytes；SHA256 710f4f7a0acea7f6b321e0de9a595a8de49b05cba10944fc9006dc7fe2aedb5e。
+- Codex.Companion.Setup.0.7.0.exe.blockmap：108248 bytes；SHA256 f545a246d2716722d34cbc6d7b829711c2ba472e28e009ab1fdbe5ea1ccbbd5e。
+- latest.yml：359 bytes；SHA256 aa9f13bbb9e651045ad93935352fdd52abedc5960ac77bffbb6c99f565f0cb00。
+- SHA256SUMS.txt：99 bytes；SHA256 261534877a176753fec7329dc9c4c9f2a794ee6bea669074f9034577a610f532。
+- v0.7.0 于 2026-09-21T15:28:05Z 公开为 stable Latest，Release id 393073294；同次构建的资产补齐后清理重复草稿 393073291。
+- 发布后补记 v0.7.0-dev.3 不在安装包 tag 中：仅记录发布验收，没有移动 tag 或再次打包。
 
 ### 升级注意事项
 

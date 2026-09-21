@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-09-21] v0.7.0-dev.3 docs(release): 记录额度估算发布与公开下载验收
+
+- 开发原因：记录用户要求的 v0.7.0 正式 Release 完成状态，确保安装包、更新入口和来源可追溯。
+- 实现方式：tag v0.7.0 固定提交 03fa1c33bb6b2d376ac2dc09ca01aaa94ba2df6e；CI 35618501379、Windows Package 35618501782 均成功。
+- 当前结果：Release 393073294 于 2026-09-21T15:28:05Z 公开为 stable Latest；同源资产补齐后清理打包工具生成的重复草稿 393073291。
+- 安装包结果：103009462 bytes，SHA256 710f4f7a0acea7f6b321e0de9a595a8de49b05cba10944fc9006dc7fe2aedb5e；安装包和主程序产品版本为 0.7.0，签名状态 NotSigned。
+- 验证方式：四项工作流产物、GitHub digest 与匿名公开下载哈希一致；latest.yml 的版本 / 路径 / 大小 / SHA512 正确，stable 下载入口及 Latest Release API 指向 v0.7.0。
+- 验证方式：直接从正式安装包 ASAR 加载估算服务，在隔离合成数据上验证 Worker、SQLite、Astra 100 万普通输入成本 10 美元及重启零文件重解析；未安装或改写用户现有应用。
+- 文档验证：npm run build、git diff --check；本条仅为发布后补记，不进入安装包、不移动 tag，应用版本保持 0.7.0，共享核心保持远程 v0.2.0-dev.4。
+
 ## [2026-09-21] v0.7.0-dev.2 chore(release): 准备额度估算正式版本
 
 - 开发原因：用户要求发布额度估算功能以便升级测试。
