@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-09-21] v0.7.0-dev.2 chore(release): 准备额度估算正式版本
+
+- 开发原因：用户要求发布额度估算功能以便升级测试。
+- 实现方式：合并已通过 CI 的 PR #1，将 package / lock / clientVersion 同步为 0.7.0，更新 README 和 RELEASE_NOTES；共享核心保持远程 tag v0.2.0-dev.4。
+- 当前结果：正式版本包含 dev.1 全部功能；沿用现有 GitHub Windows tag 构建与未签名更新链路。
+- 验证方式：发布前执行完整构建、额度估算与更新器回归、签名政策及 git diff --check；后续从固定 tag 构建并校验同源安装包、blockmap、latest.yml 与校验文件，发布结果另行补记。
+
 ## [2026-09-21] v0.7.0-dev.1 feat(quota): 新增独立额度估算页与历史索引
 
 - 开发原因：用户授权实施已确认的额度估算方案，查看历史月份的标准 API 等价成本及随周窗口变化的满额等价值。
