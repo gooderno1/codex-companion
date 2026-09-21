@@ -3,6 +3,7 @@ export type SourceStatus = "observed" | "pending" | "unobserved" | "stale";
 export type AppPage =
   | "overview"
   | "ledger"
+  | "quota-estimation"
   | "repositories"
   | "notifications"
   | "refresh-history"
@@ -561,6 +562,7 @@ export interface GitIntegrationStatus {
 }
 
 export interface CodexCompanionApi {
+  getQuotaEstimation(request: import("./quotaEstimation").QuotaEstimationRequest): Promise<import("./quotaEstimation").QuotaEstimationResponse>;
   getActivityCode(request: import("./activityDetails").ActivityDetailsRequest & { projectId: string }): Promise<import("./activityDetails").ActivityCodeResponse>;
   getActivityDetails(request: import("./activityDetails").ActivityDetailsRequest): Promise<import("./activityDetails").ActivityDetailsResponse>;
   getDashboard(force?: boolean): Promise<DashboardSnapshot>;

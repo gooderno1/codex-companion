@@ -38,6 +38,7 @@ import {
 } from "./notifications";
 import { SettingsStore } from "./state/settingsStore";
 import { ActivityDetailsService } from "./activityDetailsService";
+import { QuotaEstimationService } from "./quotaEstimationService";
 import { SnapshotStore } from "./state/snapshotStore";
 import { UpdateService } from "./updateService";
 import { readGitIntegrationStatus } from "./utils/git";
@@ -48,6 +49,7 @@ let tray: Tray | null = null;
 let isQuitting = false;
 let dashboardService: DashboardService;
 let activityDetailsService: ActivityDetailsService;
+let quotaEstimationService: QuotaEstimationService;
 let dashboardNotificationService: DashboardNotificationService | null = null;
 let updateService: UpdateService | null = null;
 let currentPreferences: AppPreferences | null = null;
@@ -146,6 +148,7 @@ function resolveInitialPage(): AppPage {
   if (
     capturePage === "overview" ||
     capturePage === "ledger" ||
+    capturePage === "quota-estimation" ||
     capturePage === "repositories" ||
     capturePage === "notifications" ||
     capturePage === "refresh-history" ||
@@ -1017,6 +1020,7 @@ function registerIpcHandlers() {
   ipcMain.handle("preferences:get", async () => dashboardService.getPreferences());
   ipcMain.handle("activity:code", (_event, request) => activityDetailsService.queryCode(request));
   ipcMain.handle("activity:details", (_event, request) => activityDetailsService.query(request));
+  ipcMain.handle("quota:estimation", (_event, request) => quotaEstimationService.query(request));
   ipcMain.handle(
     "preferences:update",
     async (_event, patch: Partial<AppPreferences>) => {
@@ -1088,6 +1092,7 @@ async function bootstrap() {
   const snapshotStore = new SnapshotStore(userDataPath);
   const codexSessionCacheStore = new CodexSessionCacheStore(userDataPath);
   activityDetailsService = new ActivityDetailsService(settingsStore, codexSessionCacheStore);
+  quotaEstimationService = new QuotaEstimationService(settingsStore, codexSessionCacheStore.storageDirectory);
   dashboardService = new DashboardService(
     settingsStore,
     snapshotStore,
@@ -1132,6 +1137,7 @@ app.whenReady().then(() => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  quotaEstimationService?.close();
   updateService?.stop();
   stopDashboardAutoRefresh();
 });
