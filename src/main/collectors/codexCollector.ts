@@ -13,7 +13,7 @@ import { emptyTokens, roundTo, sumTokens } from "./metrics";
 const CODEX_HISTORY_LOOKBACK_DAYS = 60;
 const PRIMARY_CODEX_LIMIT_ID = "codex";
 // 缓存包含派生成本；更新定价或成本公式时必须使旧缓存失效。
-export const CODEX_SESSION_CACHE_VERSION = 3;
+export const CODEX_SESSION_CACHE_VERSION = 4;
 
 export interface ObservedLimitWindow {
   observedAt?: string;

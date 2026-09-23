@@ -5,17 +5,17 @@ import { createHash } from "node:crypto";
 const require = createRequire(import.meta.url);
 const { estimateApiCostUsd, estimateCodexCredits, resolvePricingRate, PRICING_CATALOG_VERSION, PRICING_CATALOG_HISTORY } = require("../dist-electron/main/collectors/pricing.js");
 const { DashboardService } = require("../dist-electron/main/collectors/dashboardCollector.js");
-const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-09-19.json", import.meta.url)));
+const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-09-23.json", import.meta.url)));
 const sample = { input: 1000000, cachedInput: 800000, output: 100000, reasoningOutput: 50000, total: 1100000 };
 for (const [model,usd,credits] of [
-  ["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
+  ["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
   ["gpt-5.6-terra",1.76,44],["gpt-5.6-luna",.176,4.4],
   ["gpt-daybreak-blue-latest",3.12,78],["gpt-5.6-cyber",11,275],["gpt-daybreak-red-latest",11,275]
 ]) {
   assert.ok(Math.abs(estimateApiCostUsd(model,sample)-usd)<1e-10,model);
   assert.ok(Math.abs(estimateCodexCredits(model,sample)-credits)<1e-10,model);
 }
-for (const model of ["gpt-rosalind-research","gpt-6","gpt-5.6-pro","gpt-5.6-cyber-pro","gpt-daybreak-red-latest-2026-09-19","toString","__proto__"]) {
+for (const model of ["gpt-rosalind-research","gpt-6","gpt-6-terra","gpt-6-sol-pro","gpt-6-luna-pro","gpt-5.6-pro","gpt-5.6-cyber-pro","gpt-daybreak-red-latest-2026-09-19","toString","__proto__"]) {
   assert.equal(resolvePricingRate(model),null,model);
   assert.equal(estimateApiCostUsd(model,sample),null);
   assert.equal(estimateCodexCredits(model,sample),null);
@@ -41,4 +41,18 @@ for (const [model,cost] of [["gpt-5.1",1.35],["gpt-5.1-codex",1.35],["gpt-5.1-co
 const old = {...cache,pricingCatalogVersion:"old",sourceHealth:{refreshHistory:[]}};
 const service = new DashboardService({read:async()=>({get codexHome(){throw new Error("synthetic collection failure");}})},{read:async()=>old});
 await assert.rejects(service.getSnapshot(true),/synthetic collection failure/);
+
+assert.equal(PRICING_CATALOG_VERSION,"2026-09-23");
+assert.equal(PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-19").rates["gpt-6-sol"],undefined);
+for (const model of ["gpt-6-sol","gpt-6-luna"]) {
+  assert.equal(catalog.rules[model].apiFastMultiplier,2);
+  assert.equal(catalog.rules[model].codexFastMultiplier,2.5);
+  assert.equal(catalog.rules[model].longContext.threshold,272000);
+  assert.equal(catalog.rules[model].longContext.scope,"request");
+}
+assert.equal(catalog.billingRules.codexCacheWriteCharge,"no-separate-charge");
+
+const priorCatalog = PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-19");
+for(const [model,rate] of Object.entries(priorCatalog.rates)) assert.deepEqual(catalog.rates[model],rate,"既有模型价格保持不变");
+assert.deepEqual(catalog.aliases,priorCatalog.aliases,"不能把旧别名迁到新一代模型");
 console.log("定价目录回归通过：独立 USD/credits、精确别名、未知/未来价格、促销历史语义、来源哈希与启动/失败旧缓存拒用。");

@@ -2,7 +2,27 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.0` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.1` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-09-23] v0.7.1 release: GPT-6 Sol / Luna 模型价格
+
+### Release 范围
+
+- 包含 v0.7.1-dev.1；基于已验收 v0.7.0，无排除开发版本。共享核心保持 v0.2.0-dev.4。
+
+### 主要变更
+
+- 支持 GPT-6 Sol / Luna 的独立 API USD 与 Codex credits 标准价；旧模型和 Daybreak 别名保持原值。
+- Sol 每百万输入 / 缓存 / 输出：USD 2/0.2/10，credits 50/5/250；Luna：USD 0.1/0.01/0.5，credits 2.5/0.25/12.5。
+- 升级后自动重估普通缓存和账本历史索引；额度估算可选择 09-23 新快照，旧快照保留。
+
+### 验证与升级
+
+- npm run build、定价 / 用量 / 普通缓存 / SQLite / 额度估算、更新器、通知、同期、开机自启、签名政策及 git diff --check 全部通过；准确 CI / 打包与资产结果在验收后补记。
+- 合成样例：100 万输入含 80 万缓存、10 万输出，Sol USD 1.56 / 39 credits，Luna USD 0.078 / 1.95 credits。
+- 无需删除 Codex 数据；旧缓存首次重估后恢复复用。金额为标准短上下文快照估值，历史生效价未知时仍为未定价。
+- 未来 Rosalind API 价格、Cyber 长上下文待核对项不提前启用。Fast、API 缓存写入、长上下文和地区调整仍不纳入估值。
+- 沿用未签名发布；用户点击“重启并安装”才安装。来源和详细边界见 [定价核查](./docs/model-pricing-2026-09-23.md)。
 
 ## [2026-09-21] v0.7.0 release: 独立额度估算与历史成本详情
 

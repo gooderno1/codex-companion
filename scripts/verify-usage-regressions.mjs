@@ -88,7 +88,7 @@ try {
   const timestamp = "2026-09-17T04:00:00.000Z";
   const lines = [
     { type: "session_meta", payload: { id: "fixture", timestamp } },
-    { type: "turn_context", payload: { model: "gpt-6-astra" } },
+    { type: "turn_context", payload: { model: "gpt-6-sol" } },
     { type: "event_msg", timestamp, payload: { type: "token_count", info: { total_token_usage: { input_tokens: 1_000_000, cached_input_tokens: 800_000, output_tokens: 100_000, total_tokens: 1_100_000 } } } }
   ];
   await writeFile(path.join(fixtureHome, "sessions", "rollout-2026-09-17T04-00-00-fixture.jsonl"), lines.map((line) => JSON.stringify(line)).join("\n"));
@@ -96,20 +96,20 @@ try {
   const sessionCacheStore = { read: async () => cache, write: async (value) => { cache = value; } };
   const options = { codexHome: fixtureHome, sessionCacheStore };
   await collectCodexData(new Date(timestamp), options);
-  cache.version = 2;
+  cache.version = 3;
   for (const entry of Object.values(cache.entries)) {
     for (const event of entry.result.events) { event.apiCostUsd = 0; event.creditsEstimate = 0; }
     entry.result.session.apiCostUsd = 0;
   }
   const refreshed = await collectCodexData(new Date(timestamp), options);
   assert.equal(refreshed.cacheStats.parsedFiles, 1, "升级后须重新解析未改动的旧成本缓存");
-  assert.equal(refreshed.events[0].apiCostUsd, 7.8);
-  assert.equal(refreshed.events[0].creditsEstimate, 195);
+  assert.equal(refreshed.events[0].apiCostUsd, 1.56);
+  assert.equal(refreshed.events[0].creditsEstimate, 39);
   assert.equal(refreshed.events[0].creditPricingStatus, "priced");
-  assert.equal(refreshed.sessions[0].apiCostUsd, 7.8);
+  assert.equal(refreshed.sessions[0].apiCostUsd, 1.56);
   const reused = await collectCodexData(new Date(timestamp), options);
   assert.equal(reused.cacheStats.reusedFiles, 1);
-  assert.equal(reused.events[0].apiCostUsd, 7.8);
+  assert.equal(reused.events[0].apiCostUsd, 1.56);
 } finally {
   await rm(fixtureHome, { recursive: true, force: true });
 }

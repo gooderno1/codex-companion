@@ -223,7 +223,7 @@ async function collectBankedResetCreditsSummary(
   try {
     const snapshot = await readCodexAccountRateLimits({
       clientName: "codex-companion",
-      clientVersion: "0.7.0"
+      clientVersion: "0.7.1"
     });
     const currentObservation = sanitizeBankedResetObservation(
       createBankedResetCreditObservationFromSnapshot(snapshot, "codex-app-server")
@@ -519,7 +519,7 @@ async function collectOfficialUsageRateSnapshot(
     const snapshot = normalizeOfficialUsageSnapshot(
       await readCodexUsageRateLimits({
         codexHome,
-        clientVersion: "0.7.0"
+        clientVersion: "0.7.1"
       })
     );
     // 成功响应缺少窗口时保持未观测，不能回填历史窗口。

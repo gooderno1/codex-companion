@@ -11,7 +11,7 @@ const { QuotaEstimationIndex } = require("../dist-electron/main/state/quotaEstim
 const { QuotaEstimationService } = require("../dist-electron/main/quotaEstimationService.js");
 const start = Date.parse("2026-09-01T00:00:00Z"), hour = 3600000;
 const now = start + 9 * 86400000;
-const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-09-19" };
+const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-09-23" };
 const token = input => ({ input, cachedInput: 0, output: 0, reasoningOutput: 0, total: input });
 const event = (h, model = "gpt-6-astra", n = 3000000) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), model, tokens: token(n) });
 const observation = (h, p, { primary = true, pool = "codex", plan = "pro", reset = start + 7 * 86400000 } = {}) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), rateLimits: {
@@ -76,7 +76,7 @@ try {
   await mkdir(path.join(home, "sessions"), { recursive: true }); await mkdir(path.join(home, "archived_sessions"));
   const file = path.join(home, "sessions", "rollout.jsonl");
   const usage = (h, n) => ({ type: "event_msg", timestamp: event(h).timestamp, payload: { type: "token_count", info: { total_token_usage: { input_tokens: n, cached_input_tokens: 0, output_tokens: 0, total_tokens: n } }, rate_limits: { primary: { used_percent: 10 + h * 10, window_minutes: 10080, resets_at: (start + 7 * 86400000) / 1000 }, limit_id: "codex", plan_type: "pro" } } });
-  const records = [{ type: "session_meta", payload: { id: "fixture", cwd: "PRIVATE_PATH_NOT_STORED", timestamp: request.startAt } }, { type: "turn_context", payload: { model: "gpt-5.6-sol" } }, usage(.5, 1000000)];
+  const records = [{ type: "session_meta", payload: { id: "fixture", cwd: "PRIVATE_PATH_NOT_STORED", timestamp: request.startAt } }, { type: "turn_context", payload: { model: "gpt-6-sol" } }, usage(.5, 1000000)];
   await writeFile(file, records.map(JSON.stringify).join("\n") + "\n");
   const original = await readFile(file);
   index = new QuotaEstimationIndex(store, home);
@@ -85,8 +85,8 @@ try {
   assert.equal(raw.events.length, 1); assert.equal(raw.observations.length, 1);
   assert.equal(JSON.stringify(raw).includes("PRIVATE_PATH_NOT_STORED"), false);
   assert.equal(JSON.stringify(raw.events).includes("apiCostUsd"), false, "原始索引不保存派生成本");
-  assert.equal(aggregate(raw).summary.costUsd, 4);
-  assert.equal(aggregate(raw, { ...request, catalogVersion: "2026-09-17" }).summary.costUsd, null);
+  assert.equal(aggregate(raw).summary.costUsd, 2);
+  assert.equal(aggregate(raw, { ...request, catalogVersion: "2026-09-19" }).summary.costUsd, null);
   assert.equal((await index.refresh()).reusedFiles, 1, "切换价格不重解析文件");
   index.close(); index = new QuotaEstimationIndex(store, home);
   assert.equal((await index.refresh()).parsedFiles, 0, "重启复用原始索引");
@@ -103,8 +103,8 @@ try {
   assert.match(JSON.stringify(db.prepare("EXPLAIN QUERY PLAN SELECT payload FROM observations WHERE at>=? AND at<? ORDER BY at").all(start, now)), /observations_at/);
   db.close(); index.close();
   service = new QuotaEstimationService({ read: async () => ({ codexHome: home }) }, store);
-  const first = await service.query(request), second = await service.query({ ...request, catalogVersion: "2026-09-17" });
-  assert.equal(first.summary.costUsd, 6); assert.equal(second.summary.costUsd, null);
+  const first = await service.query(request), second = await service.query({ ...request, catalogVersion: "2026-09-19" });
+  assert.equal(first.summary.costUsd, 3); assert.equal(second.summary.costUsd, null);
   assert.equal(second.performance.parsedFiles, 0, "后台线程切换价格只重算估值");
   service.close(); service = null;
 } finally {
@@ -113,5 +113,11 @@ try {
   assert.equal(path.dirname(resolved), path.resolve(os.tmpdir()));
   assert.ok(path.basename(resolved).startsWith("companion-quota-estimation-"));
   await rm(resolved, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+}
+
+for (const [model,cost] of [["gpt-6-sol",.76],["gpt-6-luna",.038]]) {
+  assert.ok(Math.abs(priceEstimation(model,tokenSample,request.endAt,"2026-09-23","snapshot")-cost)<1e-10);
+  assert.equal(priceEstimation(model,tokenSample,request.endAt,"2026-09-19","snapshot"),null);
+  assert.equal(priceEstimation(model,tokenSample,request.endAt,"2026-09-23","historical"),null);
 }
 console.log("额度估算验证通过：公式、池 / 时长、分段、缺失价格、范围、原始索引、重启复用及后台重估。");

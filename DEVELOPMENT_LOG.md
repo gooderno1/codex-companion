@@ -1,5 +1,16 @@
 # DEVELOPMENT LOG
 
+## [2026-09-23] v0.7.1-dev.1 fix(pricing): 补齐 GPT-6 Sol / Luna 并重估旧缓存
+
+- 开发原因：官方新增 GPT-6 Sol / Luna，v0.7.0 仍将其标为未定价；沿用标准短上下文估值边界。
+- 实现方式：新增 2026-09-23 价格目录，保留前两版快照及证据；Sol API 2/0.2/10、credits 50/5/250；Luna API 0.1/0.01/0.5、credits 2.5/0.25/12.5，均按每百万普通输入 / 缓存读取 / 输出。
+- 实现方式：普通缓存 3→4、账本 SQLite 103→104；仪表盘拒用旧目录。额度估算只重算派生值，不使原始索引失效；旧快照及未知历史生效时间继续保持未定价。
+- 规则边界：Codex Fast 2.5 倍、API Fast 2 倍；API 写入 2.5/0.125，Codex 无独立写入收费。严格超过 272000 输入才适用完整请求长上下文倍率；本产品未观测这些请求级维度，不自动应用。
+- 当前结果：输入 100 万含 80 万缓存、输出 10 万，Sol USD 1.56 / 39 credits，Luna USD 0.078 / 1.95 credits；不添加模糊别名，旧模型费率不变。
+- 核心依赖：远程最新 tag 和应用均为 @lifeinhand/codex-usage-core@0.2.0-dev.4；未修改共享解析或 reset。
+- 验证方式：npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy、git diff --check 全部通过。SQLite credits 断言采用 1e-12 容差消除浮点舍入误差；合成数据 Token 守恒。
+- 发布状态：准备 v0.7.1；详细来源、历史语义及生效边界见 docs/model-pricing-2026-09-23.md。
+
 ## [2026-09-21] v0.7.0-dev.3 docs(release): 记录额度估算发布与公开下载验收
 
 - 开发原因：记录用户要求的 v0.7.0 正式 Release 完成状态，确保安装包、更新入口和来源可追溯。
