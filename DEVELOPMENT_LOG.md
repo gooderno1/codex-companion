@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-09-23] v0.7.1-dev.2 docs(release): 记录 GPT-6 Sol / Luna 发布验收
+
+- 开发原因：补记已完成的模型定价 stable Release，确保准确提交、资产和更新入口可审计。
+- 实现方式：tag v0.7.1 固定 c31b849811a3510e2307b93860dc0eed6c06e60d；CI 35876369315 与 Windows Package 35876374875 均成功。
+- 当前结果：Release 394762398 于 2026-09-23T14:49:56Z 公开为 stable Latest；补齐同源 blockmap 后清理同次重复草稿 394762400，未移动 tag。
+- 资产结果：安装包产品名 Codex Companion、版本 0.7.1、签名 NotSigned；103013426 bytes，SHA256 f960984145bfcc3a514eaf62214b2f087d30e1ead847eaf60c692d6b30b1296e。
+- 验证方式：四项工作流产物、GitHub digest 和匿名下载 SHA256 一致；latest.yml 版本 / 路径 / 大小 / SHA512、stable 入口和匿名 Latest API 全部匹配。
+- 验证方式：发布实现的完整构建和全部 CI 回归通过；本次仅补记文档，执行 npm run build 和 git diff --check。
+- 版本说明：dev.2 不进入安装包 tag；不改变应用版本、不再打包，核心继续为远程 v0.2.0-dev.4。
+
 ## [2026-09-23] v0.7.1-dev.1 fix(pricing): 补齐 GPT-6 Sol / Luna 并重估旧缓存
 
 - 开发原因：官方新增 GPT-6 Sol / Luna，v0.7.0 仍将其标为未定价；沿用标准短上下文估值边界。
@@ -9,7 +19,7 @@
 - 当前结果：输入 100 万含 80 万缓存、输出 10 万，Sol USD 1.56 / 39 credits，Luna USD 0.078 / 1.95 credits；不添加模糊别名，旧模型费率不变。
 - 核心依赖：远程最新 tag 和应用均为 @lifeinhand/codex-usage-core@0.2.0-dev.4；未修改共享解析或 reset。
 - 验证方式：npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy、git diff --check 全部通过。SQLite credits 断言采用 1e-12 容差消除浮点舍入误差；合成数据 Token 守恒。
-- 发布状态：准备 v0.7.1；详细来源、历史语义及生效边界见 docs/model-pricing-2026-09-23.md。
+- 发布状态：v0.7.1 已正式发布并完成公开下载验收；详细来源、历史语义及生效边界见 docs/model-pricing-2026-09-23.md。
 
 ## [2026-09-21] v0.7.0-dev.3 docs(release): 记录额度估算发布与公开下载验收
 
