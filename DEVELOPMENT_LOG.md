@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-09-30] v0.7.2-dev.2 docs(release): 记录 GPT-6.1 Sol 发布验收
+
+- 开发原因：补记正式发布、准确提交与公开下载结果，支持后续去重和审计。
+- 实现方式：v0.7.2 tag 固定 aaa6cfbedcad4b38e5d86c6bf7ee4c7fe39d1b79；CI 36671532156 与 Windows Package 36671534421 均成功。
+- 当前结果：Release 399733159 于 2026-09-30T05:07:12Z 公开为 stable Latest；合并同源 blockmap 后清理同次重复草稿 399733160，未移动 tag。
+- 资产结果：产品名 Codex Companion、版本 0.7.2、签名 NotSigned；安装包 103016185 bytes，SHA256 495b064bc1a492d14b3facb6b7440a4142eff41b14be231f16a96e227cf212b8。
+- 验证方式：四项工作流产物、GitHub digest 与匿名下载 SHA256 全部一致；latest.yml 版本 / 路径 / 大小 / SHA512 匹配，blockmap 压缩格式、块数量与文件范围有效。
+- 验证方式：stable 更新入口与匿名 Latest API 指向 v0.7.2；公开下载临时断连后有限重试成功。发布实现完整构建和全部回归通过；本次文档补记执行 npm run build 与 git diff --check。
+- 版本说明：dev.2 仅为发布后记录，不进入安装包 tag，不重新打包；应用版本保持 0.7.2，核心保持远程 v0.2.0-dev.4。
+
 ## [2026-09-30] v0.7.2-dev.1 fix(pricing): 补齐 GPT-6.1 Sol 并区分速度档位计费
 
 - 开发原因：官方新增 GPT-6.1 Sol，并明确 Fast 订阅额度与购买 credits 使用不同倍率；v0.7.1 未收录新模型。
@@ -9,8 +19,8 @@
 - 规则边界：严格超过 272000 输入的单请求才适用长上下文；缺少请求档位 / 写入量 / 地区时仍按标准短上下文估值。未来与缺失价格不启用，5.4 / mini 保留旧核实费率。
 - 当前结果：100 万输入含 80 万缓存、10 万输出，6.1 Sol 为 USD 1.48 / 37 credits；无模糊别名，既有模型标准价不变。
 - 核心依赖：已核查远程最新 v0.2.0-dev.4，保持 @lifeinhand/codex-usage-core 远程 tag；不改共享解析与 reset。
-- 验证方式：npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy、git diff --check 全部通过；准确 CI / 打包与资产结果待发布验收。
-- 发布状态：准备 v0.7.2；来源与边界见 [本轮核查](./docs/model-pricing-2026-09-30.md)。
+- 验证方式：npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy、git diff --check 全部通过；准确 CI / 打包与资产结果见最新发布验收记录。
+- 发布状态：v0.7.2 已正式发布并完成公开下载验收；来源与边界见 [本轮核查](./docs/model-pricing-2026-09-30.md)。
 
 
 
