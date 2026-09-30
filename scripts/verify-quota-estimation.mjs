@@ -11,7 +11,7 @@ const { QuotaEstimationIndex } = require("../dist-electron/main/state/quotaEstim
 const { QuotaEstimationService } = require("../dist-electron/main/quotaEstimationService.js");
 const start = Date.parse("2026-09-01T00:00:00Z"), hour = 3600000;
 const now = start + 9 * 86400000;
-const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-09-23" };
+const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-09-30" };
 const token = input => ({ input, cachedInput: 0, output: 0, reasoningOutput: 0, total: input });
 const event = (h, model = "gpt-6-astra", n = 3000000) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), model, tokens: token(n) });
 const observation = (h, p, { primary = true, pool = "codex", plan = "pro", reset = start + 7 * 86400000 } = {}) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), rateLimits: {
@@ -76,7 +76,7 @@ try {
   await mkdir(path.join(home, "sessions"), { recursive: true }); await mkdir(path.join(home, "archived_sessions"));
   const file = path.join(home, "sessions", "rollout.jsonl");
   const usage = (h, n) => ({ type: "event_msg", timestamp: event(h).timestamp, payload: { type: "token_count", info: { total_token_usage: { input_tokens: n, cached_input_tokens: 0, output_tokens: 0, total_tokens: n } }, rate_limits: { primary: { used_percent: 10 + h * 10, window_minutes: 10080, resets_at: (start + 7 * 86400000) / 1000 }, limit_id: "codex", plan_type: "pro" } } });
-  const records = [{ type: "session_meta", payload: { id: "fixture", cwd: "PRIVATE_PATH_NOT_STORED", timestamp: request.startAt } }, { type: "turn_context", payload: { model: "gpt-6-sol" } }, usage(.5, 1000000)];
+  const records = [{ type: "session_meta", payload: { id: "fixture", cwd: "PRIVATE_PATH_NOT_STORED", timestamp: request.startAt } }, { type: "turn_context", payload: { model: "gpt-6.1-sol" } }, usage(.5, 1000000)];
   await writeFile(file, records.map(JSON.stringify).join("\n") + "\n");
   const original = await readFile(file);
   index = new QuotaEstimationIndex(store, home);
@@ -121,3 +121,7 @@ for (const [model,cost] of [["gpt-6-sol",.76],["gpt-6-luna",.038]]) {
   assert.equal(priceEstimation(model,tokenSample,request.endAt,"2026-09-23","historical"),null);
 }
 console.log("额度估算验证通过：公式、池 / 时长、分段、缺失价格、范围、原始索引、重启复用及后台重估。");
+
+assert.ok(Math.abs(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-09-30","snapshot")-.68)<1e-10);
+assert.equal(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-09-23","snapshot"),null);
+assert.equal(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-09-30","historical"),null);

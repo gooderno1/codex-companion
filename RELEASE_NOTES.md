@@ -2,7 +2,27 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.1` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.2` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-09-30] v0.7.2 release: GPT-6.1 Sol 模型价格
+
+### Release 范围
+
+- 包含 v0.7.2-dev.1，基于已验收 v0.7.1 及其发布记录，无未验收功能混入。共享核心保持 v0.2.0-dev.4。
+
+### 主要变更
+
+- 新增 GPT-6.1 Sol 标准价：每百万输入 / 缓存读取 / 输出，API USD 2 / 0.10 / 10，Codex credits 50 / 2.5 / 250。
+- 区分 Fast 购买 credits 的 2 倍与订阅内额度的 2.5 倍；补充 Astra Ultrafast 6 倍费用 / 8 倍订阅额度的规则证据，估值仍采用 Standard。
+- 自动重估普通缓存与账本中的旧未定价用量；额度估算可选择 09-30 快照，旧快照和原始索引保留。
+
+### 验证与升级
+
+- 完整构建、定价 / 缓存迁移 / 额度估算、更新器、通知、同期、自启、签名政策与 git diff --check 全部通过；准确 CI / Windows 打包和四项资产验收后补记。
+- 合成样例：100 万输入含 80 万缓存、10 万输出，USD 1.48 / 37 credits；旧模型标准费率不变。
+- 无需删除 Codex 数据；首次重估后恢复缓存复用。历史生效价未知时仍显示未定价。
+- Fast / Ultrafast、缓存写入、长上下文与地区附加费仍不计入估值。Rosalind 未来 API 价与缺失的 Ultrafast 费率不提前启用。
+- 沿用未签名发布，安装仍需用户点击“重启并安装”。详见 [定价核查](./docs/model-pricing-2026-09-30.md)。
 
 ## [2026-09-23] v0.7.1 release: GPT-6 Sol / Luna 模型价格
 

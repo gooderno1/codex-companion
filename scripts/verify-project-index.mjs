@@ -55,7 +55,7 @@ try {
   const duplicate = { ...catalog, projects: [...catalog.projects, { id: "duplicate", name: "同目录另一个项目", rootPaths: [nested] }] };
   assert.equal(projectForSession(duplicate, { sessionId: "ambiguous", cwd: nested }), "__unattributed__", "相同根目录多个项目时不能猜测");
   const file = path.join(home, "sessions", "rollout-2026-01-01-fixture.jsonl");
-  const records = [ { type: "session_meta", payload: { id: "nested", timestamp: startAt, cwd: nested } }, { type: "turn_context", payload: { model: "gpt-6-sol" } } ];
+  const records = [ { type: "session_meta", payload: { id: "nested", timestamp: startAt, cwd: nested } }, { type: "turn_context", payload: { model: "gpt-6.1-sol" } } ];
   const usage = (timestamp, count) => ({ type: "event_msg", timestamp, payload: { type: "token_count", info: { total_token_usage: { input_tokens: count, cached_input_tokens: 0, output_tokens: 0, total_tokens: count } } } });
   records.push(usage(startAt, 100));
   await writeFile(file, records.map(JSON.stringify).join("\n") + "\n");
@@ -85,9 +85,9 @@ try {
   local.close();
   index.close();
   const stale = new DatabaseSync(path.join(store, dbFile));
-  stale.exec("PRAGMA user_version=103");
+  stale.exec("PRAGMA user_version=104");
   for (const row of stale.prepare("SELECT file,seq,payload FROM events").all()) {
-    const event = JSON.parse(row.payload); event.apiCostUsd = 0; event.creditsEstimate = 0;
+    const event = JSON.parse(row.payload); event.apiCostUsd = null; event.creditsEstimate = null;
     stale.prepare("UPDATE events SET payload=? WHERE file=? AND seq=?").run(JSON.stringify(event), row.file, row.seq);
   }
   stale.close(); index = new ActivityIndex(store, home);

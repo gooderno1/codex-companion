@@ -1,5 +1,19 @@
 # DEVELOPMENT LOG
 
+## [2026-09-30] v0.7.2-dev.1 fix(pricing): 补齐 GPT-6.1 Sol 并区分速度档位计费
+
+- 开发原因：官方新增 GPT-6.1 Sol，并明确 Fast 订阅额度与购买 credits 使用不同倍率；v0.7.1 未收录新模型。
+- 实现方式：新增 09-30 快照，API USD/M 为 2 / 0.10 / 10，Codex credits/M 为 50 / 2.5 / 250，顺序为输入 / 缓存读取 / 输出。
+- 实现方式：Fast credits 2 倍与订阅额度 2.5 倍分字段；Astra Ultrafast API / credits 6 倍、订阅额度 8 倍仅作为审计规则。EU Sol / Luna 支持 Standard / Flex / Batch。
+- 实现方式：会话缓存 4→5、SQLite 104→105，旧未定价金额重估且 Token 不变；额度估算原始索引复用，历史快照不改写。
+- 规则边界：严格超过 272000 输入的单请求才适用长上下文；缺少请求档位 / 写入量 / 地区时仍按标准短上下文估值。未来与缺失价格不启用，5.4 / mini 保留旧核实费率。
+- 当前结果：100 万输入含 80 万缓存、10 万输出，6.1 Sol 为 USD 1.48 / 37 credits；无模糊别名，既有模型标准价不变。
+- 核心依赖：已核查远程最新 v0.2.0-dev.4，保持 @lifeinhand/codex-usage-core 远程 tag；不改共享解析与 reset。
+- 验证方式：npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy、git diff --check 全部通过；准确 CI / 打包与资产结果待发布验收。
+- 发布状态：准备 v0.7.2；来源与边界见 [本轮核查](./docs/model-pricing-2026-09-30.md)。
+
+
+
 ## [2026-09-23] v0.7.1-dev.2 docs(release): 记录 GPT-6 Sol / Luna 发布验收
 
 - 开发原因：补记已完成的模型定价 stable Release，确保准确提交、资产和更新入口可审计。
