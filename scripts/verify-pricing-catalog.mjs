@@ -5,22 +5,26 @@ import { createHash } from "node:crypto";
 const require = createRequire(import.meta.url);
 const { estimateApiCostUsd, estimateCodexCredits, resolvePricingRate, PRICING_CATALOG_VERSION, PRICING_CATALOG_HISTORY } = require("../dist-electron/main/collectors/pricing.js");
 const { DashboardService } = require("../dist-electron/main/collectors/dashboardCollector.js");
-const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-09-30.json", import.meta.url)));
+const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-10-08.json", import.meta.url)));
 const sample = { input: 1000000, cachedInput: 800000, output: 100000, reasoningOutput: 50000, total: 1100000 };
 for (const [model,usd,credits] of [
-  ["gpt-6.1-sol",1.48,37],["gpt-6.1-sol-2026-09-30",1.48,37],["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
+  ["gpt-rosalind-research",3.9,97.5],["gpt-6.1-sol",1.48,37],["gpt-6.1-sol-2026-09-30",1.48,37],["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
   ["gpt-5.6-terra",1.76,44],["gpt-5.6-luna",.176,4.4],
   ["gpt-daybreak-blue-latest",3.12,78],["gpt-5.6-cyber",11,275],["gpt-daybreak-red-latest",11,275]
 ]) {
   assert.ok(Math.abs(estimateApiCostUsd(model,sample)-usd)<1e-10,model);
   assert.ok(Math.abs(estimateCodexCredits(model,sample)-credits)<1e-10,model);
 }
-for (const model of ["gpt-6.1","gpt-6.1-sol-pro","gpt-rosalind-research","gpt-6","gpt-6-terra","gpt-6-sol-pro","gpt-6-luna-pro","gpt-5.6-pro","gpt-5.6-cyber-pro","gpt-daybreak-red-latest-2026-09-19","toString","__proto__"]) {
+for (const model of ["gpt-6.1","gpt-6.1-sol-pro","gpt-rosalind","gpt-rosalind-research-pro","gpt-6","gpt-6-terra","gpt-6-sol-pro","gpt-6-luna-pro","gpt-5.6-pro","gpt-5.6-cyber-pro","gpt-daybreak-red-latest-2026-09-19","toString","__proto__"]) {
   assert.equal(resolvePricingRate(model),null,model);
   assert.equal(estimateApiCostUsd(model,sample),null);
   assert.equal(estimateCodexCredits(model,sample),null);
 }
-assert.equal(catalog.pending.find(x=>x.modelId==="gpt-rosalind-research").effectiveFrom,"2026-10-05");
+assert.equal(catalog.pending.some(x=>x.modelId==="gpt-rosalind-research"),false);
+assert.equal(catalog.rules["gpt-rosalind-research"].apiEffectiveFrom,"2026-10-05");
+assert.equal(catalog.rules["gpt-rosalind-research"].cacheWriteStatus,"not-applicable");
+assert.equal(catalog.rules["gpt-rosalind-research"].apiFastMultiplier,null);
+assert.equal(catalog.rules["gpt-rosalind-research"].longContext,null);
 assert.equal(catalog.effectiveFrom,null,"首次核对日期不能伪装成历史生效日");
 assert.equal(catalog.rules["gpt-5.6-sol"].promotion.expiresAt,null,"优惠至少持续日期不能当自动涨价日期");
 assert.equal(catalog.rules["gpt-6-astra"].apiFastMultiplier,2);
@@ -42,7 +46,7 @@ const old = {...cache,pricingCatalogVersion:"old",sourceHealth:{refreshHistory:[
 const service = new DashboardService({read:async()=>({get codexHome(){throw new Error("synthetic collection failure");}})},{read:async()=>old});
 await assert.rejects(service.getSnapshot(true),/synthetic collection failure/);
 
-assert.equal(PRICING_CATALOG_VERSION,"2026-09-30");
+assert.equal(PRICING_CATALOG_VERSION,"2026-10-08");
 assert.equal(PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-19").rates["gpt-6-sol"],undefined);
 for (const model of ["gpt-6.1-sol","gpt-6-sol","gpt-6-luna"]) {
   assert.equal(catalog.rules[model].apiFastMultiplier,2);
@@ -75,3 +79,11 @@ assert.equal(catalog.rules["gpt-6.1-sol"].euFastAvailable,false);
 for(const model of ["gpt-6-sol","gpt-6-luna"]) assert.deepEqual(catalog.rules[model].euDataResidencyServiceTiers,["standard","flex","batch"]);
 assert.equal(estimateApiCostUsd("gpt-6.1-sol",{...sample,cachedInput:1000000,output:0}),.1,"全缓存按新模型 5% 费率");
 assert.equal(estimateCodexCredits("gpt-6.1-sol",{...sample,cachedInput:1000000,output:0}),2.5);
+
+const september30 = PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-30");
+for(const [model,rate] of Object.entries(september30.rates)) assert.deepEqual(catalog.rates[model],rate);
+assert.equal(september30.rates["gpt-rosalind-research"],undefined);
+assert.equal(september30.pending.find(p=>p.modelId==="gpt-rosalind-research").status,"future","旧目录审计状态不改写");
+assert.equal(catalog.rules["gpt-rosalind-research"].codexEffectiveFrom,null,"API 生效日不套用到 credits");
+assert.equal(estimateApiCostUsd("gpt-rosalind-research",{...sample,input:1000000,cachedInput:1000000,output:0}),.5);
+assert.equal(estimateCodexCredits("gpt-rosalind-research",{...sample,input:1000000,cachedInput:1000000,output:0}),12.5);

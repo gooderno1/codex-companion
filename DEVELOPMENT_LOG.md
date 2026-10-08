@@ -1,5 +1,18 @@
 # DEVELOPMENT LOG
 
+## [2026-10-08] v0.7.3-dev.1 fix(pricing): 启用已生效的 Rosalind 标准价格
+
+- 开发原因：官方明确 gpt-rosalind-research API 于 10-05 开始计费，现已生效；旧版仍因 future 状态未定价。
+- 实现方式：新建 10-08 快照，API USD/M 5 / 0.50 / 25，独立 credits/M 125 / 12.5 / 625，顺序为输入 / 缓存读取 / 输出。写入状态为不适用，未知档位不套倍率。
+- 实现方式：缓存 5→6、SQLite 105→106；仪表盘拒用旧快照，额度估算原始索引复用。单模型官方生效日期独立保留，旧快照及目录级历史语义不改写。
+- 当前结果：100 万输入含 80 万缓存、10 万输出为 USD 3.90 / 97.5 credits；21 个旧模型标准费率保持不变，无模糊别名。
+- 证据边界：独立模型详情返回 404；API Pricing 与 Changelog 共同确认必要费率和日期，Codex Pricing 独立确认 credits。未确认长上下文 / Fast 规则不启用。
+- 核心依赖：远端最新 tag 与应用均为 @lifeinhand/codex-usage-core@0.2.0-dev.4；未改共享解析 / reset。
+- 验证方式：npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy、git diff --check 全部通过。
+- 发布状态：准备 v0.7.3；详见 [定价核查](./docs/model-pricing-2026-10-08.md)。
+
+
+
 ## [2026-09-30] v0.7.2-dev.2 docs(release): 记录 GPT-6.1 Sol 发布验收
 
 - 开发原因：补记正式发布、准确提交与公开下载结果，支持后续去重和审计。

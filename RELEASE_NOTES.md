@@ -2,7 +2,27 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.2` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.3` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-10-08] v0.7.3 release: Rosalind 模型价格
+
+### Release 范围
+
+- 包含 v0.7.3-dev.1；基于已验收 v0.7.2 及发布记录，无未验收功能混入，共享核心保持 v0.2.0-dev.4。
+
+### 主要变更
+
+- 支持 gpt-rosalind-research：每百万输入 / 缓存读取 / 输出，API USD 5 / 0.50 / 25，Codex credits 125 / 12.5 / 625。
+- API 官方开始日期为 2026-10-05；本次核对后移出待启用项，不改写旧快照。
+- 升级后重估普通缓存与账本中的未定价结果，额度估算原始索引继续复用。
+
+### 验证与升级
+
+- 完整构建、定价 / 缓存 / 历史重估、更新器、通知、同期、自启、签名政策和 git diff --check 全部通过；准确 CI / Windows 打包与资产结果验收后补记。
+- 合成样例：100 万输入含 80 万缓存、10 万输出，USD 3.90 / 97.5 credits。
+- 无需删除 Codex 数据；旧缓存首次重估后恢复复用，旧模型标准价格不变。
+- 金额为 Standard 快照重估；不将 API 生效日期套入 credits 或整个目录，historical 模式继续保留证据边界。
+- 沿用未签名发布，点击“重启并安装”才安装；详细来源见 [核查记录](./docs/model-pricing-2026-10-08.md)。
 
 ## [2026-09-30] v0.7.2 release: GPT-6.1 Sol 模型价格
 
