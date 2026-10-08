@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-10-08] v0.7.3-dev.2 docs(release): 记录 Rosalind 发布验收
+
+- 开发原因：补记正式发布、准确提交与公开下载结果，支持后续去重和审计。
+- 实现方式：v0.7.3 tag 固定 a63b05db8332c5495e3d57760a9df8fabdcbdfc5；CI 37717341687 与 Windows Package 37717346449 均成功。
+- 当前结果：Release 406341677 于 2026-10-08T02:25:32Z 公开为 stable Latest；合并同源资产后清理同次重复草稿 406341675，未移动 tag。
+- 资产结果：产品名 Codex Companion、版本 0.7.3、签名 NotSigned；安装包 103017615 bytes，SHA256 640ced925cf387a7c104c530db37e4d1f04e43ab9af7e5f41808953abdf5ae91。
+- 验证方式：四项工作流产物、GitHub digest 与匿名下载 SHA256 全部一致；latest.yml 版本 / 路径 / 大小 / SHA512 匹配，blockmap 压缩格式、块数量与文件范围有效。
+- 验证方式：stable 更新入口与匿名 Latest API 指向 v0.7.3；发布实现完整构建和全部回归通过，本次文档补记执行 npm run build 与 git diff --check。
+- 版本说明：dev.2 仅为发布后记录，不进入安装包 tag，不重新打包；应用版本保持 0.7.3，核心保持远程 v0.2.0-dev.4。
+
 ## [2026-10-08] v0.7.3-dev.1 fix(pricing): 启用已生效的 Rosalind 标准价格
 
 - 开发原因：官方明确 gpt-rosalind-research API 于 10-05 开始计费，现已生效；旧版仍因 future 状态未定价。
@@ -9,7 +19,7 @@
 - 证据边界：独立模型详情返回 404；API Pricing 与 Changelog 共同确认必要费率和日期，Codex Pricing 独立确认 credits。未确认长上下文 / Fast 规则不启用。
 - 核心依赖：远端最新 tag 与应用均为 @lifeinhand/codex-usage-core@0.2.0-dev.4；未改共享解析 / reset。
 - 验证方式：npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy、git diff --check 全部通过。
-- 发布状态：准备 v0.7.3；详见 [定价核查](./docs/model-pricing-2026-10-08.md)。
+- 发布状态：v0.7.3 已正式发布并完成公开下载验收；详见 [定价核查](./docs/model-pricing-2026-10-08.md)。
 
 
 

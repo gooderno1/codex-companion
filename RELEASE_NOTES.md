@@ -18,11 +18,23 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 
 ### 验证与升级
 
-- 完整构建、定价 / 缓存 / 历史重估、更新器、通知、同期、自启、签名政策和 git diff --check 全部通过；准确 CI / Windows 打包与资产结果验收后补记。
+- 完整构建、定价 / 缓存 / 历史重估、更新器、通知、同期、自启、签名政策和 git diff --check 全部通过；准确 CI / Windows 打包与资产结果见下方正式发布验收。
 - 合成样例：100 万输入含 80 万缓存、10 万输出，USD 3.90 / 97.5 credits。
 - 无需删除 Codex 数据；旧缓存首次重估后恢复复用，旧模型标准价格不变。
 - 金额为 Standard 快照重估；不将 API 生效日期套入 credits 或整个目录，historical 模式继续保留证据边界。
 - 沿用未签名发布，点击“重启并安装”才安装；详细来源见 [核查记录](./docs/model-pricing-2026-10-08.md)。
+
+### 正式发布验收
+
+- 提交 a63b05db8332c5495e3d57760a9df8fabdcbdfc5 的 CI 37717341687、Windows Package 37717346449 均成功。
+- 安装包 ProductName 为 Codex Companion，ProductVersion 为 0.7.3，Authenticode 为 NotSigned。
+- 四项工作流产物、GitHub digest 与匿名下载 SHA256 全部一致；latest.yml 的版本 / 路径 / 大小 / SHA512、blockmap 格式与范围、stable 入口及匿名 Latest API 均通过核验。
+- Codex.Companion.Setup.0.7.3.exe：103017615 bytes；SHA256 640ced925cf387a7c104c530db37e4d1f04e43ab9af7e5f41808953abdf5ae91。
+- Codex.Companion.Setup.0.7.3.exe.blockmap：108478 bytes；SHA256 60d3ae11f6dce3635bb4037313789642fb9a825199e1f6c21a51bd23fa0f734a。
+- latest.yml：359 bytes；SHA256 2ec6a287beb9b0ee1d8f327a2138c0fa1e285b7dd49c0680c4653c8374a9b9b0。
+- SHA256SUMS.txt：99 bytes；SHA256 009bf60561dafa2bb158b7679da3d8b108e52e25d6d0e825dce1f545c1d5ae23。
+- Release 406341677 于 2026-10-08T02:25:32Z 公开为 stable Latest；同次重复草稿 406341675 已清理。
+- 发布后记录 v0.7.3-dev.2 未进入安装包，仅补记结果，不移动 tag 或重新打包。
 
 ## [2026-09-30] v0.7.2 release: GPT-6.1 Sol 模型价格
 
