@@ -2,7 +2,26 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.3` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.4` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-10-09] v0.7.4 release: Sol Ultrafast 计费规则
+
+### Release 范围
+
+- 包含 v0.7.4-dev.1，基于已验收 v0.7.3 及发布记录；无未验收功能混入，核心保持远程 v0.2.0-dev.4。
+
+### 主要变更与边界
+
+- 补齐 GPT-6.1 Sol Ultrafast：API 与购买 credits 为 Standard 6 倍，订阅内额度消耗为 8 倍。API 短上下文输入 / 缓存读取 / 写入 / 输出为 USD 12 / 0.60 / 15 / 60 每百万 Token。
+- 更新 6.1 Sol / 6 Sol / 6 Luna 的 EU Fast 范围，以及 6.1 Sol Ultrafast 的 US / EU / global 支持；保留旧目录和来源。
+- 22 模型 Standard 单价不变；应用继续按 Standard 重估，不把未知历史档位套成 Ultrafast，也不把可用日期当作价格历史。
+- 普通缓存与账本金额复用；新旧快照估值相同，额度估算原始索引不重建，无需删除 Codex 数据。
+
+### 验证与升级
+
+- 完整构建、定价 / 历史快照 / 缓存复用及现有发布回归全部通过，准确 CI 和资产结果在发布验收补记。
+- 合成样例：100 万输入含 80 万缓存、10 万输出，Standard 仍为 USD 1.48 / 37 credits，已知短上下文 Ultrafast 情景为 USD 8.88 / 222 credits。
+- 沿用未签名发布；点击“重启并安装”才安装。详见 [定价核查](./docs/model-pricing-2026-10-09.md)。
 
 ## [2026-10-08] v0.7.3 release: Rosalind 模型价格
 

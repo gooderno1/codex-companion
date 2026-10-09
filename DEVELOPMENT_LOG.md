@@ -1,5 +1,16 @@
 # DEVELOPMENT LOG
 
+## [2026-10-09] v0.7.4-dev.1 fix(pricing): 补齐 Sol Ultrafast 计费规则
+
+- 开发原因：官方于 10-08 开放 GPT-6.1 Sol Ultrafast，现已公布费率；旧目录仍为 pending。
+- 实现方式：新增 10-09 快照，API 与购买 credits 6 倍、订阅内额度 8 倍分字段；记录短 / 长上下文、EU Fast 与地区范围，移除已确认 pending。
+- 实现方式：API 可用日期不作为历史费率生效日；旧快照原样保留，Daybreak 弃用后保留旧映射并记录证据缺口。
+- 当前结果：22 模型 Standard 费率与别名不变，100 万输入含 80 万缓存、10 万输出仍为 USD 1.48 / 37 credits；明确 Ultrafast 的短上下文情景为 USD 8.88 / 222 credits。应用不自动套倍率。
+- 缓存结果：标准金额未变，普通缓存 6 / SQLite 106 不升级；仪表盘拒用旧目录元数据，额度估算切快照只重算派生值并复用原始索引。
+- 核心依赖：远端最新与应用均为 @lifeinhand/codex-usage-core@0.2.0-dev.4，不改共享解析 / reset。
+- 验证方式：执行 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check；全部通过。
+- 发布状态：准备 v0.7.4；证据与排除项见 [核查记录](./docs/model-pricing-2026-10-09.md)。
+
 ## [2026-10-08] v0.7.3-dev.2 docs(release): 记录 Rosalind 发布验收
 
 - 开发原因：补记正式发布、准确提交与公开下载结果，支持后续去重和审计。

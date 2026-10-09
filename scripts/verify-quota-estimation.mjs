@@ -11,7 +11,7 @@ const { QuotaEstimationIndex } = require("../dist-electron/main/state/quotaEstim
 const { QuotaEstimationService } = require("../dist-electron/main/quotaEstimationService.js");
 const start = Date.parse("2026-09-01T00:00:00Z"), hour = 3600000;
 const now = start + 9 * 86400000;
-const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-10-08" };
+const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-10-09" };
 const token = input => ({ input, cachedInput: 0, output: 0, reasoningOutput: 0, total: input });
 const event = (h, model = "gpt-6-astra", n = 3000000) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), model, tokens: token(n) });
 const observation = (h, p, { primary = true, pool = "codex", plan = "pro", reset = start + 7 * 86400000 } = {}) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), rateLimits: {
@@ -105,6 +105,9 @@ try {
   service = new QuotaEstimationService({ read: async () => ({ codexHome: home }) }, store);
   const first = await service.query(request), second = await service.query({ ...request, catalogVersion: "2026-09-19" });
   assert.equal(first.summary.costUsd, 7.5); assert.equal(second.summary.costUsd, null);
+  const updated = await service.query({ ...request, catalogVersion: "2026-10-08" });
+  assert.equal(updated.summary.costUsd,first.summary.costUsd,"规则更新前后金额相同");
+  assert.equal(updated.performance.parsedFiles,0,"规则更新复用原始索引");
   assert.equal(second.performance.parsedFiles, 0, "后台线程切换价格只重算估值");
   service.close(); service = null;
 } finally {
@@ -131,3 +134,6 @@ assert.equal(priceEstimation("gpt-rosalind-research",tokenSample,"2026-10-04T00:
 assert.equal(priceEstimation("gpt-rosalind-research",tokenSample,"2026-10-08T00:00:00Z","2026-09-30","snapshot"),null);
 assert.equal(priceEstimation("gpt-rosalind-research",tokenSample,"2026-10-04T00:00:00Z","2026-10-08","historical"),null);
 assert.equal(priceEstimation("gpt-6.1-sol",tokenSample,"2026-10-08T00:00:00Z","2026-10-08","historical"),null,"单模型生效日不能使整目录成为历史有效价");
+
+assert.ok(Math.abs(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-10-09","snapshot")-.68)<1e-10);
+assert.equal(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-10-09","historical"),null);
