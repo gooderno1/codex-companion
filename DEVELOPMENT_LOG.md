@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-10-09] v0.7.4-dev.2 docs(release): 记录 Ultrafast 规则发布验收
+
+- 开发原因：补记准确发布提交、Windows 资产和公开下载结果，支持巡检去重和续接。
+- 实现方式：v0.7.4 tag 固定 bda457ec7508d648042bdddcb08f480a1d5e4fd5；CI 37873402354 与 Windows Package 37873422233 均成功。
+- 当前结果：Release 407428223 于 2026-10-09T02:16:18Z 公开为 stable Latest；合并同源资产后清理本次重复草稿 407428224，未移动 tag。
+- 资产结果：Codex Companion 版本 0.7.4、Authenticode NotSigned；安装包 103017704 bytes，SHA256 06612edaa6d5d7918a578d6961bb480261a7a04bb2aba77ce261748451f451a4。
+- 验证方式：四项工作流产物、GitHub digest 和匿名下载 SHA256 一致；latest.yml 的版本 / 路径 / 大小 / SHA512、blockmap 格式 / 块数 / 范围、stable 更新入口和匿名 Latest API 均通过。
+- 验证方式：发布实现完整构建与所有发布回归通过；本次文档补记执行 npm run build 与 git diff --check。
+- 版本说明：dev.2 仅为发布后文档，不进入安装包 tag，不再次打包；应用保持 0.7.4，共享核心保持远程 v0.2.0-dev.4。
+
 ## [2026-10-09] v0.7.4-dev.1 fix(pricing): 补齐 Sol Ultrafast 计费规则
 
 - 开发原因：官方于 10-08 开放 GPT-6.1 Sol Ultrafast，现已公布费率；旧目录仍为 pending。
@@ -9,7 +19,7 @@
 - 缓存结果：标准金额未变，普通缓存 6 / SQLite 106 不升级；仪表盘拒用旧目录元数据，额度估算切快照只重算派生值并复用原始索引。
 - 核心依赖：远端最新与应用均为 @lifeinhand/codex-usage-core@0.2.0-dev.4，不改共享解析 / reset。
 - 验证方式：执行 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check；全部通过。
-- 发布状态：准备 v0.7.4；证据与排除项见 [核查记录](./docs/model-pricing-2026-10-09.md)。
+- 发布状态：v0.7.4 已正式发布并完成公开下载验收；证据与排除项见 [核查记录](./docs/model-pricing-2026-10-09.md)。
 
 ## [2026-10-08] v0.7.3-dev.2 docs(release): 记录 Rosalind 发布验收
 

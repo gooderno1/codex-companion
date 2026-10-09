@@ -19,9 +19,21 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 
 ### 验证与升级
 
-- 完整构建、定价 / 历史快照 / 缓存复用及现有发布回归全部通过，准确 CI 和资产结果在发布验收补记。
+- 完整构建、定价 / 历史快照 / 缓存复用及现有发布回归全部通过，准确 CI 和资产结果见下方正式发布验收。
 - 合成样例：100 万输入含 80 万缓存、10 万输出，Standard 仍为 USD 1.48 / 37 credits，已知短上下文 Ultrafast 情景为 USD 8.88 / 222 credits。
 - 沿用未签名发布；点击“重启并安装”才安装。详见 [定价核查](./docs/model-pricing-2026-10-09.md)。
+
+### 正式发布验收
+
+- 提交 bda457ec7508d648042bdddcb08f480a1d5e4fd5 的 CI 37873402354、Windows Package 37873422233 均成功。
+- 安装包 ProductName 为 Codex Companion，ProductVersion 为 0.7.4，Authenticode 为 NotSigned。
+- 四项工作流产物、GitHub digest 与匿名下载 SHA256 一致；latest.yml 版本 / 路径 / 大小 / SHA512、blockmap 格式与范围、stable 更新入口及匿名 Latest API 均通过核验。
+- Codex.Companion.Setup.0.7.4.exe：103017704 bytes；SHA256 06612edaa6d5d7918a578d6961bb480261a7a04bb2aba77ce261748451f451a4。
+- Codex.Companion.Setup.0.7.4.exe.blockmap：108551 bytes；SHA256 51da8b10a0675e4647df5ca5238001fe8ed6a81fdb84b221dccc6af24d37fd9b。
+- latest.yml：359 bytes；SHA256 c981359b99e713174dddb8e912121bddd478096b091a85b2355cd8bdaf4aaabd。
+- SHA256SUMS.txt：99 bytes；SHA256 b4e451e8b0182c0c842ded9ceddb8ab482149f879e93c7e7b4e20be38c286bd4。
+- Release 407428223 于 2026-10-09T02:16:18Z 公开为 stable Latest；同次重复草稿 407428224 已清理。
+- v0.7.4-dev.2 仅补记发布结果，不进入安装包、不移动 tag、不重新打包。
 
 ## [2026-10-08] v0.7.3 release: Rosalind 模型价格
 
