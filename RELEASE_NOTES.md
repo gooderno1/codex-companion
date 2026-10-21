@@ -20,9 +20,21 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 
 ### 验证与升级
 
-- 完整构建、定价 / 历史 / 缓存回归及现有发布验证全部通过，准确 CI 和资产结果在发布验收补记。
+- 完整构建、定价 / 历史 / 缓存回归及现有发布验证全部通过，准确 CI 和资产结果见下方正式发布验收。
 - 合成样例：6.1 Sol 12000 输入含 4000 读取、3000 写30m、4000 写12h及1000普通输入，输入费用 USD 0.0299；原标准样例仍为 USD 1.48 / 37 credits。
 - 沿用未签名发布；用户点击“重启并安装”后才安装。来源及证据缺口见 [定价核查](./docs/model-pricing-2026-10-21.md)。
+
+### 正式发布验收
+
+- 提交 2488aafb8588b7d61a6e2c26ca3594c5ab253226 的 CI 39538092852、Windows Package 39538121039 均成功。
+- 安装包 ProductName 为 Codex Companion，ProductVersion 为 0.7.5，Authenticode 为 NotSigned。
+- 四项工作流产物、GitHub digest、匿名下载 SHA256 一致；latest.yml 版本 / 路径 / 大小 / SHA512、blockmap 完整范围和 stable 更新入口通过。
+- Codex.Companion.Setup.0.7.5.exe：103020307 bytes；SHA256 ceb88047368e383498078c55f256547240c44e477721966efa1c73229a8c2614。
+- Codex.Companion.Setup.0.7.5.exe.blockmap：108473 bytes；SHA256 30f9533695412d90d7d2895a78c85ac56be0c09e23c181151f0b06ea853c2326。
+- latest.yml：359 bytes；SHA256 11a6ece88cae174cebe2068db230c774876187d2169de761e59c095bdcb33c23。
+- SHA256SUMS.txt：99 bytes；SHA256 5e0e6a77dfbd2c97583f383efa1a0f0c9634d2313306d6ccba73739ebbd8774d。
+- Release 419112201 于 2026-10-21T03:26:52Z 公开为 stable Latest；同次重复草稿 419112205 已清理。
+- v0.7.5-dev.2 仅补记验收，不进入安装包、不移动 tag、不重新打包。
 
 ## [2026-10-09] v0.7.4 release: Sol Ultrafast 计费规则
 

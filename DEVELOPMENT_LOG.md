@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-10-21] v0.7.5-dev.2 docs(release): 记录缓存规则发布验收
+
+- 开发原因：补记准确提交、Windows 资产与公开下载验收，供巡检去重及续接。
+- 实现方式：v0.7.5 tag 固定 2488aafb8588b7d61a6e2c26ca3594c5ab253226；CI 39538092852 与 Package Windows 39538121039 均成功。
+- 当前结果：Release 419112201 于 2026-10-21T03:26:52Z 公开为 stable Latest；本次同源重复草稿 419112205 已合并清理。
+- 资产结果：安装包版本 0.7.5、Authenticode NotSigned、103020307 bytes，SHA256 ceb88047368e383498078c55f256547240c44e477721966efa1c73229a8c2614。
+- 验证方式：四项产物、GitHub digest、匿名下载 SHA256 一致；latest.yml 的版本 / 路径 / 大小 / SHA512、blockmap 格式 / 块数 / 范围及 stable 更新入口全部通过。
+- 验证方式：发布实现完整构建及全部发布相关回归已通过；文档补记 npm run build 与 git diff --check 均通过。
+- 版本说明：dev.2 为发布后验收记录，不进入安装包，不移动既有 tag、不重复打包；应用保持 0.7.5，核心保持远程 v0.2.0-dev.4。
+
 ## [2026-10-21] v0.7.5-dev.1 fix(pricing): 补齐 12 小时缓存写入规则
 
 - 开发原因：官方 10-20 新增 Responses API 12h 缓存写入，旧目录只有默认 30m 写入价。
@@ -10,7 +20,7 @@
 - 缓存结果：普通缓存 6 / SQLite 106 / 原始索引 1 不变；仪表盘按新目录重新汇总，额度估算切快照复用原始索引。
 - 核心依赖：已核查远端 tag，保持 @lifeinhand/codex-usage-core@v0.2.0-dev.4；不改解析或 reset。
 - 验证方式：已通过 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check。
-- 发布状态：准备 v0.7.5；来源、边界与未解决证据见 [核查记录](./docs/model-pricing-2026-10-21.md)。
+- 发布状态：v0.7.5 已正式发布并完成公开下载验收；来源、边界与未解决证据见 [核查记录](./docs/model-pricing-2026-10-21.md)。
 
 ## [2026-10-09] v0.7.4-dev.2 docs(release): 记录 Ultrafast 规则发布验收
 
