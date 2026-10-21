@@ -1,5 +1,17 @@
 # DEVELOPMENT LOG
 
+## [2026-10-21] v0.7.5-dev.1 fix(pricing): 补齐 12 小时缓存写入规则
+
+- 开发原因：官方 10-20 新增 Responses API 12h 缓存写入，旧目录只有默认 30m 写入价。
+- 实现方式：新增 10-21 快照，8 个模型记录 12h 单价及已公布的各档短 / 长上下文价格；保留默认 30m 字段、标准费率、别名和旧快照。
+- 实现方式：记录重叠 Token 按最长时长计费一次、30m 升级 12h 重收写入、互斥分项统计规则；可用日不伪装成历史价格生效日。
+- 当前结果：6.1 Sol Standard 写入 30m / 12h 为 USD 2.5 / 5 每百万 Token；12000 输入含 4000 读取、3000 写30m、4000 写12h、1000 普通输入，输入成本 USD 0.0299。
+- 当前结果：本地缺少写入时长及分项，继续 Standard 快照估值；100 万输入含 80 万读取、10 万输出仍为 USD 1.48 / 37 credits，不自动增加历史金额。
+- 缓存结果：普通缓存 6 / SQLite 106 / 原始索引 1 不变；仪表盘按新目录重新汇总，额度估算切快照复用原始索引。
+- 核心依赖：已核查远端 tag，保持 @lifeinhand/codex-usage-core@v0.2.0-dev.4；不改解析或 reset。
+- 验证方式：已通过 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check。
+- 发布状态：准备 v0.7.5；来源、边界与未解决证据见 [核查记录](./docs/model-pricing-2026-10-21.md)。
+
 ## [2026-10-09] v0.7.4-dev.2 docs(release): 记录 Ultrafast 规则发布验收
 
 - 开发原因：补记准确发布提交、Windows 资产和公开下载结果，支持巡检去重和续接。
