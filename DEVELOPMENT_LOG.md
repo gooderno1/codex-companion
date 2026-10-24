@@ -1,5 +1,14 @@
 # DEVELOPMENT LOG
 
+## [2026-10-24] v0.7.6-dev.1 fix(pricing): 修正 GPT-6 Sol EU Fast 范围
+
+- 开发原因：三份官方资料一致移除 GPT-6 Sol 的 EU Fast 支持，旧目录仍包含 fast。
+- 实现方式：新增 10-24 快照，仅移除该模型 EU fast 并显式记录不可用；保留旧目录、其他地区费率和所有标准价格。
+- 当前结果：GPT-6 Sol 100 万输入含 80 万读取、10 万输出仍为 USD 1.56 / 39 credits；历史生效日未知，保持 null。
+- 缓存结果：仪表盘按新目录重汇总；金额缓存 6 / SQLite 106 与原始额度索引 1 复用，不增加历史金额。
+- 核心依赖：远端最新 tag 与当前依赖为 v0.2.0-dev.4；不改共享解析或 reset。
+- 验证方式：已通过 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check；准确发布状态在验收后补记。
+
 ## [2026-10-21] v0.7.5-dev.2 docs(release): 记录缓存规则发布验收
 
 - 开发原因：补记准确提交、Windows 资产与公开下载验收，供巡检去重及续接。

@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 const require = createRequire(import.meta.url);
 const { estimateApiCostUsd, estimateCodexCredits, resolvePricingRate, PRICING_CATALOG_VERSION, PRICING_CATALOG_HISTORY } = require("../dist-electron/main/collectors/pricing.js");
 const { DashboardService } = require("../dist-electron/main/collectors/dashboardCollector.js");
-const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-10-21.json", import.meta.url)));
+const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-10-24.json", import.meta.url)));
 const sample = { input: 1000000, cachedInput: 800000, output: 100000, reasoningOutput: 50000, total: 1100000 };
 for (const [model,usd,credits] of [
   ["gpt-rosalind-research",3.9,97.5],["gpt-6.1-sol",1.48,37],["gpt-6.1-sol-2026-09-30",1.48,37],["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
@@ -46,7 +46,7 @@ const old = {...cache,pricingCatalogVersion:"old",sourceHealth:{refreshHistory:[
 const service = new DashboardService({read:async()=>({get codexHome(){throw new Error("synthetic collection failure");}})},{read:async()=>old});
 await assert.rejects(service.getSnapshot(true),/synthetic collection failure/);
 
-assert.equal(PRICING_CATALOG_VERSION,"2026-10-21");
+assert.equal(PRICING_CATALOG_VERSION,"2026-10-24");
 assert.equal(PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-19").rates["gpt-6-sol"],undefined);
 for (const model of ["gpt-6.1-sol","gpt-6-sol","gpt-6-luna"]) {
   assert.equal(catalog.rules[model].apiFastMultiplier,2);
@@ -76,7 +76,7 @@ assert.equal(catalog.rules["gpt-6.1-sol"].cacheWriteUsdPerMillion,2.5);
 assert.equal(catalog.rules["gpt-6.1-sol"].apiBatchMultiplier,.5);
 assert.equal(catalog.rules["gpt-6.1-sol"].apiFlexMultiplier,.5);
 assert.equal(catalog.rules["gpt-6.1-sol"].euFastAvailable,true);
-for(const model of ["gpt-6-sol","gpt-6-luna"]) assert.deepEqual(catalog.rules[model].euDataResidencyServiceTiers,["standard","flex","batch","fast"]);
+assert.deepEqual(catalog.rules["gpt-6-luna"].euDataResidencyServiceTiers,["standard","flex","batch","fast"]);
 assert.equal(estimateApiCostUsd("gpt-6.1-sol",{...sample,cachedInput:1000000,output:0}),.1,"全缓存按新模型 5% 费率");
 assert.equal(estimateCodexCredits("gpt-6.1-sol",{...sample,cachedInput:1000000,output:0}),2.5);
 
@@ -133,3 +133,15 @@ assert.equal((2000*.1+3000*sol.cacheWriteUsdPerMillion)/1e6,.0077,"有效12h部�
 assert.ok(Math.abs(estimateApiCostUsd("gpt-6.1-sol",sample)-1.48)<1e-10);
 assert.equal(estimateCodexCredits("gpt-6.1-sol",sample),37);
 console.log("12h缓存规则回归通过：显式价格、混合与重叠样例、历史边界、旧快照不改写。");
+
+const october21 = PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-10-21");
+assert.deepEqual(catalog.rates,october21.rates);
+assert.deepEqual(catalog.aliases,october21.aliases);
+assert.deepEqual(catalog.rules["gpt-6-sol"].euDataResidencyServiceTiers,["standard","flex","batch"]);
+assert.equal(catalog.rules["gpt-6-sol"].euFastAvailable,false);
+assert.equal(catalog.rules["gpt-6-sol"].euFastEffectiveFrom,null);
+assert.deepEqual(october21.rules["gpt-6-sol"].euDataResidencyServiceTiers,["standard","flex","batch","fast"],"旧快照保留当时地区规则");
+assert.equal(catalog.rules["gpt-6-sol"].apiFastMultiplier,2,"EU限制不取消其他地区Fast费率");
+assert.ok(Math.abs(estimateApiCostUsd("gpt-6-sol",sample)-1.56)<1e-10);
+assert.equal(estimateCodexCredits("gpt-6-sol",sample),39);
+console.log("EU Fast 规则回归通过：精确模型、地区范围、旧快照与标准估值保持。");

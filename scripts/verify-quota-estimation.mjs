@@ -11,7 +11,7 @@ const { QuotaEstimationIndex } = require("../dist-electron/main/state/quotaEstim
 const { QuotaEstimationService } = require("../dist-electron/main/quotaEstimationService.js");
 const start = Date.parse("2026-09-01T00:00:00Z"), hour = 3600000;
 const now = start + 9 * 86400000;
-const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-10-21" };
+const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-10-24" };
 const token = input => ({ input, cachedInput: 0, output: 0, reasoningOutput: 0, total: input });
 const event = (h, model = "gpt-6-astra", n = 3000000) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), model, tokens: token(n) });
 const observation = (h, p, { primary = true, pool = "codex", plan = "pro", reset = start + 7 * 86400000 } = {}) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), rateLimits: {
@@ -140,3 +140,8 @@ assert.equal(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-10-09
 
 assert.ok(Math.abs(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-10-21","snapshot")-.68)<1e-10);
 assert.equal(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-10-21","historical"),null);
+
+for (const version of ["2026-10-21","2026-10-24"]) {
+  assert.ok(Math.abs(priceEstimation("gpt-6-sol",tokenSample,request.endAt,version,"snapshot")-.76)<1e-10);
+  assert.equal(priceEstimation("gpt-6-sol",tokenSample,request.endAt,version,"historical"),null);
+}

@@ -2,7 +2,25 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.5` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.6` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-10-24] v0.7.6 release: GPT-6 Sol EU Fast 范围修正
+
+### Release 范围
+
+- 包含 v0.7.6-dev.1，基于已验收 v0.7.5 与发布验收文档；无未验收功能混入，共享核心保持远程 v0.2.0-dev.4。
+- v0.7.5-dev.2 验收文档随源码保留，不修改原正式 tag。
+
+### 主要变更与升级
+
+- 按三份官方资料修正 GPT-6 Sol 不支持 EU Fast；EU Standard / Flex / Batch、6.1 Sol / Luna EU Fast 保持。
+- 标准 API USD、Codex credits、其他地区 Fast 单价和历史估值不变。旧快照保留，核对日不充当历史生效日。
+- 无需清理个人数据；沿用未签名发布与用户确认安装。详见 [定价核查](./docs/model-pricing-2026-10-24.md)。
+
+### 验证结果
+
+- 完整构建、定价 / 缓存 / 历史快照回归和现有发布验证均通过；准确提交、CI 与产物将在公开前验收。
+- 合成样例：GPT-6 Sol 100 万输入含 80 万缓存读取、10 万输出，新旧快照均为 USD 1.56 / 39 credits。
 
 ## [2026-10-21] v0.7.5 release: 12 小时缓存写入规则
 
