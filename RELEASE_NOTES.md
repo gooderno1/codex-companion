@@ -19,8 +19,20 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 
 ### 验证结果
 
-- 完整构建、定价 / 缓存 / 历史快照回归和现有发布验证均通过；准确提交、CI 与产物将在公开前验收。
+- 完整构建、定价 / 缓存 / 历史快照回归和现有发布验证均通过；准确 CI 与产物结果见下方正式发布验收。
 - 合成样例：GPT-6 Sol 100 万输入含 80 万缓存读取、10 万输出，新旧快照均为 USD 1.56 / 39 credits。
+
+### 正式发布验收
+
+- 提交 47fa25871940611d7f045d5da24beda0e86cb218 的 CI 40058436877、Windows Package 40058439031 均成功。
+- 安装包 ProductName 为 Codex Companion，ProductVersion 为 0.7.6，Authenticode 为 NotSigned。
+- 四项工作流产物、GitHub digest、匿名下载 SHA256 一致；latest.yml 版本 / 路径 / 大小 / SHA512、blockmap 完整范围和 stable 更新入口通过。
+- Codex.Companion.Setup.0.7.6.exe：103022458 bytes；SHA256 56d72b364419d8cb12715a29643cc5c016982090352f732f1533bfca626f9ab7。
+- Codex.Companion.Setup.0.7.6.exe.blockmap：108618 bytes；SHA256 0671d4bff6e38ac353bea61ffadb9fa1479ebf5a87a19413a8ddbe4bdb1e4eb9。
+- latest.yml：359 bytes；SHA256 61d046fdb718749642f79a77af79c4d321c879a4cf3f1534e5ef68a167ed284d。
+- SHA256SUMS.txt：99 bytes；SHA256 5256a78c5218b408976366ffb4e4a74578c9b6eb28fb4f78ac33522d33e10d8e。
+- Release 422491658 于 2026-10-24T03:34:35Z 公开为 stable Latest；同次重复草稿 422491659 已清理。
+- v0.7.6-dev.2 仅补记验收，不进入安装包、不移动 tag、不重新打包。
 
 ## [2026-10-21] v0.7.5 release: 12 小时缓存写入规则
 

@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-10-24] v0.7.6-dev.2 docs(release): 记录 EU Fast 规则发布验收
+
+- 开发原因：补记准确提交、Windows 资产与公开下载验收，供巡检去重及续接。
+- 实现方式：v0.7.6 tag 固定 47fa25871940611d7f045d5da24beda0e86cb218；CI 40058436877 与 Package Windows 40058439031 均成功。
+- 当前结果：Release 422491658 于 2026-10-24T03:34:35Z 公开为 stable Latest；同源重复草稿 422491659 已合并清理。
+- 资产结果：安装包版本 0.7.6、Authenticode NotSigned、103022458 bytes，SHA256 56d72b364419d8cb12715a29643cc5c016982090352f732f1533bfca626f9ab7。
+- 验证方式：四项工作流产物、GitHub digest、匿名下载 SHA256 一致；latest.yml 版本 / 路径 / 大小 / SHA512、blockmap v2 的 4942 块完整覆盖及 stable 更新入口全部通过。
+- 验证方式：发布实现完整构建及全部发布相关回归已通过；文档补记 npm run build 与 git diff --check 均通过。
+- 版本说明：dev.2 仅为发布后验收记录，不进入安装包、不移动 tag、不重复打包；应用保持 0.7.6，核心保持远程 v0.2.0-dev.4。
+
 ## [2026-10-24] v0.7.6-dev.1 fix(pricing): 修正 GPT-6 Sol EU Fast 范围
 
 - 开发原因：三份官方资料一致移除 GPT-6 Sol 的 EU Fast 支持，旧目录仍包含 fast。
@@ -7,7 +17,7 @@
 - 当前结果：GPT-6 Sol 100 万输入含 80 万读取、10 万输出仍为 USD 1.56 / 39 credits；历史生效日未知，保持 null。
 - 缓存结果：仪表盘按新目录重汇总；金额缓存 6 / SQLite 106 与原始额度索引 1 复用，不增加历史金额。
 - 核心依赖：远端最新 tag 与当前依赖为 v0.2.0-dev.4；不改共享解析或 reset。
-- 验证方式：已通过 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check；准确发布状态在验收后补记。
+- 验证方式：已通过 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check；v0.7.6 已正式发布并完成公开下载验收。
 
 ## [2026-10-21] v0.7.5-dev.2 docs(release): 记录缓存规则发布验收
 
