@@ -5,17 +5,17 @@ import { createHash } from "node:crypto";
 const require = createRequire(import.meta.url);
 const { estimateApiCostUsd, estimateCodexCredits, resolvePricingRate, PRICING_CATALOG_VERSION, PRICING_CATALOG_HISTORY } = require("../dist-electron/main/collectors/pricing.js");
 const { DashboardService } = require("../dist-electron/main/collectors/dashboardCollector.js");
-const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-10-24.json", import.meta.url)));
+const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-10-27.json", import.meta.url)));
 const sample = { input: 1000000, cachedInput: 800000, output: 100000, reasoningOutput: 50000, total: 1100000 };
 for (const [model,usd,credits] of [
-  ["gpt-rosalind-research",3.9,97.5],["gpt-6.1-sol",1.48,37],["gpt-6.1-sol-2026-09-30",1.48,37],["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
+  ["gpt-6.1-terra",.74,18.5],["gpt-rosalind-research",3.9,97.5],["gpt-6.1-sol",1.48,37],["gpt-6.1-sol-2026-09-30",1.48,37],["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
   ["gpt-5.6-terra",1.76,44],["gpt-5.6-luna",.176,4.4],
   ["gpt-daybreak-blue-latest",3.12,78],["gpt-5.6-cyber",11,275],["gpt-daybreak-red-latest",11,275]
 ]) {
   assert.ok(Math.abs(estimateApiCostUsd(model,sample)-usd)<1e-10,model);
   assert.ok(Math.abs(estimateCodexCredits(model,sample)-credits)<1e-10,model);
 }
-for (const model of ["gpt-6.1","gpt-6.1-sol-pro","gpt-rosalind","gpt-rosalind-research-pro","gpt-6","gpt-6-terra","gpt-6-sol-pro","gpt-6-luna-pro","gpt-5.6-pro","gpt-5.6-cyber-pro","gpt-daybreak-red-latest-2026-09-19","toString","__proto__"]) {
+for (const model of ["gpt-6.1-terra-pro","gpt-6.1-terra-mini","gpt-6.1","gpt-6.1-sol-pro","gpt-rosalind","gpt-rosalind-research-pro","gpt-6","gpt-6-terra","gpt-6-sol-pro","gpt-6-luna-pro","gpt-5.6-pro","gpt-5.6-cyber-pro","gpt-daybreak-red-latest-2026-09-19","toString","__proto__"]) {
   assert.equal(resolvePricingRate(model),null,model);
   assert.equal(estimateApiCostUsd(model,sample),null);
   assert.equal(estimateCodexCredits(model,sample),null);
@@ -46,7 +46,7 @@ const old = {...cache,pricingCatalogVersion:"old",sourceHealth:{refreshHistory:[
 const service = new DashboardService({read:async()=>({get codexHome(){throw new Error("synthetic collection failure");}})},{read:async()=>old});
 await assert.rejects(service.getSnapshot(true),/synthetic collection failure/);
 
-assert.equal(PRICING_CATALOG_VERSION,"2026-10-24");
+assert.equal(PRICING_CATALOG_VERSION,"2026-10-27");
 assert.equal(PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-19").rates["gpt-6-sol"],undefined);
 for (const model of ["gpt-6.1-sol","gpt-6-sol","gpt-6-luna"]) {
   assert.equal(catalog.rules[model].apiFastMultiplier,2);
@@ -89,7 +89,7 @@ assert.equal(estimateApiCostUsd("gpt-rosalind-research",{...sample,input:1000000
 assert.equal(estimateCodexCredits("gpt-rosalind-research",{...sample,input:1000000,cachedInput:1000000,output:0}),12.5);
 
 const october8 = PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-10-08");
-assert.deepEqual(catalog.rates,october8.rates,"规则更新不能改动 Standard 估值费率");
+for(const [model,rate] of Object.entries(october8.rates)) assert.deepEqual(catalog.rates[model],rate,"既有模型金额保持");
 assert.deepEqual(catalog.aliases,october8.aliases,"弃用公告不能擅自迁移别名");
 assert.ok(october8.pending.some(p=>p.modelId==="gpt-6.1-sol" && p.dimension==="ultrafast"));
 assert.equal(october8.rules["gpt-6.1-sol"].euFastAvailable,false);
@@ -105,7 +105,7 @@ assert.ok(Math.abs(estimateApiCostUsd("gpt-6.1-sol",sample)*sol.apiUltrafastMult
 assert.equal(estimateCodexCredits("gpt-6.1-sol",sample)*sol.codexUltrafastMultiplier,222);
 
 const october9 = PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-10-09");
-assert.deepEqual(catalog.rates,october9.rates,"TTL规则不能改变Standard USD/credits或历史金额");
+for(const [model,rate] of Object.entries(october9.rates)) assert.deepEqual(catalog.rates[model],rate,"既有模型金额保持");
 assert.deepEqual(catalog.aliases,october9.aliases);
 assert.equal(october9.billingRules.apiCacheWriteLifetimes,undefined,"旧目录不能补写新规则");
 for(const [model,rate]of Object.entries({"gpt-6-astra":25,"gpt-6.1-sol":5,"gpt-6-sol":5,"gpt-6-luna":.25,"gpt-5.6-sol":10,"gpt-5.6-terra":5,"gpt-5.6-luna":.5,"gpt-5.6-cyber":31.25})){
@@ -135,7 +135,7 @@ assert.equal(estimateCodexCredits("gpt-6.1-sol",sample),37);
 console.log("12h缓存规则回归通过：显式价格、混合与重叠样例、历史边界、旧快照不改写。");
 
 const october21 = PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-10-21");
-assert.deepEqual(catalog.rates,october21.rates);
+for(const [model,rate] of Object.entries(october21.rates)) assert.deepEqual(catalog.rates[model],rate,"既有模型金额保持");
 assert.deepEqual(catalog.aliases,october21.aliases);
 assert.deepEqual(catalog.rules["gpt-6-sol"].euDataResidencyServiceTiers,["standard","flex","batch"]);
 assert.equal(catalog.rules["gpt-6-sol"].euFastAvailable,false);
@@ -145,3 +145,19 @@ assert.equal(catalog.rules["gpt-6-sol"].apiFastMultiplier,2,"EU限制不取消�
 assert.ok(Math.abs(estimateApiCostUsd("gpt-6-sol",sample)-1.56)<1e-10);
 assert.equal(estimateCodexCredits("gpt-6-sol",sample),39);
 console.log("EU Fast 规则回归通过：精确模型、地区范围、旧快照与标准估值保持。");
+
+const october24 = PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-10-24");
+assert.equal(october24.rates["gpt-6.1-terra"],undefined);
+for(const [model,rate] of Object.entries(october24.rates)) assert.deepEqual(catalog.rates[model],rate);
+assert.deepEqual(catalog.aliases,october24.aliases);
+assert.equal(estimateApiCostUsd("gpt-6.1-terra",{...sample,cachedInput:1000000,output:0}),.05);
+assert.equal(estimateCodexCredits("gpt-6.1-terra",{...sample,cachedInput:1000000,output:0}),1.25);
+const terra=catalog.rules["gpt-6.1-terra"];
+assert.equal(terra.apiFastMultiplier,2); assert.equal(terra.codexFastMultiplier,2);
+assert.equal(terra.codexFastSubscriptionMultiplier,2.5);
+assert.equal(terra.cacheWriteUsdPerMillion,1.25); assert.equal(terra.cacheWrite12hUsdPerMillion,2.5);
+assert.deepEqual(terra.cacheWrite12hPricesByTier.fast,{shortContextUsdPerMillion:5,longContextUsdPerMillion:10});
+assert.equal(terra.longContext.threshold,272000); assert.equal(terra.longContext.scope,"request");
+assert.equal(terra.apiEffectiveFrom,null); assert.equal(terra.codexEffectiveFrom,null);
+assert.equal(terra.apiUltrafastMultiplier,null);
+console.log("Terra 回归通过：独立模型、缓存读写与档位、旧目录及未知历史边界。");

@@ -2,7 +2,24 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.6` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.7` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-10-27] v0.7.7 release: GPT-6.1 Terra 定价
+
+### Release 范围
+
+- 包含 v0.7.7-dev.1，基于已验收 v0.7.6 与 v0.7.6-dev.2 发布文档；无未验收功能混入。核心保持远程 v0.2.0-dev.4。
+
+### 主要变更与升级
+
+- 新增 GPT-6.1 Terra Standard：每百万输入 / 缓存读 / 输出 USD 1 / 0.05 / 5，Codex credits 25 / 1.25 / 125。
+- 保留 Fast、缓存写入、长上下文和地区规则供审计；实际界面仍为标准短上下文快照重估。
+- 升级自动重估旧未知金额，无需清理个人数据。旧价格快照、其他模型与历史生效时间语义保持；沿用未签名发布。详见 [核查记录](./docs/model-pricing-2026-10-27.md)。
+
+### 验证结果
+
+- 合成样例：100 万输入含 80 万缓存读、10 万输出为 USD 0.74 / 18.5 credits。
+- 完整构建、定价 / JSON 缓存 / SQLite / 历史重估与全部现有发布验证通过；精确提交、CI 和安装包在公开前验收。
 
 ## [2026-10-24] v0.7.6 release: GPT-6 Sol EU Fast 范围修正
 

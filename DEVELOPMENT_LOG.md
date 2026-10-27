@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-10-27] v0.7.7-dev.1 fix(pricing): 补齐 GPT-6.1 Terra 定价
+
+- 开发原因：10-26 新发布模型已公开 API 与 Codex 费率，旧目录将其计为未知。
+- 实现方式：新增 10-27 快照；输入 / 缓存读 / 输出每百万 USD 1 / 0.05 / 5，credits 25 / 1.25 / 125；记录 Fast、30m / 12h 写入、>272K 长上下文与地区规则。
+- 当前结果：100 万输入含 80 万读取、10 万输出为 USD 0.74 / 18.5 credits；旧 Terra 及其他费率不变。未知 Ultrafast / 生效时间不填零、不套用 Sol。
+- 缓存结果：会话缓存升为 7，SQLite 升为 107；未变化文件的旧未知成本重估，原始额度索引 1 保持。旧快照与 historical 未知状态保持。
+- 核心依赖：已核查远程最新 tag 与当前均为 v0.2.0-dev.4；没有共享解析或 reset 变化。
+- 验证方式：已通过 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check；准确发布状态在验收后补记。
+
+
 ## [2026-10-24] v0.7.6-dev.2 docs(release): 记录 EU Fast 规则发布验收
 
 - 开发原因：补记准确提交、Windows 资产与公开下载验收，供巡检去重及续接。
