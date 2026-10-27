@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-10-27] v0.7.7-dev.2 docs(release): 记录 GPT-6.1 Terra 定价发布验收
+
+- 开发原因：补记准确提交、Windows 资产与公开下载验收，供巡检去重及续接。
+- 实现方式：v0.7.7 tag 固定 9a7158e6d21821bbc9def0ee90c3b880ccc5fb6e；CI 40444664550 与 Package Windows 40444668602 均成功。
+- 当前结果：Release 425007828 于 2026-10-27T03:35:48Z 公开为 stable Latest；同源重复草稿 425007826 已合并清理。
+- 资产结果：安装包版本 0.7.7、Authenticode NotSigned、103024376 bytes，SHA256 837ce9702238704b963a8f2d5b195ecc3eab675835c4b4e63beebf943bd93def。
+- 验证方式：四项工作流产物、GitHub digest、匿名下载 SHA256 一致；latest.yml 版本 / 路径 / 大小 / SHA512、blockmap v2 的 4948 块完整覆盖及 stable 更新入口全部通过。
+- 验证方式：发布实现完整构建及全部发布相关回归已通过；文档补记 npm run build 与 git diff --check 均通过。
+- 版本说明：dev.2 仅为发布后验收记录，不进入安装包、不移动 tag、不重复打包；应用保持 0.7.7，核心保持远程 v0.2.0-dev.4。
+
 ## [2026-10-27] v0.7.7-dev.1 fix(pricing): 补齐 GPT-6.1 Terra 定价
 
 - 开发原因：10-26 新发布模型已公开 API 与 Codex 费率，旧目录将其计为未知。
@@ -7,7 +17,7 @@
 - 当前结果：100 万输入含 80 万读取、10 万输出为 USD 0.74 / 18.5 credits；旧 Terra 及其他费率不变。未知 Ultrafast / 生效时间不填零、不套用 Sol。
 - 缓存结果：会话缓存升为 7，SQLite 升为 107；未变化文件的旧未知成本重估，原始额度索引 1 保持。旧快照与 historical 未知状态保持。
 - 核心依赖：已核查远程最新 tag 与当前均为 v0.2.0-dev.4；没有共享解析或 reset 变化。
-- 验证方式：已通过 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check；准确发布状态在验收后补记。
+- 验证方式：已通过 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check；v0.7.7 已正式发布并完成公开下载验收。
 
 
 ## [2026-10-24] v0.7.6-dev.2 docs(release): 记录 EU Fast 规则发布验收
