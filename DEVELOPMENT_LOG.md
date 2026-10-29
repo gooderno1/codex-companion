@@ -1,5 +1,14 @@
 # DEVELOPMENT LOG
 
+## [2026-10-29] v0.7.8-dev.1 fix(pricing): 区分 Sol 套餐与 API 长上下文规则
+
+- 开发原因：官方新增 GPT-6.1 Sol 套餐内用量无长上下文附加费说明，旧快照未区分该计费基础。
+- 实现方式：新增 2026-10-29 规则快照，范围仅 Codex / ChatGPT Work 套餐内用量；记录 500K 默认窗口、官方来源、证据哈希与未知生效日。
+- 当前结果：API 单次输入 >272K 仍按输入 / 缓存 2 倍、输出 1.5 倍；不推导购买 credits 或其他模型豁免。全部 USD / credits 标准单价及别名不变。
+- 缓存与历史：旧快照保留；仪表盘目录版本失效后重新生成，原始索引复用，JSON / SQLite 单价缓存保持 7 / 107。100 万输入含 80 万缓存读、10 万输出仍为 USD 1.48 / 37 credits。
+- 核心依赖：保持远程 tag v0.2.0-dev.4；不改共享 session 解析、reset 或规划中的额度估算页面。
+- 验证方式：已通过 npm run build、verify:usage、verify:activity、verify:estimation、verify:updater、verify:notifications、verify:comparisons、verify:startup、verify:signing-policy 与 git diff --check。
+
 ## [2026-10-27] v0.7.7-dev.2 docs(release): 记录 GPT-6.1 Terra 定价发布验收
 
 - 开发原因：补记准确提交、Windows 资产与公开下载验收，供巡检去重及续接。

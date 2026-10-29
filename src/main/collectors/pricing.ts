@@ -1,5 +1,6 @@
 import type { TokenBreakdown } from "../../shared/contracts";
-import catalog from "./pricing-catalogs/2026-10-27.json";
+import catalog from "./pricing-catalogs/2026-10-29.json";
+import october27Catalog from "./pricing-catalogs/2026-10-27.json";
 import october24Catalog from "./pricing-catalogs/2026-10-24.json";
 import october21Catalog from "./pricing-catalogs/2026-10-21.json";
 import october9Catalog from "./pricing-catalogs/2026-10-09.json";
@@ -22,12 +23,12 @@ const RATE_TABLE: Record<string, PricingRate> = catalog.rates;
 const ALIASES: Record<string, string> = catalog.aliases;
 export const PRICING_CATALOG_VERSION = catalog.catalogVersion;
 // 随应用保留旧快照供审计；当前界面仅按当前快照重估。
-export const PRICING_CATALOG_HISTORY = [previousCatalog, septemberCatalog, solCatalog, september30Catalog, october8Catalog, october9Catalog, october21Catalog, october24Catalog, catalog] as const;
+export const PRICING_CATALOG_HISTORY = [previousCatalog, septemberCatalog, solCatalog, september30Catalog, october8Catalog, october9Catalog, october21Catalog, october24Catalog, october27Catalog, catalog] as const;
 
 export const API_RATE_SOURCE =
-  "OpenAI API 标准短上下文价快照重估（developers.openai.com/api/docs/pricing；2026-10-27；不含缓存写入、长上下文、服务档位与地区调整；非历史账单）";
+  "OpenAI API 标准短上下文价快照重估（developers.openai.com/api/docs/pricing；2026-10-29；不含缓存写入、长上下文、服务档位与地区调整；非历史账单）";
 export const CODEX_RATE_SOURCE =
-  "OpenAI Codex 标准 credits 快照重估（learn.chatgpt.com/docs/pricing；2026-10-27；旧模型保留各自已核实的历史 rate card；非套餐实付）";
+  "OpenAI Codex 标准 credits 快照重估（learn.chatgpt.com/docs/pricing；2026-10-29；旧模型保留各自已核实的历史 rate card；非套餐实付）";
 
 function normalizeModel(model: string): string {
   return model.trim().toLowerCase().replace(/\s+/g, "-");

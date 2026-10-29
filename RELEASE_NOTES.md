@@ -2,7 +2,21 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.7` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.8` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-10-29] v0.7.8 release: Sol 套餐长上下文规则
+
+### Release 范围
+
+- 包含 v0.7.8-dev.1，基于已验收 v0.7.7 与 v0.7.7-dev.2 验收文档；核心保持远程 v0.2.0-dev.4。
+- 新增 GPT-6.1 Sol 套餐内用量免长上下文附加费的审计规则，范围仅 Codex / ChatGPT Work。
+- 保留 API >272K 输入请求的加价规则；500K 默认窗口不作为计费阈值。USD / credits 单价、别名与 Standard 估值不变。
+- 保留旧快照与未知生效日期，目录更新自动重建仪表盘；无需清理个人数据。沿用未签名发布。详见 [核查记录](./docs/model-pricing-2026-10-29.md)。
+
+### 验证结果
+
+- 完整构建、规则 / 缓存 / 历史重估及全部现有发布相关验证通过；CI 与 Windows 产物验收在公开前完成。
+- 合成样例仍为 USD 1.48 / 37 credits（100 万输入含 80 万缓存读、10 万输出）。
 
 ## [2026-10-27] v0.7.7 release: GPT-6.1 Terra 定价
 
