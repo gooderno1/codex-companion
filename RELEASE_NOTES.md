@@ -18,6 +18,18 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - 完整构建、规则 / 缓存 / 历史重估及全部现有发布相关验证通过；CI 与 Windows 产物验收在公开前完成。
 - 合成样例仍为 USD 1.48 / 37 credits（100 万输入含 80 万缓存读、10 万输出）。
 
+### 正式发布验收
+
+- 提交 5a8a0565d03c6e3ef31c3265f4df8262454d1f53 的 CI 40813243469 与 Package Windows 40813248159 均成功。
+- 安装包 ProductName 为 Codex Companion，ProductVersion 为 0.7.8，Authenticode 为 NotSigned。
+- 四项产物、GitHub digest、匿名下载 SHA256 一致；latest.yml 版本 / 路径 / 大小 / SHA512、blockmap v2 的 4942 块完整覆盖与 stable 更新入口通过。
+- Codex.Companion.Setup.0.7.8.exe：103035035 bytes；SHA256 08c30b17e1eb6668b67dc1d6bfb6288456416ebcaa7c9fab4a2a748b9efb4d54。
+- Codex.Companion.Setup.0.7.8.exe.blockmap：108641 bytes；SHA256 138ebd078b1488bbb5d7809ffddce3e7efffb7b00cb831110853a24bd33d02aa。
+- latest.yml：359 bytes；SHA256 7bcdff83ad773eb998fa1fdc01bb236bd788bd948ec98413b290cb4c9941cc53。
+- SHA256SUMS.txt：99 bytes；SHA256 f66fa83c9184bb128923415edf08d93cb115aa1e754dcf14e88d7f7ebde4443c。
+- Release 427438691 于 2026-10-29T03:43:22Z 公开为 stable Latest；本次重复草稿 427438690 的资产核对保全后已清理。
+- v0.7.8-dev.2 仅补记验收，不进入安装包、不移动 tag、不重新打包。
+
 ## [2026-10-27] v0.7.7 release: GPT-6.1 Terra 定价
 
 ### Release 范围

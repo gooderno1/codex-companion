@@ -1,5 +1,15 @@
 # DEVELOPMENT LOG
 
+## [2026-10-29] v0.7.8-dev.2 docs(release): 记录 Sol 套餐规则发布验收
+
+- 开发原因：补记准确提交、Windows 资产与公开下载验收，供巡检去重及续接。
+- 实现方式：v0.7.8 tag 固定 5a8a0565d03c6e3ef31c3265f4df8262454d1f53；CI 40813243469 与 Package Windows 40813248159 均成功。
+- 当前结果：Release 427438691 于 2026-10-29T03:43:22Z 公开为 stable Latest；本次重复草稿 427438690 已保全资产并清理。
+- 资产结果：安装包版本 0.7.8、Authenticode NotSigned、103035035 bytes，SHA256 08c30b17e1eb6668b67dc1d6bfb6288456416ebcaa7c9fab4a2a748b9efb4d54。
+- 验证方式：四项产物、GitHub digest、匿名下载 SHA256 一致；latest.yml、blockmap v2 的 4942 块完整覆盖与 stable 更新入口全部通过。
+- 验证方式：实现完整构建及全部发布回归已通过；验收文档 npm run build 与 git diff --check 均通过。
+- 版本说明：dev.2 为发布后验收记录，不进入安装包，不移动既有 tag、不重复打包；应用保持 0.7.8，核心保持远程 v0.2.0-dev.4。
+
 ## [2026-10-29] v0.7.8-dev.1 fix(pricing): 区分 Sol 套餐与 API 长上下文规则
 
 - 开发原因：官方新增 GPT-6.1 Sol 套餐内用量无长上下文附加费说明，旧快照未区分该计费基础。
