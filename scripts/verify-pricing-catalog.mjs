@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 const require = createRequire(import.meta.url);
 const { estimateApiCostUsd, estimateCodexCredits, resolvePricingRate, PRICING_CATALOG_VERSION, PRICING_CATALOG_HISTORY } = require("../dist-electron/main/collectors/pricing.js");
 const { DashboardService } = require("../dist-electron/main/collectors/dashboardCollector.js");
-const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-10-29.json", import.meta.url)));
+const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-11-05.json", import.meta.url)));
 const sample = { input: 1000000, cachedInput: 800000, output: 100000, reasoningOutput: 50000, total: 1100000 };
 for (const [model,usd,credits] of [
   ["gpt-6.1-terra",.74,18.5],["gpt-rosalind-research",3.9,97.5],["gpt-6.1-sol",1.48,37],["gpt-6.1-sol-2026-09-30",1.48,37],["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
@@ -26,7 +26,6 @@ assert.equal(catalog.rules["gpt-rosalind-research"].cacheWriteStatus,"not-applic
 assert.equal(catalog.rules["gpt-rosalind-research"].apiFastMultiplier,null);
 assert.equal(catalog.rules["gpt-rosalind-research"].longContext,null);
 assert.equal(catalog.effectiveFrom,null,"首次核对日期不能伪装成历史生效日");
-assert.equal(catalog.rules["gpt-5.6-sol"].promotion.expiresAt,null,"优惠至少持续日期不能当自动涨价日期");
 assert.equal(catalog.rules["gpt-6-astra"].apiFastMultiplier,2);
 assert.equal(catalog.rules["gpt-6-astra"].codexFastMultiplier,2);
 assert.equal(catalog.rules["gpt-6-astra"].longContext.threshold,272000);
@@ -46,7 +45,7 @@ const old = {...cache,pricingCatalogVersion:"old",sourceHealth:{refreshHistory:[
 const service = new DashboardService({read:async()=>({get codexHome(){throw new Error("synthetic collection failure");}})},{read:async()=>old});
 await assert.rejects(service.getSnapshot(true),/synthetic collection failure/);
 
-assert.equal(PRICING_CATALOG_VERSION,"2026-10-29");
+assert.equal(PRICING_CATALOG_VERSION,"2026-11-05");
 assert.equal(PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-19").rates["gpt-6-sol"],undefined);
 for (const model of ["gpt-6.1-sol","gpt-6-sol","gpt-6-luna"]) {
   assert.equal(catalog.rules[model].apiFastMultiplier,2);
@@ -176,8 +175,20 @@ assert.equal(catalog.rules["gpt-6.1-sol"].codexDefaultContextWindowTokens, 50000
 assert.equal(catalog.rules["gpt-6.1-sol"].longContext.inputMultiplier, 2);
 assert.equal(catalog.rules["gpt-6.1-sol"].longContext.cacheMultiplier, 2);
 assert.equal(catalog.rules["gpt-6.1-sol"].longContext.outputMultiplier, 1.5);
-for (const [model, rule] of Object.entries(catalog.rules)) {
+for (const [model, rule] of Object.entries(PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-10-29").rules)) {
   if (model !== "gpt-6.1-sol") assert.deepEqual(rule, october27.rules[model], "不能将套餐豁免推广到其他模型");
 }
 assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: "2026-10-27"})}).getCachedSnapshot(), null, "旧目录仪表盘重新生成");
 console.log("套餐长上下文规则通过：明确计费基础、API 规则保留、500K 默认窗口与 272K 阈值分离、费率及历史语义不变。");
+
+const october29 = PRICING_CATALOG_HISTORY.find(c => c.catalogVersion === "2026-10-29");
+const promotion = catalog.rules["gpt-5.6-sol"].promotion;
+assert.equal(promotion.api.untilDate, "2026-11-30");
+assert.equal(promotion.api.expiresAt, null, "日期没有时区或精确截止时刻");
+assert.equal(promotion.api.successorRates, null, "没有公布优惠之后的价格");
+assert.equal(promotion.codexCredits.atLeastThrough, "2026-11-21");
+assert.equal(promotion.apiFastGuide.atLeastThrough, "2026-11-21");
+assert.deepEqual(october29.rules["gpt-5.6-sol"].promotion, {atLeastThrough:"2026-11-21", expiresAt:null});
+assert.deepEqual(catalog.rates, october29.rates);
+assert.deepEqual(catalog.aliases, october29.aliases);
+assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: october29.catalogVersion})}).getCachedSnapshot(), null);

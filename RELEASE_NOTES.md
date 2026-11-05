@@ -2,7 +2,14 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.8` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.9` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-11-05] v0.7.9 release: GPT-5.6 Sol API 促销期限
+
+- 本地验证：Windows 工作树内完整构建及用量、历史估算、活动、更新器、通知、比较、启动、签名策略回归全部通过。
+- 包含 v0.7.9-dev.1，基于 v0.7.8 及其验收文档。
+- API 总表和模型详情将促销期限写为 11 月 30 日。Codex credits 和 API Fast 专页仍只承诺至少至 11 月 21 日。未公布后继费率。
+- 升级后账本采用 11-05 标准快照；无需清理个人数据。额度估算可选择旧快照，已保存的历史费率不被覆盖。详见[定价核查](./docs/model-pricing-2026-11-05.md)。
 
 ## [2026-10-29] v0.7.8 release: Sol 套餐长上下文规则
 
