@@ -1,5 +1,14 @@
 # DEVELOPMENT LOG
 
+## [2026-11-05] v0.7.9-dev.2 docs(release): 记录 Sol 促销期限发布验收
+
+- 开发原因：保留稳定版发布与公开更新入口的可复核记录。
+- 实现方式：提交 976e4a2b50ea68969684b51f0c35bc18ce61c1a8 的 CI 41981600819 与 Windows 打包 41981600832 均通过。
+- 当前结果：[v0.7.9](https://github.com/gooderno1/codex-companion/releases/tag/v0.7.9) 于 2026-11-05T06:42:01Z 公开为 stable Latest。安装包 ProductVersion 为 0.7.9；Authenticode 为 NotSigned。
+- 验证方式：四项资产的工作流文件、GitHub digest 与匿名下载 SHA256 一致；latest.yml 的版本、文件名、大小和 SHA512 与安装包一致。blockmap v2 的 4938 块覆盖全部 103038606 字节。公开 stable 更新入口已核验。
+- 安装包 SHA256：7f1774a24112666da69e36c74d7302c024f739c3943b189b4a3def0fb7d4f994。
+- 版本范围：dev.2 仅记录验收，不进入安装包；正式 tag 保持不变。
+
 ## [2026-11-05] v0.7.9-dev.1 fix(pricing): 按来源记录 GPT-5.6 Sol 促销期限
 
 - 开发原因：API 定价页及模型详情已明确促销至 11 月 30 日；旧快照只记录至少至 11 月 21 日。

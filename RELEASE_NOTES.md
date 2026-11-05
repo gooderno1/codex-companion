@@ -11,6 +11,17 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - API 总表和模型详情将促销期限写为 11 月 30 日。Codex credits 和 API Fast 专页仍只承诺至少至 11 月 21 日。未公布后继费率。
 - 升级后账本采用 11-05 标准快照；无需清理个人数据。额度估算可选择旧快照，已保存的历史费率不被覆盖。详见[定价核查](./docs/model-pricing-2026-11-05.md)。
 
+### 正式发布验收
+
+- 提交 976e4a2b50ea68969684b51f0c35bc18ce61c1a8 的 CI 41981600819 与 Windows 打包 41981600832 均通过。
+- [v0.7.9](https://github.com/gooderno1/codex-companion/releases/tag/v0.7.9) 于 2026-11-05T06:42:01Z 公开为 stable Latest。安装包 ProductVersion 为 0.7.9；Authenticode 为 NotSigned。
+- 四项资产的工作流文件、GitHub digest 与匿名下载 SHA256 一致；latest.yml 的版本、文件名、大小和 SHA512 与安装包一致。blockmap v2 的 4938 块覆盖全部 103038606 字节。公开 stable 更新入口已核验。
+- Codex.Companion.Setup.0.7.9.exe：103038606 bytes；SHA256 7f1774a24112666da69e36c74d7302c024f739c3943b189b4a3def0fb7d4f994。
+- Codex.Companion.Setup.0.7.9.exe.blockmap：108529 bytes；SHA256 01b25045cd26abe46bc4c5b10649e67e503aefb4919bad9684fc6b7c3b263749。
+- latest.yml：359 bytes；SHA256 776bfc011abe128883583afcba66814136d132c83beb09cfcbd453a8809c2536。
+- SHA256SUMS.txt：99 bytes；SHA256 f2dc7f52992cbe9c80cd2ab85fe9682b1176b45720714302a8b6b644c3aaadb5。
+- v0.7.9-dev.2 只补记验收，不进入安装包。
+
 ## [2026-10-29] v0.7.8 release: Sol 套餐长上下文规则
 
 ### Release 范围
