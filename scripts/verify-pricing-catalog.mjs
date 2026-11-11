@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 const require = createRequire(import.meta.url);
 const { estimateApiCostUsd, estimateCodexCredits, resolvePricingRate, PRICING_CATALOG_VERSION, PRICING_CATALOG_HISTORY } = require("../dist-electron/main/collectors/pricing.js");
 const { DashboardService } = require("../dist-electron/main/collectors/dashboardCollector.js");
-const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-11-05.json", import.meta.url)));
+const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-11-11.json", import.meta.url)));
 const sample = { input: 1000000, cachedInput: 800000, output: 100000, reasoningOutput: 50000, total: 1100000 };
 for (const [model,usd,credits] of [
   ["gpt-6.1-terra",.74,18.5],["gpt-rosalind-research",3.9,97.5],["gpt-6.1-sol",1.48,37],["gpt-6.1-sol-2026-09-30",1.48,37],["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
@@ -45,7 +45,7 @@ const old = {...cache,pricingCatalogVersion:"old",sourceHealth:{refreshHistory:[
 const service = new DashboardService({read:async()=>({get codexHome(){throw new Error("synthetic collection failure");}})},{read:async()=>old});
 await assert.rejects(service.getSnapshot(true),/synthetic collection failure/);
 
-assert.equal(PRICING_CATALOG_VERSION,"2026-11-05");
+assert.equal(PRICING_CATALOG_VERSION,"2026-11-11");
 assert.equal(PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-19").rates["gpt-6-sol"],undefined);
 for (const model of ["gpt-6.1-sol","gpt-6-sol","gpt-6-luna"]) {
   assert.equal(catalog.rules[model].apiFastMultiplier,2);
@@ -192,3 +192,57 @@ assert.deepEqual(october29.rules["gpt-5.6-sol"].promotion, {atLeastThrough:"2026
 assert.deepEqual(catalog.rates, october29.rates);
 assert.deepEqual(catalog.aliases, october29.aliases);
 assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: october29.catalogVersion})}).getCachedSnapshot(), null);
+
+const november5 = PRICING_CATALOG_HISTORY.find(c => c.catalogVersion === "2026-11-05");
+const regional = catalog.rules["gpt-6-luna"].regionalStandardProcessing;
+assert.deepEqual(regional.regions, ["AU", "IN", "JP"]);
+assert.deepEqual(regional.serviceTiers, ["standard"]);
+assert.equal(regional.requiredRetention, "zero-data-retention");
+assert.deepEqual(regional.endpoints, ["/v1/responses", "/v1/chat/completions"]);
+assert.equal(regional.hostedTools, false);
+assert.equal(regional.effectiveFrom, null);
+assert.equal(november5.rules["gpt-6-luna"].regionalStandardProcessing, undefined);
+assert.deepEqual(catalog.rates, november5.rates);
+assert.deepEqual(catalog.aliases, november5.aliases);
+for (const [id, [input, cachedInput, output]] of Object.entries({
+  "gpt-5.5": [
+    12.5,
+    1.25,
+    75
+  ],
+  "gpt-5.4": [
+    5,
+    0.5,
+    30
+  ],
+  "gpt-5.4-mini": [
+    1.5,
+    0.15,
+    9
+  ],
+  "gpt-5.2": [
+    3.5,
+    0.35,
+    28
+  ],
+  "gpt-5.1": [
+    2.5,
+    0.25,
+    20
+  ],
+  "gpt-5": [
+    2.5,
+    0.25,
+    20
+  ],
+  "gpt-5.3-codex": [
+    3.5,
+    0.35,
+    28
+  ]
+})) {
+  assert.deepEqual(catalog.rules[id].apiFastShortContextUsdPerMillion, {input, cachedInput, output});
+  assert.equal(november5.rules[id]?.apiFastShortContextUsdPerMillion, undefined);
+}
+assert.equal(catalog.rules["gpt-5.2-codex"]?.apiFastShortContextUsdPerMillion, undefined);
+assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: november5.catalogVersion})}).getCachedSnapshot(), null);
