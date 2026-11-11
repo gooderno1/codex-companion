@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-11-11] v0.7.10-dev.2 docs(release): 记录正式发布验收
+
+- 开发原因：保存可复核的安装包与公开入口验收结果。
+- 实现方式：将同一 tag 的工作流草稿资产汇齐到含安装包的草稿，完整核验后发布，清理重复草稿。
+- 当前结果：提交 842b03c8f3a50b7a678853c5ddc68f4a9b27f626 的 [CI](https://github.com/gooderno1/codex-companion/actions/runs/42974538014) 和 [Windows 打包](https://github.com/gooderno1/codex-companion/actions/runs/42974538104) 均通过。[v0.7.10](https://github.com/gooderno1/codex-companion/releases/tag/v0.7.10) 于 2026-11-11T06:48:58Z 成为 stable Latest。
+- 验证方式：安装包 ProductVersion 为 0.7.10，Authenticode 为 NotSigned。blockmap v2 的 4937 块覆盖 103039291 字节。四项公开下载的 SHA256 均与工作流及 GitHub digest 一致，stable 更新入口的 latest.yml 匹配。
+
 ## [2026-11-11] v0.7.10-dev.1 fix(pricing): 补齐区域处理条件与 Fast 费率
 
 - 开发原因：官方列出 GPT-6 Luna 在澳大利亚、印度和日本的区域按量处理条件，旧目录还遗漏七个已支持模型的 Fast 美元价格。

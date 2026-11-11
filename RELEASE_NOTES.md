@@ -11,6 +11,13 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 
 - Windows 本地完整构建及用量、历史估算、活动、更新器、通知、比较、启动与签名策略回归通过。
 
+### 正式发布验收
+
+- 提交 842b03c8f3a50b7a678853c5ddc68f4a9b27f626 的 [CI](https://github.com/gooderno1/codex-companion/actions/runs/42974538014) 和 [Windows 打包](https://github.com/gooderno1/codex-companion/actions/runs/42974538104) 均通过。[v0.7.10](https://github.com/gooderno1/codex-companion/releases/tag/v0.7.10) 于 2026-11-11T06:48:58Z 成为 stable Latest。
+- 安装包 ProductVersion 为 0.7.10，Authenticode 为 NotSigned。blockmap v2 的 4937 块覆盖 103039291 字节。四项公开下载的 SHA256 均与工作流及 GitHub digest 一致，stable 更新入口的 latest.yml 匹配。
+- 安装包 SHA256 为 26463d7b47c3c5131543eb333a1ced96584a6cafe1361a8a0cbba16802d65e95。
+- v0.7.10-dev.2 仅记录验收结果，未进入安装包。
+
 ## [2026-11-05] v0.7.9 release: GPT-5.6 Sol API 促销期限
 
 - 本地验证：Windows 工作树内完整构建及用量、历史估算、活动、更新器、通知、比较、启动、签名策略回归全部通过。
