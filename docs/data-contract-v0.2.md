@@ -168,18 +168,19 @@
 
 ### 2.3 成本与价值
 
-- 价格目录与历史边界详见 [2026-11-11 定价核查](./model-pricing-2026-11-11.md)。随包保留 2026-09-17 / 2026-09-19 / 2026-09-23 / 2026-09-30 / 2026-10-08 / 2026-10-09 / 2026-10-21 / 2026-10-24 / 2026-10-27 / 2026-10-29 / 2026-11-05 旧价格快照；当前界面按 2026-11-11 标准价重估全部可见历史，不声称按事件时点的实际费率计账。
+- 11-11 快照的来源见 [2026-11-11 定价核查](./model-pricing-2026-11-11.md)。随包保留 2026-09-17 / 2026-09-19 / 2026-09-23 / 2026-09-30 / 2026-10-08 / 2026-10-09 / 2026-10-21 / 2026-10-24 / 2026-10-27 / 2026-10-29 / 2026-11-05 / 2026-11-11 旧价格快照；当前界面按 2026-11-14 标准价重估全部可见历史，不声称按事件时点的实际费率计账。
 
 - API 等价成本使用公开 API 标准定价按模型估算，不代表订阅账单或精确 API 账单。
 - `tokens.input` 为包含缓存的输入总量；非缓存输入为 `max(0, input - cachedInput)`。成本为 `(非缓存输入 × 输入单价 + cachedInput × 缓存单价 + output × 输出单价) / 1,000,000`；推理输出已包含在 `output` 内，不再加计。已知 Codex credit 同样使用非缓存输入，避免缓存重复计费。
 - `gpt-6-astra` 按每百万非缓存输入 / 缓存输入 / 输出 `$10 / $1 / $50`，来源为 [OpenAI GPT-6 Astra 模型页](https://developers.openai.com/api/docs/models/gpt-6-astra)，核对日期 `2026-09-17`。`1,000,000` 输入（其中 `800,000` 缓存）和 `100,000` 输出的标准估算为 `$7.80`。
 - 当前事件字段不足以还原每次请求的服务档位、缓存写入量、写入时长及长上下文计价，因此成本不含上述调整。GPT-6 Astra 官方还定义了30m / 12h 缓存写入 `$12.50 / $25/M`、超过 `272K` 输入的长上下文倍率及 Fast / Batch / Flex 档位；不能用周期累计 Token 触发这些请求级倍率。
 - 模型匹配接受已登记名称、已登记基础型号的日期后缀，以及官网明确的 gpt-5.6 / Daybreak Blue / Red 别名；未知型号保持未定价。GPT-6 Astra 标准 credits 为 250 / 25 / 1250 每百万输入 / 缓存读取 / 输出，不通过美元反推。
-- 会话缓存版本为 7，SQLite 索引 user_version 为 107；升级后即使源文件未变化，也重估 Terra 原未知成本，原始 Token 不变。仪表盘 pricingCatalogVersion 必须匹配 2026-11-11；启动与失败回退拒绝旧目录。原始额度索引版本 1 复用，换快照只重算派生值。
+- 会话缓存版本为 7，SQLite 索引 user_version 为 107；升级后即使源文件未变化，也重估 Terra 原未知成本，原始 Token 不变。仪表盘 pricingCatalogVersion 必须匹配 2026-11-14；启动与失败回退拒绝旧目录。原始额度索引版本 1 复用，换快照只重算派生值。
 - 2026-10-09 规则补充：GPT-6.1 Sol Ultrafast API / 购买 credits 6 倍、订阅额度 8 倍；当时 EU Fast 支持 6.1 Sol / 6 Sol / 6 Luna（10-24 核对已移除 6 Sol，旧快照保持）。仅保存审计规则，不将档位、地区或可用日期套入 Standard 估值和历史账单。
 - 2026-10-21 规则补充：Responses API 的 8 个已定价 GPT-5.6 / GPT-6 系列模型新增 12h 写入单价；旧 cacheWriteUsdPerMillion 仍表示默认 30m，新增 cacheWrite12hUsdPerMillion 与各档短 / 长上下文表。billingRules.apiCacheWriteLifetimes 保存覆盖、升级及互斥分项规则；API 可用日不填入历史生效日，未知写入不能自动加价。Codex credits 无独立写入费。
 - 2026-10-24 规则修正：GPT-6 Sol EU 服务档位仅 Standard / Flex / Batch，euFastAvailable=false；不改其他地区 Fast 单价、6.1 Sol / Luna EU Fast、标准估值或旧快照。euFastEffectiveFrom=null，不能将核对日期当历史生效时间。
 - 2026-10-29 规则补充：GPT-6.1 Sol 的 codexSubscriptionLongContext 仅适用于 Codex / ChatGPT Work 套餐内用量，无长上下文附加费；不推广到 API、购买 credits 或其他模型。codexDefaultContextWindowTokens=500000 是默认窗口；API longContext 仍是单次输入 >272000、输入 / 缓存 2 倍、输出 1.5 倍。生效日未知，保持 null；本规则仅审计，不改变 Standard 估值。JSON / SQLite 单价缓存版本保持 7 / 107，原始额度索引保持 1。
+- 2026-11-14：GPT-6 Luna 在澳大利亚、印度和日本限当地项目的 Standard 按量处理。地区准入表中，澳大利亚和日本未列额外条件，印度需联系销售开通。三地的图像支持均需另行批准。现行指南未列出原快照的统一 ZDR 前提。 现行模型单价和 10% 地区附加费相同，具体生效日期未知。[官方区域指南](https://developers.openai.com/api/docs/guides/data-residency)
 - 2026-11-11：GPT-6 Luna 新增三个 ZDR 地区的 Standard 按量条件。旧款模型的 apiFastShortContextUsdPerMillion 记录 API Fast 输入、缓存读和输出美元价。两项均为核对规则，普通账本仍按标准价。
 - 2026-11-05：GPT-5.6 Sol 的 promotion.api.untilDate=2026-11-30 仅记录 API 公布日期；精确时刻和后继单价为 null。promotion.apiFastGuide 与 promotion.codexCredits 分别保留至少至 2026-11-21，不跨计费来源推定终止时间。
 - 周套餐价值折算公式：

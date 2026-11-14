@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 const require = createRequire(import.meta.url);
 const { estimateApiCostUsd, estimateCodexCredits, resolvePricingRate, PRICING_CATALOG_VERSION, PRICING_CATALOG_HISTORY } = require("../dist-electron/main/collectors/pricing.js");
 const { DashboardService } = require("../dist-electron/main/collectors/dashboardCollector.js");
-const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-11-11.json", import.meta.url)));
+const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-11-14.json", import.meta.url)));
 const sample = { input: 1000000, cachedInput: 800000, output: 100000, reasoningOutput: 50000, total: 1100000 };
 for (const [model,usd,credits] of [
   ["gpt-6.1-terra",.74,18.5],["gpt-rosalind-research",3.9,97.5],["gpt-6.1-sol",1.48,37],["gpt-6.1-sol-2026-09-30",1.48,37],["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
@@ -45,7 +45,7 @@ const old = {...cache,pricingCatalogVersion:"old",sourceHealth:{refreshHistory:[
 const service = new DashboardService({read:async()=>({get codexHome(){throw new Error("synthetic collection failure");}})},{read:async()=>old});
 await assert.rejects(service.getSnapshot(true),/synthetic collection failure/);
 
-assert.equal(PRICING_CATALOG_VERSION,"2026-11-11");
+assert.equal(PRICING_CATALOG_VERSION,"2026-11-14");
 assert.equal(PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-19").rates["gpt-6-sol"],undefined);
 for (const model of ["gpt-6.1-sol","gpt-6-sol","gpt-6-luna"]) {
   assert.equal(catalog.rules[model].apiFastMultiplier,2);
@@ -197,7 +197,13 @@ const november5 = PRICING_CATALOG_HISTORY.find(c => c.catalogVersion === "2026-1
 const regional = catalog.rules["gpt-6-luna"].regionalStandardProcessing;
 assert.deepEqual(regional.regions, ["AU", "IN", "JP"]);
 assert.deepEqual(regional.serviceTiers, ["standard"]);
-assert.equal(regional.requiredRetention, "zero-data-retention");
+const november11 = PRICING_CATALOG_HISTORY.find(c => c.catalogVersion === "2026-11-11");
+assert.equal(november11.rules["gpt-6-luna"].regionalStandardProcessing.requiredRetention, "zero-data-retention");
+assert.equal(regional.requiredRetention, undefined);
+assert.deepEqual(regional.additionalAccessRequirementByRegion, {AU: "none-listed", IN: "contact-sales", JP: "none-listed"});
+assert.equal(regional.imageInputRequiresApproval, true);
+assert.deepEqual(catalog.rates, november11.rates);
+assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: november11.catalogVersion})}).getCachedSnapshot(), null);
 assert.deepEqual(regional.endpoints, ["/v1/responses", "/v1/chat/completions"]);
 assert.equal(regional.hostedTools, false);
 assert.equal(regional.effectiveFrom, null);

@@ -2,7 +2,15 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.10` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.11` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-11-14] v0.7.11 release: GPT-6 Luna 区域计费适用条件
+
+包含 v0.7.11-dev.1。GPT-6 Luna 在澳大利亚、印度和日本限当地项目的 Standard 按量处理。地区准入表中，澳大利亚和日本未列额外条件，印度需联系销售开通。三地的图像支持均需另行批准。现行指南未列出原快照的统一 ZDR 前提。[官方区域指南](https://developers.openai.com/api/docs/guides/data-residency)
+
+区域处理附加费仍为 10%。账本按标准价重估；额度估算可选择 11-11 或 11-14 快照。升级无需清理缓存。
+
+Windows 本地构建、定价、历史估算和现有发布回归均通过。
 
 ## [2026-11-11] v0.7.10 release: Luna 区域处理与 API Fast 价格
 
