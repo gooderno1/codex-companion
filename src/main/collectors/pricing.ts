@@ -1,3 +1,4 @@
+import type { PricingHistorySnapshot } from "../../shared/modelPricingHistory";
 import type { TokenBreakdown } from "../../shared/contracts";
 import catalog from "./pricing-catalogs/2026-11-14.json";
 import november11Catalog from "./pricing-catalogs/2026-11-11.json";
@@ -27,6 +28,17 @@ const ALIASES: Record<string, string> = catalog.aliases;
 export const PRICING_CATALOG_VERSION = catalog.catalogVersion;
 // 随应用保留旧快照供审计；当前界面仅按当前快照重估。
 export const PRICING_CATALOG_HISTORY = [previousCatalog, septemberCatalog, solCatalog, september30Catalog, october8Catalog, october9Catalog, october21Catalog, october24Catalog, october27Catalog, october29Catalog, november5Catalog, november11Catalog, catalog] as const;
+
+export function pricingHistorySnapshots(): PricingHistorySnapshot[] {
+  return PRICING_CATALOG_HISTORY.map(catalog => ({
+    date: catalog.catalogVersion,
+    rates: catalog.rates,
+    rules: "rules" in catalog ? catalog.rules : {},
+    aliases: "aliases" in catalog ? catalog.aliases : {},
+    billingRules: "billingRules" in catalog ? catalog.billingRules : {},
+    pending: "pending" in catalog ? catalog.pending : []
+  }));
+}
 
 export const API_RATE_SOURCE =
   "OpenAI API 标准短上下文价快照重估（developers.openai.com/api/docs/pricing；2026-11-14；不含缓存写入、长上下文、服务档位与地区调整；非历史账单）";

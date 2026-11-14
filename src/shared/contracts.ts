@@ -562,6 +562,7 @@ export interface GitIntegrationStatus {
 }
 
 export interface CodexCompanionApi {
+  getPricingHistory(): Promise<import("./modelPricingHistory").PricingHistorySnapshot[]>;
   getQuotaEstimation(request: import("./quotaEstimation").QuotaEstimationRequest): Promise<import("./quotaEstimation").QuotaEstimationResponse>;
   getActivityCode(request: import("./activityDetails").ActivityDetailsRequest & { projectId: string }): Promise<import("./activityDetails").ActivityCodeResponse>;
   getActivityDetails(request: import("./activityDetails").ActivityDetailsRequest): Promise<import("./activityDetails").ActivityDetailsResponse>;

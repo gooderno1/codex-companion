@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { EstimationSlice, EstimationWindow, QuotaEstimationRequest, QuotaEstimationResponse } from "../../shared/quotaEstimation";
 import { formatCompactToken, exactTokenLabel } from "../../shared/tokenFormat";
 import { nextTableSort, sortTableRows, type TableSortState } from "../../shared/tableSort";
+import { ModelPricingHistory } from "./ModelPricingHistory";
 import { TableSortHeader } from "./TableSortHeader";
 import "./quota-estimation.css";
 
 type SortKey = "date" | "token" | "cost" | "days" | "samples" | "percent";
-type View = "months" | "windows";
+type View = "months" | "windows" | "history";
 interface Filters { preset: "6" | "12" | "all" | "custom"; start: string; end: string; catalog: string; mode: "snapshot" | "historical" }
 const storageKey = "codex-companion.quota-estimation.v1";
 const money = (value: number | null) => value === null ? "未定价" : `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -21,7 +22,7 @@ function restore(): { filters: Filters; view: View; monthSort: TableSortState<So
     const saved = JSON.parse(localStorage.getItem(storageKey) ?? "null");
     if (!saved) return fallback;
     if (["6", "12", "all", "custom"].includes(saved.filters?.preset) && ["snapshot", "historical"].includes(saved.filters?.mode) && ["start", "end", "catalog"].every(k => typeof saved.filters[k] === "string")) fallback.filters = saved.filters;
-    if (["months", "windows"].includes(saved.view)) fallback.view = saved.view;
+    if (["months", "windows", "history"].includes(saved.view)) fallback.view = saved.view;
     for (const key of ["monthSort", "windowSort"] as const) if (["date", "token", "cost", "days", "samples", "percent"].includes(saved[key]?.key) && ["asc", "desc"].includes(saved[key]?.direction)) fallback[key] = saved[key];
   } catch { /* 存储不可用或旧偏好损坏时回退。 */ }
   return fallback;
@@ -74,11 +75,13 @@ export function QuotaEstimationPage({ sourceKey }: { sourceKey: string }) {
   const [monthSort, setMonthSort] = useState(initial.monthSort), [windowSort, setWindowSort] = useState(initial.windowSort);
   const [data, setData] = useState<QuotaEstimationResponse | null>(null), [busy, setBusy] = useState(true), [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0), [page, setPage] = useState(0), [selected, setSelected] = useState("");
+  const showingHistory = view === "history";
   const lastRefresh = useRef(0);
   const detail = useRef<HTMLElement>(null);
   useEffect(() => { const refreshPage = () => setRefresh(r => r + 1); window.addEventListener("quota-estimation:refresh", refreshPage); return () => window.removeEventListener("quota-estimation:refresh", refreshPage); }, []);
   useEffect(() => { try { localStorage.setItem(storageKey, JSON.stringify({ filters, view, monthSort, windowSort })); } catch { /* 本地偏好存储可选。 */ } }, [filters, view, monthSort, windowSort]);
   useEffect(() => {
+    if (showingHistory) return;
     let active = true;
     void (async () => {
     await Promise.resolve();
@@ -98,7 +101,7 @@ export function QuotaEstimationPage({ sourceKey }: { sourceKey: string }) {
       .finally(() => { if (active) setBusy(false); });
     })();
     return () => { active = false; };
-  }, [filters, refresh, sourceKey]);
+  }, [filters, refresh, sourceKey, showingHistory]);
   const monthRows = useMemo(() => sortTableRows(data?.months ?? [], monthSort, (r, k) => k === "date" ? r.key : k === "cost" ? r.costUsd : k === "days" ? r.activeDays : r.tokens.total, r => r.key), [data, monthSort]);
   const windowRows = useMemo(() => sortTableRows(data?.windows ?? [], windowSort, (r, k) => k === "date" ? r.startAt : k === "cost" ? r.capacityUsd : k === "percent" ? r.deltaPercent : r.samples.length, r => r.id), [data, windowSort]);
   const selectedMonth = data?.months.find(m => m.key === selected), selectedWindow = data?.windows.find(w => w.id === selected);
@@ -108,7 +111,7 @@ export function QuotaEstimationPage({ sourceKey }: { sourceKey: string }) {
   const apply = () => { try { estimationRange(draft); setError(""); if (JSON.stringify(draft) === JSON.stringify(filters)) setRefresh(r => r + 1); else setFilters({ ...draft }); } catch (e) { setError(e instanceof Error ? e.message : "日期无效。"); } };
   const coverage = data?.summary.tokens.total ? (1 - data.summary.unpricedTokens / data.summary.tokens.total) * 100 : null;
   return <div className="qe-page">
-    <section className="qe-toolbar qe-card" aria-label="额度估算筛选">
+    {!showingHistory && <section className="qe-toolbar qe-card" aria-label="额度估算筛选">
       <div className="qe-toolbar-fields">
         <label>时间范围<select value={draft.preset} onChange={e => setDraft(f => ({ ...f, preset: e.target.value as Filters["preset"] }))}><option value="6">近 6 个月</option><option value="12">近 12 个月</option><option value="all">全部历史</option><option value="custom">自定义</option></select></label>
         {draft.preset === "custom" && <><label>开始日期<input type="date" value={draft.start} onChange={e => setDraft(f => ({ ...f, start: e.target.value }))} /></label><label>结束日期<input type="date" value={draft.end} max={day(new Date())} onChange={e => setDraft(f => ({ ...f, end: e.target.value }))} /></label></>}
@@ -116,8 +119,9 @@ export function QuotaEstimationPage({ sourceKey }: { sourceKey: string }) {
         <label>价格快照<select value={draft.catalog} disabled={draft.mode === "historical"} onChange={e => setDraft(f => ({ ...f, catalog: e.target.value }))}><option value="">当前目录</option>{data?.catalogs.map(c => <option key={c.version} value={c.version}>{c.version}</option>)}{!data && draft.catalog && <option value={draft.catalog}>{draft.catalog}</option>}</select></label>
       </div>
       <button className="action-button" onClick={apply} disabled={busy}>应用筛选</button><button className="secondary-button" onClick={() => setRefresh(r => r + 1)} disabled={busy}>重新读取</button>
-    </section>
-    <div className="qe-tabs" role="tablist" aria-label="额度估算视图">{([["months", "按月已用成本"], ["windows", "按窗口估值"]] as const).map(([key, label]) => <button key={key} role="tab" aria-selected={view === key} onClick={() => { setView(key); setPage(0); setSelected(""); }}>{label}</button>)}</div>
+    </section>}
+    <div className="qe-tabs" role="tablist" aria-label="额度估算视图">{([["months", "按月已用成本"], ["windows", "按窗口估值"], ["history", "模型计费历史"]] as const).map(([key, label]) => <button key={key} role="tab" aria-selected={view === key} onClick={() => { setView(key); setPage(0); setSelected(""); }}>{label}</button>)}</div>
+    {showingHistory ? <ModelPricingHistory /> : <>
     {error && <div className="qe-error" role="alert">{error}<button className="secondary-button" onClick={() => setRefresh(r => r + 1)} disabled={busy}>重试</button></div>}
     {busy && <section className="qe-card qe-loading" role="status"><strong>正在整理历史用量与额度观测…</strong><p>首次建立索引需要读取本地历史文件，后续只更新变化文件。你可以继续切换其他页面。</p></section>}
     {data && !busy && <>
@@ -161,6 +165,7 @@ export function QuotaEstimationPage({ sourceKey }: { sourceKey: string }) {
         <div className="qe-table-scroll"><table><thead><tr><th>模型</th><th>普通输入</th><th>缓存输入</th><th>输出</th></tr></thead><tbody>{catalog?.rates.map(r => <tr key={r.model}><td>{r.model}</td><td>{r.input}</td><td>{r.cached}</td><td>{r.output}</td></tr>)}</tbody></table></div>
         <ul>{catalog?.sources.map(url => <li key={url} className="qe-source">{url}</li>)}</ul>
       </details>
+    </>}
     </>}
   </div>;
 }

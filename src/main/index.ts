@@ -26,6 +26,7 @@ import type {
   UpdateState,
   WidgetPreferences
 } from "../shared/contracts";
+import { pricingHistorySnapshots } from "./collectors/pricing";
 import { DashboardService } from "./collectors/dashboardCollector";
 import {
   applyLaunchAtLoginPreference,
@@ -1020,6 +1021,7 @@ function registerIpcHandlers() {
   ipcMain.handle("preferences:get", async () => dashboardService.getPreferences());
   ipcMain.handle("activity:code", (_event, request) => activityDetailsService.queryCode(request));
   ipcMain.handle("activity:details", (_event, request) => activityDetailsService.query(request));
+  ipcMain.handle("pricing:history", pricingHistorySnapshots);
   ipcMain.handle("quota:estimation", (_event, request) => quotaEstimationService.query(request));
   ipcMain.handle(
     "preferences:update",

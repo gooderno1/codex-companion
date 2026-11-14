@@ -6,6 +6,12 @@
 
 ## 1. 原始数据来源
 
+### 模型计费历史（v0.7.12-dev.2）
+
+- 额度估算的「模型计费历史」读取随应用构建的发布索引和主进程只读价格目录，独立于账户、会话、网络和估算筛选。
+- 发布日期取索引，首次收录日期取第一个含该型号标准价的快照。按目录顺序比较 USD、credits 及保留状态；模型规则、历史别名、待生效记录按精确 ID 过滤，目录通用规则单独展示。
+- 时间线倒序展示首次记录和变化。空值显示未知，缺项表示快照未收录；例如 Rosalind 的未来价格先列入规则，直到 10-08 快照才计入标准价。
+
 ### 独立额度估算（v0.7.0-dev.1）
 
 - 新增 `quota:estimation` / `getQuotaEstimation`，请求为 `startAt: ISO | null, endAt: ISO, catalogVersion?: string, priceMode?: snapshot | historical, force?: boolean`。范围左闭右开，终点截到当前时间；未知目录或非法范围拒绝。默认当前目录，历史模式不以 verifiedAt 代替 effectiveFrom。
