@@ -12,6 +12,13 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 
 Windows 本地构建、定价、历史估算和现有发布回归均通过。
 
+### 正式发布验收
+
+- 发布提交 a8573f550212fc6141258a6e5dfb3cd80fc3ddab 的 [CI](https://github.com/gooderno1/codex-companion/actions/runs/43580255976) 和 [Windows 打包](https://github.com/gooderno1/codex-companion/actions/runs/43580255806) 已通过。[v0.7.11](https://github.com/gooderno1/codex-companion/releases/tag/v0.7.11) 于 2026-11-14T09:26:58Z 成为 stable Latest。
+- 四项公开下载的 SHA256 与 GitHub 及工作流一致。blockmap 的 4941 块覆盖全部 103039560 字节，stable 更新入口的 latest.yml 匹配。安装包版本为 0.7.11，签名状态为 NotSigned。
+- 安装包 SHA256 为 9be5170bb9811f656026bdd95d9db764251cb07d7d145e4767bcc2b5a64ee465。
+- v0.7.11-dev.2 仅记录验收，未进入安装包。
+
 ## [2026-11-11] v0.7.10 release: Luna 区域处理与 API Fast 价格
 
 - 包含 v0.7.10-dev.1。新增 GPT-6 Luna 在澳大利亚、印度和日本的 Standard 按量处理条件，补齐七个已支持模型的 API Fast 费率。详见[定价核查与费率表](./docs/model-pricing-2026-11-11.md)。

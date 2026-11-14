@@ -1,5 +1,12 @@
 # DEVELOPMENT LOG
 
+## [2026-11-14] v0.7.11-dev.2 docs(release): 记录正式发布验收
+
+- 开发原因：记录可复核的 Windows 稳定版交付。
+- 实现方式：核对同一 tag 的草稿附件，补齐四项公开资产后清理重复草稿。
+- 当前结果：发布提交 a8573f550212fc6141258a6e5dfb3cd80fc3ddab 的 [CI](https://github.com/gooderno1/codex-companion/actions/runs/43580255976) 和 [Windows 打包](https://github.com/gooderno1/codex-companion/actions/runs/43580255806) 已通过。[v0.7.11](https://github.com/gooderno1/codex-companion/releases/tag/v0.7.11) 于 2026-11-14T09:26:58Z 成为 stable Latest。
+- 验证方式：四项公开下载的 SHA256 与 GitHub 及工作流一致。blockmap 的 4941 块覆盖全部 103039560 字节，stable 更新入口的 latest.yml 匹配。安装包版本为 0.7.11，签名状态为 NotSigned。
+
 ## [2026-11-14] v0.7.11-dev.1 fix(pricing): 修订 GPT-6 Luna 区域计费适用条件
 
 - 开发原因：GPT-6 Luna 在澳大利亚、印度和日本限当地项目的 Standard 按量处理。地区准入表中，澳大利亚和日本未列额外条件，印度需联系销售开通。三地的图像支持均需另行批准。现行指南未列出原快照的统一 ZDR 前提。
