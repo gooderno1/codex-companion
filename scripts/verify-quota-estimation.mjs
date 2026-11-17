@@ -23,13 +23,17 @@ const regionChange = luna.rules.find(row => row.date === "2026-11-14").changes.f
 assert.equal(regionChange.before.requiredRetention, "zero-data-retention");
 assert.equal(regionChange.after.additionalAccessRequirementByRegion.IN, "contact-sales");
 assert.ok(!luna.prices.some(row => row.date === "2026-11-14"));
+const indiaUpdate = luna.rules.find(row => row.date === "2026-11-17").changes.find(c => c.key === "regionalStandardProcessing");
+assert.equal(indiaUpdate.before.additionalAccessRequirementByRegion.IN, "contact-sales");
+assert.equal(indiaUpdate.after.additionalAccessRequirementByRegion.IN, "none-listed");
+assert.ok(!luna.prices.some(row => row.date === "2026-11-17"));
 assert.ok(!modelHistory(snapshots, "gpt-6.1-terra").rules.some(row => row.date === "2026-11-14"));
 assert.ok(modelHistory(snapshots, "gpt-5.4").prices.some(row => row.retained));
 assert.equal(modelHistory(snapshots, "gpt-5").prices[0].rate.inputCreditsPerMillion, null);
 assert.ok(commonRuleHistory(snapshots).some(row => row.changes.some(c => c.key === "apiCacheWriteLifetimes")));
 const start = Date.parse("2026-09-01T00:00:00Z"), hour = 3600000;
 const now = start + 9 * 86400000;
-const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-11-14" };
+const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-11-17" };
 const token = input => ({ input, cachedInput: 0, output: 0, reasoningOutput: 0, total: input });
 const event = (h, model = "gpt-6-astra", n = 3000000) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), model, tokens: token(n) });
 const observation = (h, p, { primary = true, pool = "codex", plan = "pro", reset = start + 7 * 86400000 } = {}) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), rateLimits: {
@@ -174,7 +178,7 @@ assert.equal(priceEstimation("gpt-6.1-terra",tokenSample,"2026-10-27T00:00:00Z",
 assert.ok(Math.abs(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-10-29","snapshot")-.68)<1e-10);
 assert.equal(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-10-29","historical"),null,"核对日不能充当计费生效日");
 
-for (const version of ["2026-10-29", "2026-11-05", "2026-11-11", "2026-11-14"]) {
+for (const version of ["2026-10-29", "2026-11-05", "2026-11-11", "2026-11-14", "2026-11-17"]) {
   for (const when of ["2026-11-21T12:00:00Z", "2026-12-01T12:00:00Z"]) {
     const tokens = {input:1000000, cachedInput:800000, output:100000, reasoningOutput:0, total:1100000};
     assert.ok(Math.abs(priceEstimation("gpt-5.6-sol", tokens, when, version, "snapshot") - 3.12) < 1e-10);

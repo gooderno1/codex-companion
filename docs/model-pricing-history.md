@@ -38,6 +38,7 @@
 
 | 快照（完整数据） | 本次收录或修订 | 查阅依据 |
 | --- | --- | --- |
+| [2026-11-17](../src/main/collectors/pricing-catalogs/2026-11-17.json) | `gpt-6-luna` 印度区域移除 11-14 快照的联系销售标注。图像仍需审批，具体生效日未知 | [OpenAI 区域处理指南](https://developers.openai.com/api/docs/guides/data-residency) |
 | [2026-11-14](../src/main/collectors/pricing-catalogs/2026-11-14.json) | 修正 Luna 澳大利亚、印度、日本地区准入与图像审批条件 | [v0.7.11 发布记录](../RELEASE_NOTES.md) |
 | [2026-11-11](../src/main/collectors/pricing-catalogs/2026-11-11.json) | 补入七个型号的 API Fast 价格及 Luna 地区处理条件（地区条件见 11-14 修订） | [当次核查](model-pricing-2026-11-11.md) |
 | [2026-11-05](../src/main/collectors/pricing-catalogs/2026-11-05.json) | 区分 GPT-5.6 Sol 促销期限：API 至 11-30，Codex credits 至少至 11-21 | [当次核查](model-pricing-2026-11-05.md) |
