@@ -4,6 +4,10 @@
 - 对应版本：`v0.7.0-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
+## 2026-11-17 区域准入快照
+
+`gpt-6-luna` 的 `regionalStandardProcessing.additionalAccessRequirementByRegion.IN` 从 `contact-sales` 改为 `none-listed`，仅表示地区表未单列条件。图像输入仍需审批。11-14 快照保留旧值，现行规则的 `effectiveFrom` 仍为空。
+
 ## 1. 原始数据来源
 
 ### 独立额度估算（v0.7.0-dev.1）
