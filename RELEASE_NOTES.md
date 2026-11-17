@@ -9,8 +9,14 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 包含 v0.7.13-dev.1。GPT-6 Luna 的印度区域项目在官方地区表中已移除「需联系销售」的标注。图像输入仍需另行审批。 [OpenAI 区域处理指南](https://developers.openai.com/api/docs/guides/data-residency)
 
 - 印度当地项目的 Standard 按量处理仍收取 10% 区域附加费。API USD 和 Codex credits 单价均沿用上一版。
-- 升级后可在额度估算选择 11 月 14 日快照查看旧规则。11 月 17 日为核对日，实际变更日期未知。
+- 升级后可在额度估算选择 11 月 14 日快照重估用量。旧准入条件保存在随包快照与模型计费历史索引中。11 月 17 日为核对日，实际变更日期未知。
 - 发布验证覆盖构建、定价与缓存、历史估算、更新与签名策略。v0.7.12-dev.2 桌面历史入口留在开发主线。
+
+### 正式发布验收
+
+- 发布提交 `cdde0fbc930d3af3f570d6d3622973df050fe2d8` 的 [CI](https://github.com/gooderno1/codex-companion/actions/runs/44056037045) 与 [Windows 打包](https://github.com/gooderno1/codex-companion/actions/runs/44056036987) 均通过。[v0.7.13 正式版](https://github.com/gooderno1/codex-companion/releases/tag/v0.7.13) 于 2026-11-17T09:33:47Z 公开。
+- 安装包版本为 0.7.13，Authenticode 状态为 NotSigned，SHA256 为 `e6967ca7bbe8592d5c0e0ef634e588e18abbe1dd44d159d0cafb9204ba4f23db`。
+- 四项公开下载与工作流的 SHA256 均匹配。blockmap 共 4939 块，覆盖完整安装包的 103039748 字节。stable 更新入口返回相同的 latest.yml。
 
 ## [2026-11-14] v0.7.11 release: GPT-6 Luna 区域计费适用条件
 
