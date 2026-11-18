@@ -13,6 +13,14 @@ Windows 正式发布的签名范围、角色、人工审批、元数据和验证
 - 验证：Windows 构建、定价 / 缓存 / 历史估算和现有发布回归。正式标签 CI、打包与公开附件另记录验收。当前仍为未签名版本。
 - [完整核查、适用条件与官方来源](docs/model-pricing-2026-11-18.md)。
 
+### 正式发布验收
+
+- 发布提交 a7cbcf13578453a69957c6f315fa4b79365957b5 的 [CI](https://github.com/gooderno1/codex-companion/actions/runs/44276688218) 和 [Windows 打包](https://github.com/gooderno1/codex-companion/actions/runs/44276688123) 均通过。[v0.7.15](https://github.com/gooderno1/codex-companion/releases/tag/v0.7.15) 于 2026-11-18T09:35:57Z 成为 stable Latest。
+- 四项匿名下载与工作流、GitHub 附件的 SHA256 一致；latest.yml 的版本、路径、SHA512 与文件大小匹配，stable 更新入口验证通过。
+- 安装包版本 0.7.15，签名状态 NotSigned；blockmap 4941 块覆盖全部 103041369 字节。
+- 安装包 SHA256：f266aabad77b89b9255fd3ca82c253bf0246e317c74a3998f1e3fa801bff7dab。
+- v0.7.16-dev.1 的桌面历史入口同步、中文规则与 v0.7.16-dev.2 验收文档不包含在此稳定安装包中。
+
 ## [2026-11-17] v0.7.13 release: GPT-6 Luna 印度区域准入规则
 
 包含 v0.7.13-dev.1。GPT-6 Luna 的印度区域项目在官方地区表中已移除「需联系销售」的标注。图像输入仍需另行审批。 [OpenAI 区域处理指南](https://developers.openai.com/api/docs/guides/data-residency)
