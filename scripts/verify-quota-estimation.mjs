@@ -33,7 +33,7 @@ assert.equal(modelHistory(snapshots, "gpt-5").prices[0].rate.inputCreditsPerMill
 assert.ok(commonRuleHistory(snapshots).some(row => row.changes.some(c => c.key === "apiCacheWriteLifetimes")));
 const start = Date.parse("2026-09-01T00:00:00Z"), hour = 3600000;
 const now = start + 9 * 86400000;
-const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-11-17" };
+const request = { startAt: new Date(start).toISOString(), endAt: new Date(now).toISOString(), catalogVersion: "2026-11-18" };
 const token = input => ({ input, cachedInput: 0, output: 0, reasoningOutput: 0, total: input });
 const event = (h, model = "gpt-6-astra", n = 3000000) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), model, tokens: token(n) });
 const observation = (h, p, { primary = true, pool = "codex", plan = "pro", reset = start + 7 * 86400000 } = {}) => ({ sessionId: "fixture", timestamp: new Date(start + h * hour).toISOString(), rateLimits: {
@@ -178,10 +178,19 @@ assert.equal(priceEstimation("gpt-6.1-terra",tokenSample,"2026-10-27T00:00:00Z",
 assert.ok(Math.abs(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-10-29","snapshot")-.68)<1e-10);
 assert.equal(priceEstimation("gpt-6.1-sol",tokenSample,request.endAt,"2026-10-29","historical"),null,"核对日不能充当计费生效日");
 
-for (const version of ["2026-10-29", "2026-11-05", "2026-11-11", "2026-11-14", "2026-11-17"]) {
+for (const version of ["2026-10-29", "2026-11-05", "2026-11-11", "2026-11-14", "2026-11-17", "2026-11-18"]) {
   for (const when of ["2026-11-21T12:00:00Z", "2026-12-01T12:00:00Z"]) {
     const tokens = {input:1000000, cachedInput:800000, output:100000, reasoningOutput:0, total:1100000};
     assert.ok(Math.abs(priceEstimation("gpt-5.6-sol", tokens, when, version, "snapshot") - 3.12) < 1e-10);
     assert.equal(priceEstimation("gpt-5.6-sol", tokens, when, version, "historical"), null);
+  }
+}
+
+for (const [model, expected] of [["gpt-6.2-astra", 5.92], ["gpt-6.2-sol", 1.48]]) {
+  const tokens = {input: 1000000, cachedInput: 800000, output: 100000, reasoningOutput: 0, total: 1100000};
+  for (const at of ["2026-11-18T00:00:00Z", "2027-03-01T08:00:00Z"]) {
+    assert.ok(Math.abs(priceEstimation(model, tokens, at, "2026-11-18", "snapshot") - expected) < 1e-10);
+    assert.equal(priceEstimation(model, tokens, at, "2026-11-17", "snapshot"), null);
+    assert.equal(priceEstimation(model, tokens, at, "2026-11-18", "historical"), null);
   }
 }

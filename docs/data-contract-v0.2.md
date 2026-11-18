@@ -4,6 +4,13 @@
 - 对应版本：`v0.7.0-dev.1`
 - 适用范围：桌面主界面、桌面挂件、本地快照存储
 
+## 2026-11-18 新型号与后台规则快照
+
+- 当前目录为 2026-11-18，追加 gpt-6.2-astra / gpt-6.2-sol 的标准 USD 和 credits；精确生效日仍为 null。旧目录不得回填新模型。
+- ultrafastPromotion 区分当前促销、America/Los_Angeles 截止日和 2027-03-01 successor；未来费率不取代当前值。
+- apiBackgroundCompletionWindows 与 apiTopLevelInstructions 保存请求级条件，缺少请求元数据时仅审计，不改变现有标准短上下文估值。详见[本轮核查](model-pricing-2026-11-18.md)。
+- 会话成本缓存版本为 8，活动索引 user_version=108，原始额度索引仍为 1；升级后未变化文件中的未知模型成本也重估，原始 Token 不变。仪表盘只接受当前价格目录，历史页面按选定快照查询。
+
 ## 2026-11-17 区域准入快照
 
 `gpt-6-luna` 的 `regionalStandardProcessing.additionalAccessRequirementByRegion.IN` 从 `contact-sales` 改为 `none-listed`，仅表示地区表未单列条件。图像输入仍需审批。11-14 快照保留旧值，现行规则的 `effectiveFrom` 仍为空。
@@ -185,7 +192,7 @@
 - `gpt-6-astra` 按每百万非缓存输入 / 缓存输入 / 输出 `$10 / $1 / $50`，来源为 [OpenAI GPT-6 Astra 模型页](https://developers.openai.com/api/docs/models/gpt-6-astra)，核对日期 `2026-09-17`。`1,000,000` 输入（其中 `800,000` 缓存）和 `100,000` 输出的标准估算为 `$7.80`。
 - 当前事件字段不足以还原每次请求的服务档位、缓存写入量、写入时长及长上下文计价，因此成本不含上述调整。GPT-6 Astra 官方还定义了30m / 12h 缓存写入 `$12.50 / $25/M`、超过 `272K` 输入的长上下文倍率及 Fast / Batch / Flex 档位；不能用周期累计 Token 触发这些请求级倍率。
 - 模型匹配接受已登记名称、已登记基础型号的日期后缀，以及官网明确的 gpt-5.6 / Daybreak Blue / Red 别名；未知型号保持未定价。GPT-6 Astra 标准 credits 为 250 / 25 / 1250 每百万输入 / 缓存读取 / 输出，不通过美元反推。
-- 会话缓存版本为 7，SQLite 索引 user_version 为 107；升级后即使源文件未变化，也重估 Terra 原未知成本，原始 Token 不变。仪表盘 pricingCatalogVersion 必须匹配 2026-11-17；启动与失败回退拒绝旧目录。原始额度索引版本 1 复用，换快照只重算派生值。
+- 2026-10-27 时会话缓存版本为 7，SQLite 索引 user_version 为 107；升级后即使源文件未变化，也重估 Terra 原未知成本，原始 Token 不变。仪表盘 pricingCatalogVersion 必须匹配当前目录（现为 2026-11-18）；启动与失败回退拒绝旧目录。原始额度索引版本 1 复用，换快照只重算派生值。
 - 2026-10-09 规则补充：GPT-6.1 Sol Ultrafast API / 购买 credits 6 倍、订阅额度 8 倍；当时 EU Fast 支持 6.1 Sol / 6 Sol / 6 Luna（10-24 核对已移除 6 Sol，旧快照保持）。仅保存审计规则，不将档位、地区或可用日期套入 Standard 估值和历史账单。
 - 2026-10-21 规则补充：Responses API 的 8 个已定价 GPT-5.6 / GPT-6 系列模型新增 12h 写入单价；旧 cacheWriteUsdPerMillion 仍表示默认 30m，新增 cacheWrite12hUsdPerMillion 与各档短 / 长上下文表。billingRules.apiCacheWriteLifetimes 保存覆盖、升级及互斥分项规则；API 可用日不填入历史生效日，未知写入不能自动加价。Codex credits 无独立写入费。
 - 2026-10-24 规则修正：GPT-6 Sol EU 服务档位仅 Standard / Flex / Batch，euFastAvailable=false；不改其他地区 Fast 单价、6.1 Sol / Luna EU Fast、标准估值或旧快照。euFastEffectiveFrom=null，不能将核对日期当历史生效时间。
