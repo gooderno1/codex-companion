@@ -8,6 +8,8 @@
 
 | 模型 ID | API 公告日 | 开放范围或另一个已核实的节点 | 首份价格快照 |
 | --- | --- | --- | --- |
+| `gpt-6.2-astra` | 2026-11-17 | API / Codex / Work 同日开放；[官方公告](https://learn.chatgpt.com/docs/whats-new/gpt-62-astra-sol) | [2026-11-18](../src/main/collectors/pricing-catalogs/2026-11-18.json) |
+| `gpt-6.2-sol` | 2026-11-17 | API / Codex / Work 同日开放；[官方公告](https://learn.chatgpt.com/docs/whats-new/gpt-62-astra-sol) | [2026-11-18](../src/main/collectors/pricing-catalogs/2026-11-18.json) |
 | `gpt-6.1-terra` | 2026-10-26 | Codex 与 Work 同日开放 | [2026-10-27](../src/main/collectors/pricing-catalogs/2026-10-27.json) |
 | `gpt-6.1-sol` | 2026-09-29 | API 发布 | [2026-09-30](../src/main/collectors/pricing-catalogs/2026-09-30.json) |
 | `gpt-6-sol` | 2026-09-22 | API 发布 | [2026-09-23](../src/main/collectors/pricing-catalogs/2026-09-23.json) |
@@ -38,6 +40,7 @@
 
 | 快照（完整数据） | 本次收录或修订 | 查阅依据 |
 | --- | --- | --- |
+| [2026-11-18](../src/main/collectors/pricing-catalogs/2026-11-18.json) | 收录 GPT-6.2 Astra / Sol 的 USD、credits、速度促销、缓存和长上下文规则；四个型号新增后台完成窗口，实际价格生效日未知 | [当次核查](model-pricing-2026-11-18.md) |
 | [2026-11-17](../src/main/collectors/pricing-catalogs/2026-11-17.json) | `gpt-6-luna` 印度区域移除 11-14 快照的联系销售标注。图像仍需审批，具体生效日未知 | [OpenAI 区域处理指南](https://developers.openai.com/api/docs/guides/data-residency) |
 | [2026-11-14](../src/main/collectors/pricing-catalogs/2026-11-14.json) | 修正 Luna 澳大利亚、印度、日本地区准入与图像审批条件 | [v0.7.11 发布记录](../RELEASE_NOTES.md) |
 | [2026-11-11](../src/main/collectors/pricing-catalogs/2026-11-11.json) | 补入七个型号的 API Fast 价格及 Luna 地区处理条件（地区条件见 11-14 修订） | [当次核查](model-pricing-2026-11-11.md) |

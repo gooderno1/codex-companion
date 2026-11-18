@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 const require = createRequire(import.meta.url);
 const { estimateApiCostUsd, estimateCodexCredits, resolvePricingRate, PRICING_CATALOG_VERSION, PRICING_CATALOG_HISTORY } = require("../dist-electron/main/collectors/pricing.js");
 const { DashboardService } = require("../dist-electron/main/collectors/dashboardCollector.js");
-const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-11-17.json", import.meta.url)));
+const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-11-18.json", import.meta.url)));
 const sample = { input: 1000000, cachedInput: 800000, output: 100000, reasoningOutput: 50000, total: 1100000 };
 for (const [model,usd,credits] of [
   ["gpt-6.1-terra",.74,18.5],["gpt-rosalind-research",3.9,97.5],["gpt-6.1-sol",1.48,37],["gpt-6.1-sol-2026-09-30",1.48,37],["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
@@ -45,7 +45,7 @@ const old = {...cache,pricingCatalogVersion:"old",sourceHealth:{refreshHistory:[
 const service = new DashboardService({read:async()=>({get codexHome(){throw new Error("synthetic collection failure");}})},{read:async()=>old});
 await assert.rejects(service.getSnapshot(true),/synthetic collection failure/);
 
-assert.equal(PRICING_CATALOG_VERSION,"2026-11-17");
+assert.equal(PRICING_CATALOG_VERSION,"2026-11-18");
 assert.equal(PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-19").rates["gpt-6-sol"],undefined);
 for (const model of ["gpt-6.1-sol","gpt-6-sol","gpt-6-luna"]) {
   assert.equal(catalog.rules[model].apiFastMultiplier,2);
@@ -162,7 +162,7 @@ assert.equal(terra.apiUltrafastMultiplier,null);
 console.log("Terra 回归通过：独立模型、缓存读写与档位、旧目录及未知历史边界。");
 
 const october27 = PRICING_CATALOG_HISTORY.find(c => c.catalogVersion === "2026-10-27");
-assert.deepEqual(catalog.rates, october27.rates, "套餐长上下文规则不改 API 或 credits 单价");
+for (const [model, rate] of Object.entries(october27.rates)) assert.deepEqual(catalog.rates[model], rate);
 assert.deepEqual(catalog.aliases, october27.aliases);
 assert.equal(october27.rules["gpt-6.1-sol"].codexSubscriptionLongContext, undefined, "旧规则快照不改写");
 assert.deepEqual(catalog.rules["gpt-6.1-sol"].longContext, october27.rules["gpt-6.1-sol"].longContext, "API >272K 加价保持");
@@ -189,7 +189,7 @@ assert.equal(promotion.api.successorRates, null, "没有公布优惠之后的价
 assert.equal(promotion.codexCredits.atLeastThrough, "2026-11-21");
 assert.equal(promotion.apiFastGuide.atLeastThrough, "2026-11-21");
 assert.deepEqual(october29.rules["gpt-5.6-sol"].promotion, {atLeastThrough:"2026-11-21", expiresAt:null});
-assert.deepEqual(catalog.rates, october29.rates);
+for (const [model, rate] of Object.entries(october29.rates)) assert.deepEqual(catalog.rates[model], rate);
 assert.deepEqual(catalog.aliases, october29.aliases);
 assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: october29.catalogVersion})}).getCachedSnapshot(), null);
 
@@ -203,16 +203,16 @@ assert.equal(regional.requiredRetention, undefined);
 assert.deepEqual(regional.additionalAccessRequirementByRegion, {AU: "none-listed", IN: "none-listed", JP: "none-listed"});
 const november14 = PRICING_CATALOG_HISTORY.find(c => c.catalogVersion === "2026-11-14");
 assert.equal(november14.rules["gpt-6-luna"].regionalStandardProcessing.additionalAccessRequirementByRegion.IN, "contact-sales");
-assert.deepEqual(catalog.rates, november14.rates);
+for (const [model, rate] of Object.entries(november14.rates)) assert.deepEqual(catalog.rates[model], rate);
 assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: november14.catalogVersion})}).getCachedSnapshot(), null);
 assert.equal(regional.imageInputRequiresApproval, true);
-assert.deepEqual(catalog.rates, november11.rates);
+for (const [model, rate] of Object.entries(november11.rates)) assert.deepEqual(catalog.rates[model], rate);
 assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: november11.catalogVersion})}).getCachedSnapshot(), null);
 assert.deepEqual(regional.endpoints, ["/v1/responses", "/v1/chat/completions"]);
 assert.equal(regional.hostedTools, false);
 assert.equal(regional.effectiveFrom, null);
 assert.equal(november5.rules["gpt-6-luna"].regionalStandardProcessing, undefined);
-assert.deepEqual(catalog.rates, november5.rates);
+for (const [model, rate] of Object.entries(november5.rates)) assert.deepEqual(catalog.rates[model], rate);
 assert.deepEqual(catalog.aliases, november5.aliases);
 for (const [id, [input, cachedInput, output]] of Object.entries({
   "gpt-5.5": [
@@ -256,3 +256,48 @@ for (const [id, [input, cachedInput, output]] of Object.entries({
 }
 assert.equal(catalog.rules["gpt-5.2-codex"]?.apiFastShortContextUsdPerMillion, undefined);
 assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: november5.catalogVersion})}).getCachedSnapshot(), null);
+
+const november17 = PRICING_CATALOG_HISTORY.find(c => c.catalogVersion === "2026-11-17");
+for (const [model, usd, credits, cached, write30m, write12h] of [
+  ["gpt-6.2-astra", 5.92, 148, .4, 10, 20],
+  ["gpt-6.2-sol", 1.48, 37, .1, 2.5, 5]
+]) {
+  assert.ok(Math.abs(estimateApiCostUsd(model, sample) - usd) < 1e-10);
+  assert.ok(Math.abs(estimateCodexCredits(model, sample) - credits) < 1e-10);
+  assert.equal(estimateApiCostUsd(model, {...sample, cachedInput: 1000000, output: 0}), cached);
+  assert.equal(november17.rates[model], undefined);
+  assert.equal(resolvePricingRate(model + "-pro"), null);
+  assert.equal(resolvePricingRate(model + "-mini"), null);
+  const rule = catalog.rules[model];
+  assert.equal(rule.cacheWriteUsdPerMillion, write30m);
+  assert.equal(rule.cacheWrite12hUsdPerMillion, write12h);
+  assert.equal(rule.apiFlexMultiplier, null);
+  assert.equal(rule.apiFastMultiplier, 2);
+  assert.equal(rule.codexFastSubscriptionMultiplier, 2);
+  assert.equal(rule.apiUltrafastMultiplier, 3);
+  assert.equal(rule.codexUltrafastMultiplier, 3);
+  assert.equal(rule.codexUltrafastSubscriptionMultiplier, 6);
+  assert.equal(rule.ultrafastPromotion.successor.fromDate, "2027-03-01");
+  assert.equal(rule.ultrafastPromotion.successor.apiMultiplier, 6);
+  assert.equal(rule.ultrafastPromotion.timeZone, "America/Los_Angeles");
+  assert.equal(rule.apiEffectiveFrom, null);
+  assert.equal(rule.codexEffectiveFrom, null);
+  assert.equal(rule.longContext.threshold, 272000);
+  assert.equal(rule.longContext.scope, "request");
+  assert.equal(rule.cacheWrite12hPricesByTier.ultrafast.shortContextUsdPerMillion, write12h * 3);
+  assert.equal(rule.cacheWrite12hPricesByTier.ultrafast.longContextUsdPerMillion, write12h * 6);
+  assert.equal(rule.apiTopLevelInstructions.chargeMode, "uncached-input-every-request");
+}
+assert.equal(resolvePricingRate("gpt-6.2"), null);
+assert.equal(resolvePricingRate("gpt-6.2-astra-law"), null);
+for (const model of ["gpt-6.2-astra", "gpt-6.2-sol", "gpt-6.1-terra", "gpt-6-luna"]) {
+  const rule = catalog.rules[model].apiBackgroundCompletionWindows;
+  assert.deepEqual(rule.multipliers, {"2h": .7, "8h": .6});
+  assert.equal(rule.defaultWindowMultiplier, 1);
+  assert.deepEqual(rule.serviceTiers, ["default", "auto-when-standard"]);
+  assert.equal(rule.ordinaryStandardCanReuseDiscountedCache, false);
+  assert.equal(november17.rules[model]?.apiBackgroundCompletionWindows, undefined);
+}
+assert.equal(catalog.rules["gpt-6.1-sol"].apiBackgroundCompletionWindows, undefined);
+assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: "2026-11-17"})}).getCachedSnapshot(), null);
+console.log("GPT-6.2 新型号、分档促销、后台窗口、未知变体、旧快照及缓存回归通过。");

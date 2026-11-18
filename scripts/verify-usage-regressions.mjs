@@ -82,13 +82,14 @@ for (const model of ["gpt-6", "gpt-6-astra-pro", "gpt-5.6-unknown", "gpt-5-unkno
   assert.equal(resolvePricingRate(model), null, `未知模型不能套用其他单价：${model}`);
 }
 
+for (const [model, expectedUsd, expectedCredits] of [["gpt-6.1-terra", .74, 18.5], ["gpt-6.2-astra", 5.92, 148], ["gpt-6.2-sol", 1.48, 37]]) {
 const fixtureHome = await mkdtemp(path.join(os.tmpdir(), "companion-usage-regression-"));
 try {
   await mkdir(path.join(fixtureHome, "sessions"));
   const timestamp = "2026-09-17T04:00:00.000Z";
   const lines = [
     { type: "session_meta", payload: { id: "fixture", timestamp } },
-    { type: "turn_context", payload: { model: "gpt-6.1-terra" } },
+    { type: "turn_context", payload: { model } },
     { type: "event_msg", timestamp, payload: { type: "token_count", info: { total_token_usage: { input_tokens: 1_000_000, cached_input_tokens: 800_000, output_tokens: 100_000, total_tokens: 1_100_000 } } } }
   ];
   await writeFile(path.join(fixtureHome, "sessions", "rollout-2026-09-17T04-00-00-fixture.jsonl"), lines.map((line) => JSON.stringify(line)).join("\n"));
@@ -96,21 +97,22 @@ try {
   const sessionCacheStore = { read: async () => cache, write: async (value) => { cache = value; } };
   const options = { codexHome: fixtureHome, sessionCacheStore };
   await collectCodexData(new Date(timestamp), options);
-  cache.version = 6;
+  cache.version = 7;
   for (const entry of Object.values(cache.entries)) {
     for (const event of entry.result.events) { event.apiCostUsd = null; event.creditsEstimate = null; event.creditPricingStatus = "unpriced"; }
     entry.result.session.apiCostUsd = 0;
   }
   const refreshed = await collectCodexData(new Date(timestamp), options);
   assert.equal(refreshed.cacheStats.parsedFiles, 1, "升级后须重新解析未改动的旧成本缓存");
-  assert.equal(refreshed.events[0].apiCostUsd, .74);
-  assert.equal(refreshed.events[0].creditsEstimate, 18.5);
+  assert.equal(refreshed.events[0].apiCostUsd, expectedUsd);
+  assert.equal(refreshed.events[0].creditsEstimate, expectedCredits);
   assert.equal(refreshed.events[0].creditPricingStatus, "priced");
-  assert.equal(refreshed.sessions[0].apiCostUsd, .74);
+  assert.equal(refreshed.sessions[0].apiCostUsd, expectedUsd);
   const reused = await collectCodexData(new Date(timestamp), options);
   assert.equal(reused.cacheStats.reusedFiles, 1);
-  assert.equal(reused.events[0].apiCostUsd, .74);
+  assert.equal(reused.events[0].apiCostUsd, expectedUsd);
 } finally {
   await rm(fixtureHome, { recursive: true, force: true });
+}
 }
 console.log("用量回归通过：reset 边界归属、旧周期证据、Token 时间归属、额度池隔离、GPT-6 定价、缓存去重计费与旧缓存迁移。");
