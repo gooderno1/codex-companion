@@ -2,7 +2,20 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.15` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前定价发布仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-11-25] v0.7.17 release: 补齐 Rosalind、Cyber 与 Astra Law 计费
+
+- 包含 v0.7.17-dev.1，基于 v0.7.15 稳定版。开发主线的桌面历史入口保留在 v0.7.16 开发迭代。
+- 新增五个精确模型 ID 的 API USD 和 Codex credits 标准价。按 11-25 快照重估已记录的用量，旧快照仍可选择；升级无需手动清理缓存。
+- 缓存读写、长上下文和促销按官方证据记录。已知未知项及合成验证样例见 [11-25 核查记录](docs/model-pricing-2026-11-25.md)。
+- 本地构建、价格与缓存回归、历史估算和现有发布检查通过。
+
+### 正式发布验收
+
+- 发布提交 `ccd01644b5cbf22ef18f94cc969fdd7ab4ea8e46` 的 [CI](https://github.com/gooderno1/codex-companion/actions/runs/45587512168) 与 [Windows 打包](https://github.com/gooderno1/codex-companion/actions/runs/45587512200) 通过。[v0.7.17](https://github.com/gooderno1/codex-companion/releases/tag/v0.7.17) 于 2026-11-25T09:46:10Z 成为 stable Latest。
+- 四项附件从公开入口下载后均与工作流产物的 SHA256 一致。latest.yml 的版本、路径、大小和 SHA512 匹配。blockmap 4942 块覆盖全部 103043318 字节。
+- 安装包版本 0.7.17，Authenticode 为 `NotSigned`。安装包 SHA256 为 `556a50f6a967ab1335b7a1326d1ac6b5587acd1470ab30278d157209c1fb23a0`。
 
 ## [2026-11-18] v0.7.15 release: GPT-6.2 价格与后台完成窗口
 

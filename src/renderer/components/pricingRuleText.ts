@@ -1,4 +1,10 @@
 const labels: Record<string, string> = {
+  apiStandardLongContextUsdPerMillion: "API Standard 长上下文（USD／百万 Token）",
+  apiStandaloneFedRampMultiplier: "独立 FedRAMP 端点 API 倍率",
+  cacheWrite30m: "30 分钟缓存写入",
+  cacheWrite12h: "12 小时缓存写入",
+  codexFastAvailable: "Codex Fast 可用",
+  codexUltrafastAvailable: "Codex Ultrafast 可用",
   "ultrafastPromotion": "Ultrafast 促销",
   "throughDate": "持续至",
   "timeZone": "时区",

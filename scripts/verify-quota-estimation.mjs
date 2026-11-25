@@ -18,6 +18,11 @@ for (const model of snapshots.flatMap(s => Object.keys(s.rates))) assert.ok(inde
 const research = modelHistory(snapshots, "gpt-rosalind-research");
 assert.equal(research.prices.at(-1).date, "2026-10-08");
 assert.equal(research.rules.at(-1).date, "2026-09-19");
+for (const id of ["gpt-6-rosalind","gpt-rosalind-discovery","gpt-6-cyber","gpt-6-astra-law","gpt-6.2-astra-law"]) {
+  const timeline = modelHistory(snapshots, id);
+  assert.deepEqual(timeline.prices.map(entry => entry.date), ["2026-11-25"], id);
+  assert.equal(timeline.rules[0].date, "2026-11-25", id);
+}
 const luna = modelHistory(snapshots, "gpt-6-luna");
 const regionChange = luna.rules.find(row => row.date === "2026-11-14").changes.find(c => c.key === "regionalStandardProcessing");
 assert.equal(regionChange.before.requiredRetention, "zero-data-retention");
@@ -193,4 +198,11 @@ for (const [model, expected] of [["gpt-6.2-astra", 5.92], ["gpt-6.2-sol", 1.48]]
     assert.equal(priceEstimation(model, tokens, at, "2026-11-17", "snapshot"), null);
     assert.equal(priceEstimation(model, tokens, at, "2026-11-18", "historical"), null);
   }
+}
+
+for (const [id, value] of [["gpt-6-rosalind", 7.8], ["gpt-rosalind-discovery", 3.9], ["gpt-6-cyber", 15.6], ["gpt-6-astra-law", 7.8], ["gpt-6.2-astra-law", 5.92]]) {
+  const tokens = {input:1000000, cachedInput:800000, output:100000, reasoningOutput:0, total:1100000};
+  assert.ok(Math.abs(priceEstimation(id, tokens, request.endAt, "2026-11-25", "snapshot") - value) < 1e-10, id);
+  assert.equal(priceEstimation(id, tokens, request.endAt, "2026-11-18", "snapshot"), null);
+  assert.equal(priceEstimation(id, tokens, request.endAt, "2026-11-25", "historical"), null);
 }
