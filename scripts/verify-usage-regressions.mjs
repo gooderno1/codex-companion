@@ -82,7 +82,7 @@ for (const model of ["gpt-6", "gpt-6-astra-pro", "gpt-5.6-unknown", "gpt-5-unkno
   assert.equal(resolvePricingRate(model), null, `未知模型不能套用其他单价：${model}`);
 }
 
-for (const [model, expectedUsd, expectedCredits] of [["gpt-6.1-terra", .74, 18.5], ["gpt-6.2-astra", 5.92, 148], ["gpt-6.2-sol", 1.48, 37]]) {
+for (const [model, expectedUsd, expectedCredits] of [["gpt-6.1-terra", .74, 18.5], ["gpt-6.2-astra", 5.92, 148], ["gpt-6.2-sol", 1.48, 37], ["gpt-6-rosalind", 7.8, 195], ["gpt-rosalind-discovery", 3.9, 97.5]]) {
 const fixtureHome = await mkdtemp(path.join(os.tmpdir(), "companion-usage-regression-"));
 try {
   await mkdir(path.join(fixtureHome, "sessions"));
@@ -97,7 +97,7 @@ try {
   const sessionCacheStore = { read: async () => cache, write: async (value) => { cache = value; } };
   const options = { codexHome: fixtureHome, sessionCacheStore };
   await collectCodexData(new Date(timestamp), options);
-  cache.version = 7;
+  cache.version = 8;
   for (const entry of Object.values(cache.entries)) {
     for (const event of entry.result.events) { event.apiCostUsd = null; event.creditsEstimate = null; event.creditPricingStatus = "unpriced"; }
     entry.result.session.apiCostUsd = 0;

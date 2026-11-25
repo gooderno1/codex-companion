@@ -2,7 +2,14 @@
 
 ## Code signing policy
 
-Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前 `v0.7.15` 仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+Windows 正式发布的签名范围、角色、人工审批、元数据和验证规则见 [CODE_SIGNING_POLICY.md](./CODE_SIGNING_POLICY.md)。当前定价发布仍为未签名版本；固定 stable Release 自动下载和用户确认安装继续开放，普通退出不安装。如后续取得可用签名，再切换为可信 publisher 校验。
+
+## [2026-11-25] v0.7.17 release: 补齐 Rosalind、Cyber 与 Astra Law 计费
+
+- 包含 v0.7.17-dev.1，基于 v0.7.15 稳定版。开发主线的桌面历史入口保留在 v0.7.16 开发迭代。
+- 新增五个精确模型 ID 的 API USD 和 Codex credits 标准价。按 11-25 快照重估已记录的用量，旧快照仍可选择；升级无需手动清理缓存。
+- 缓存读写、长上下文和促销按官方证据记录。已知未知项及合成验证样例见 [11-25 核查记录](docs/model-pricing-2026-11-25.md)。
+- 发布验收以本地构建、回归、标签 CI、Windows 打包和公开附件验证结果为准。当前签名政策仍使用未签名发布。
 
 ## [2026-11-18] v0.7.15 release: GPT-6.2 价格与后台完成窗口
 

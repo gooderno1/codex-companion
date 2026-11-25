@@ -172,3 +172,10 @@ for (const [model, expected] of [["gpt-6.2-astra", 5.92], ["gpt-6.2-sol", 1.48]]
     assert.equal(priceEstimation(model, tokens, at, "2026-11-18", "historical"), null);
   }
 }
+
+for (const [id, value] of [["gpt-6-rosalind", 7.8], ["gpt-rosalind-discovery", 3.9], ["gpt-6-cyber", 15.6], ["gpt-6-astra-law", 7.8], ["gpt-6.2-astra-law", 5.92]]) {
+  const tokens = {input:1000000, cachedInput:800000, output:100000, reasoningOutput:0, total:1100000};
+  assert.ok(Math.abs(priceEstimation(id, tokens, request.endAt, "2026-11-25", "snapshot") - value) < 1e-10, id);
+  assert.equal(priceEstimation(id, tokens, request.endAt, "2026-11-18", "snapshot"), null);
+  assert.equal(priceEstimation(id, tokens, request.endAt, "2026-11-25", "historical"), null);
+}

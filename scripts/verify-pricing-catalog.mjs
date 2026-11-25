@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 const require = createRequire(import.meta.url);
 const { estimateApiCostUsd, estimateCodexCredits, resolvePricingRate, PRICING_CATALOG_VERSION, PRICING_CATALOG_HISTORY } = require("../dist-electron/main/collectors/pricing.js");
 const { DashboardService } = require("../dist-electron/main/collectors/dashboardCollector.js");
-const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-11-18.json", import.meta.url)));
+const catalog = JSON.parse(readFileSync(new URL("../src/main/collectors/pricing-catalogs/2026-11-25.json", import.meta.url)));
 const sample = { input: 1000000, cachedInput: 800000, output: 100000, reasoningOutput: 50000, total: 1100000 };
 for (const [model,usd,credits] of [
   ["gpt-6.1-terra",.74,18.5],["gpt-rosalind-research",3.9,97.5],["gpt-6.1-sol",1.48,37],["gpt-6.1-sol-2026-09-30",1.48,37],["gpt-6-sol",1.56,39],["gpt-6-luna",.078,1.95],["gpt-6-sol-2026-09-23",1.56,39],["gpt-6-astra",7.8,195],["gpt-5.6-sol",3.12,78],["gpt-5.6",3.12,78],
@@ -45,7 +45,7 @@ const old = {...cache,pricingCatalogVersion:"old",sourceHealth:{refreshHistory:[
 const service = new DashboardService({read:async()=>({get codexHome(){throw new Error("synthetic collection failure");}})},{read:async()=>old});
 await assert.rejects(service.getSnapshot(true),/synthetic collection failure/);
 
-assert.equal(PRICING_CATALOG_VERSION,"2026-11-18");
+assert.equal(PRICING_CATALOG_VERSION,"2026-11-25");
 assert.equal(PRICING_CATALOG_HISTORY.find(c=>c.catalogVersion==="2026-09-19").rates["gpt-6-sol"],undefined);
 for (const model of ["gpt-6.1-sol","gpt-6-sol","gpt-6-luna"]) {
   assert.equal(catalog.rules[model].apiFastMultiplier,2);
@@ -118,7 +118,7 @@ assert.equal(ttl.availableFrom,"2026-10-20");
 assert.equal(ttl.effectiveFrom,null,"公告可用日不是完整历史价格生效时间");
 assert.equal(catalog.rules["gpt-rosalind-research"].cacheWrite12hUsdPerMillion,undefined);
 assert.equal(catalog.rules["gpt-5.5"].cacheWrite12hUsdPerMillion,undefined);
-assert.equal(resolvePricingRate("gpt-rosalind-discovery"),null);
+assert.equal(resolvePricingRate("gpt-rosalind-discovery-pro"),null);
 assert.equal(catalog.rules["gpt-5.6-cyber"].cacheWrite12hPricesByTier.standard.longContextUsdPerMillion,null);
 assert.equal(catalog.rules["gpt-5.6-cyber"].cacheWrite12hPricesByTier.fast,undefined);
 assert.deepEqual(sol.cacheWrite12hPricesByTier.ultrafast,{shortContextUsdPerMillion:30,longContextUsdPerMillion:60});
@@ -289,7 +289,7 @@ for (const [model, usd, credits, cached, write30m, write12h] of [
   assert.equal(rule.apiTopLevelInstructions.chargeMode, "uncached-input-every-request");
 }
 assert.equal(resolvePricingRate("gpt-6.2"), null);
-assert.equal(resolvePricingRate("gpt-6.2-astra-law"), null);
+assert.equal(resolvePricingRate("gpt-6.2-astra-healthcare"), null);
 for (const model of ["gpt-6.2-astra", "gpt-6.2-sol", "gpt-6.1-terra", "gpt-6-luna"]) {
   const rule = catalog.rules[model].apiBackgroundCompletionWindows;
   assert.deepEqual(rule.multipliers, {"2h": .7, "8h": .6});
@@ -301,3 +301,25 @@ for (const model of ["gpt-6.2-astra", "gpt-6.2-sol", "gpt-6.1-terra", "gpt-6-lun
 assert.equal(catalog.rules["gpt-6.1-sol"].apiBackgroundCompletionWindows, undefined);
 assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: "2026-11-17"})}).getCachedSnapshot(), null);
 console.log("GPT-6.2 新型号、分档促销、后台窗口、未知变体、旧快照及缓存回归通过。");
+
+const november18 = PRICING_CATALOG_HISTORY.find(c => c.catalogVersion === "2026-11-18");
+for (const [id, rate] of Object.entries(november18.rates)) assert.deepEqual(catalog.rates[id], rate, id);
+assert.deepEqual(catalog.aliases, november18.aliases);
+for (const [id, usd, credits] of [
+  ["gpt-6-rosalind", 7.8, 195],
+  ["gpt-rosalind-discovery", 3.9, 97.5],
+  ["gpt-6-cyber", 15.6, 390],
+  ["gpt-6-astra-law", 7.8, 195],
+  ["gpt-6.2-astra-law", 5.92, 148]
+]) {
+  assert.equal(november18.rates[id], undefined);
+  assert.ok(Math.abs(estimateApiCostUsd(id, sample) - usd) < 1e-10, id);
+  assert.equal(estimateCodexCredits(id, sample), credits, id);
+  assert.equal(catalog.rules[id].apiEffectiveFrom, null);
+  assert.equal(catalog.rules[id].codexEffectiveFrom, null);
+}
+assert.equal(catalog.rules["gpt-6-cyber"].longContext.threshold, 272000);
+assert.equal(catalog.rules["gpt-6-cyber"].apiStandardLongContextUsdPerMillion.cacheWrite12h, null);
+assert.equal(catalog.rules["gpt-6-rosalind"].promotion.codexCredits.successorRates, null);
+assert.equal(await new DashboardService({}, {read: async () => ({...cache, pricingCatalogVersion: "2026-11-18"})}).getCachedSnapshot(), null);
+console.log("专用型号标准估值、未知字段、历史快照与旧仪表盘缓存回归通过。");

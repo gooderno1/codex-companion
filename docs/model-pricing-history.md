@@ -8,7 +8,13 @@
 
 | 模型 ID | API 公告日 | 开放范围或另一个已核实的节点 | 首份价格快照 |
 | --- | --- | --- | --- |
-| `gpt-6.2-astra` | 2026-11-17 | API / Codex / Work 同日开放；[官方公告](https://learn.chatgpt.com/docs/whats-new/gpt-62-astra-sol) | [2026-11-18](../src/main/collectors/pricing-catalogs/2026-11-18.json) |
+| `gpt-6-rosalind` | 2026-10-30 | API、Work 与 Codex 自 10-30 分批向获批组织开放 | [2026-11-25](../src/main/collectors/pricing-catalogs/2026-11-25.json) |
+| `gpt-rosalind-discovery` | 未知 | 官方确认 API、Work 与 Codex 的 Discovery 档；首日未知 | [2026-11-25](../src/main/collectors/pricing-catalogs/2026-11-25.json) |
+| `gpt-6-cyber` | 2026-11-05 | API 公告 11-05；另有独立审批的 Codex 计费 | [2026-11-25](../src/main/collectors/pricing-catalogs/2026-11-25.json) |
+| `gpt-6-astra-law` | 未知 | 09-17 配置公告确认 ChatGPT 与 Codex 受限开放，API 首日未知 | [2026-11-25](../src/main/collectors/pricing-catalogs/2026-11-25.json) |
+| `gpt-6.2-astra-law` | 2026-11-17 | 11-17 配置公告，API 与 Work/Codex 账单价目表单列 | [2026-11-25](../src/main/collectors/pricing-catalogs/2026-11-25.json) |
+| `gpt-6.2-astra` | 2026-11-17 | API / Codex / Work 同日开放；[官方公告](https://learn.chatgpt.com/docs/whats-new/gpt-62-astra-sol) | [2026-11-25](../src/main/collectors/pricing-catalogs/2026-11-25.json) | 追加 Rosalind、Cyber 与 Astra Law 五个精确型号及可核实的计费规则。生效日未知 | [当次核查](model-pricing-2026-11-25.md) |
+| [2026-11-18](../src/main/collectors/pricing-catalogs/2026-11-18.json) |
 | `gpt-6.2-sol` | 2026-11-17 | API / Codex / Work 同日开放；[官方公告](https://learn.chatgpt.com/docs/whats-new/gpt-62-astra-sol) | [2026-11-18](../src/main/collectors/pricing-catalogs/2026-11-18.json) |
 | `gpt-6.1-terra` | 2026-10-26 | Codex 与 Work 同日开放 | [2026-10-27](../src/main/collectors/pricing-catalogs/2026-10-27.json) |
 | `gpt-6.1-sol` | 2026-09-29 | API 发布 | [2026-09-30](../src/main/collectors/pricing-catalogs/2026-09-30.json) |

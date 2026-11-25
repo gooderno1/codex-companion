@@ -85,7 +85,7 @@ try {
   local.close();
   index.close();
   const stale = new DatabaseSync(path.join(store, dbFile));
-  stale.exec("PRAGMA user_version=107");
+  stale.exec("PRAGMA user_version=108");
   for (const row of stale.prepare("SELECT file,seq,payload FROM events").all()) {
     const event = JSON.parse(row.payload); event.apiCostUsd = null; event.creditsEstimate = null;
     stale.prepare("UPDATE events SET payload=? WHERE file=? AND seq=?").run(JSON.stringify(event), row.file, row.seq);
